@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#10131a" />
+    <title>Touchscreen Launchpad</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">Audio playground</p>
+          <h1>Touchscreen Launchpad</h1>
+          <p class="subtitle">Tap a pad to trigger a prototype sound.</p>
+        </div>
+        <span class="status-badge">Prototype</span>
+      </header>
+
+      <section class="controls" aria-label="Launchpad controls">
+        <button id="stop-all" class="control-button" type="button">Stop all</button>
+        <label class="tempo-control">
+          <span>Tempo</span>
+          <input id="tempo" type="number" min="60" max="200" value="120" />
+          <span>BPM</span>
+        </label>
+        <p id="status" class="status-message" role="status" aria-live="polite">
+          Tap a pad to start audio.
+        </p>
+      </section>
+
+      <section id="pad-grid" class="pad-grid" aria-label="Launchpad pad grid"></section>
+
+      <footer class="app-footer">
+        <span>Touch, mouse, or keyboard</span>
+        <span>Web Audio API</span>
+      </footer>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
