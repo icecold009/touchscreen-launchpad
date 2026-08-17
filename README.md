@@ -1,27 +1,43 @@
 # Touchscreen Launchpad
 
-A browser-based launchpad for triggering samples and loops from a touchscreen laptop.
+A local-first browser launchpad for triggering samples and loops from a laptop or touchscreen device.
 
-This repository starts with a dependency-free prototype scaffold. The current pad grid uses Web Audio synthesis so it can be tested before sample assets are added.
+## MVP features
 
-## Current scaffold
+- Responsive 4x4 pad grid with touch, mouse, keyboard, and accessible focus controls
+- Local WAV, MP3, OGG, M4A, AAC, and FLAC sample loading
+- One-shot and loop playback with per-pad volume
+- Optional BPM quantization for loop starts and stops
+- Stop-all control, master volume, and tempo control
+- Pad names, keyboard shortcuts, colors, and playback modes
+- Layout persistence in local storage and JSON import/export
+- Sample persistence in IndexedDB; audio files never leave the browser
+- Installable offline application shell through a service worker
+- Preview tones for pads without an assigned sample
 
-- Responsive 4x4 touch-friendly pad grid
-- Keyboard-accessible pads
-- Web Audio startup and stop-all control
-- Tempo control placeholder for future beat synchronization
-- Empty `samples/` directory ready for local WAV or MP3 assets
+## Run locally
 
-## Run it
-
-Clone the repository and open `index.html` in a modern browser such as Edge or Chrome:
+The app has no build step or dependency install. Serve the repository over HTTP so the service worker can run:
 
 ```bash
-git clone https://github.com/icecold009/touchscreen-launchpad.git
-cd touchscreen-launchpad
+python -m http.server 4173
 ```
 
-Then open `index.html`. Tap a pad once to unlock audio and trigger its prototype tone.
+Open <http://localhost:4173> in a modern browser such as Chrome or Edge. Opening `index.html` directly also supports the basic launchpad, but offline installation and persistence require HTTP or HTTPS.
+
+## Use the launchpad
+
+1. Select a pad in the grid.
+2. Edit its name, shortcut, playback mode, and volume.
+3. Choose an audio file, then save the pad.
+4. Trigger the pad by touch, mouse, or its displayed keyboard shortcut.
+5. Use `Save layout` for an explicit local save or `Export JSON` for a portable layout definition.
+
+Sample files are stored locally in IndexedDB. Exported JSON contains pad assignments and settings, but not the audio bytes; imported layouts may therefore show missing samples until they are assigned again in the current browser.
+
+## Sample licensing
+
+Only load audio you created or have permission to use. Do not commit or redistribute copyrighted samples in the repository.
 
 ## Project structure
 
@@ -29,20 +45,14 @@ Then open `index.html`. Tap a pad once to unlock audio and trigger its prototype
 .
 ├── app.js
 ├── index.html
+├── manifest.webmanifest
 ├── style.css
+├── sw.js
 └── samples/
     ├── README.md
     └── .gitkeep
 ```
 
-## Next steps
+## Scope after the MVP
 
-1. Replace the prototype tones with decoded audio samples.
-2. Add one-shot and looping modes.
-3. Add BPM quantization and beat synchronization.
-4. Add sample upload and saved pad layouts.
-5. Package the app as an installable offline PWA.
-
-## License
-
-No license has been selected yet.
+Cloud accounts, shared layouts, MIDI, DAW export, and native mobile packaging are intentionally deferred until the local workflow is validated.
