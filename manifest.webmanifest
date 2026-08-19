@@ -3,6 +3,7 @@
   "short_name": "Launchpad",
   "description": "A local-first touchscreen launchpad for triggering samples and loops.",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#080c17",
   "theme_color": "#0b1020",

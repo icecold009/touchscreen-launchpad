@@ -25,6 +25,14 @@ python -m http.server 4173
 
 Open <http://localhost:4173> in a modern browser such as Chrome or Edge. Opening `index.html` directly also supports the basic launchpad, but offline installation and persistence require HTTP or HTTPS.
 
+## Publish with GitHub Pages
+
+The repository includes a no-build GitHub Actions workflow at `.github/workflows/pages.yml`. It validates the app on pull requests and deploys pushes from `codex/launchpad-mvp` or `main`.
+
+For the first deployment, open the repository's **Settings → Pages** screen and select **GitHub Actions** as the source. The expected public project URL is <https://icecold009.github.io/touchscreen-launchpad/>. The workflow also supports manual runs from the Actions tab.
+
+The hosted site remains local-first: sample audio is stored in each visitor's browser and is never uploaded to GitHub Pages.
+
 ## Use the launchpad
 
 1. Select a pad in the grid.
