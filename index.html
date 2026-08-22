@@ -33,7 +33,7 @@
               <label class="compact-control" for="tempo">
                 <span>Tempo</span>
                 <input id="tempo" type="number" min="60" max="200" value="120" inputmode="numeric" />
-                <span>BPM</span>
+                <output id="tempo-value" for="tempo">120 BPM</output>
               </label>
 
               <label class="check-control" for="quantize">
@@ -49,6 +49,8 @@
             </div>
 
             <p id="status" class="status-message" role="status" aria-live="polite">Tap a pad to start audio.</p>
+            <p id="beat-indicator" class="beat-indicator" role="status" aria-live="off" hidden></p>
+            <p id="persistence-note" class="persistence-note" role="status" hidden></p>
           </section>
 
           <section id="pad-grid" class="pad-grid" aria-label="Launchpad pads"></section>
@@ -65,10 +67,18 @@
               <p class="eyebrow">Pad setup</p>
               <h2 id="editor-title">Edit selected pad</h2>
             </div>
-            <span id="selected-pad-indicator" class="selected-indicator">Pad 01</span>
+            <div class="panel-status">
+              <span id="selected-pad-indicator" class="selected-indicator">Pad 01</span>
+              <span id="editor-dirty" class="dirty-indicator" role="status" hidden>Unsaved changes</span>
+            </div>
           </div>
 
-          <form id="pad-editor" class="pad-editor">
+          <button id="editor-toggle" class="editor-toggle" type="button" aria-expanded="true" aria-controls="editor-content">
+            Collapse editor
+          </button>
+
+          <div id="editor-content" class="editor-content">
+            <form id="pad-editor" class="pad-editor">
             <label class="field" for="pad-label">
               <span>Pad name</span>
               <input id="pad-label" name="label" type="text" maxlength="32" required />
@@ -111,33 +121,44 @@
             </div>
 
             <button class="button button-primary" type="submit">Save pad</button>
-          </form>
+            </form>
 
-          <section class="layout-tools" aria-labelledby="layout-tools-title">
-            <div class="section-heading">
-              <h3 id="layout-tools-title">Layout</h3>
-              <span class="muted">v1</span>
-            </div>
-            <div class="tool-grid">
-              <button id="save-layout" class="button button-secondary" type="button">Save layout</button>
-              <button id="export-layout" class="button button-secondary" type="button">Export JSON</button>
-              <label class="file-button button button-secondary" for="import-layout">
-                Import JSON
-                <input id="import-layout" type="file" accept="application/json,.json" />
-              </label>
-              <button id="reset-layout" class="button button-quiet" type="button">Reset pads</button>
-            </div>
-          </section>
+            <section class="layout-tools" aria-labelledby="layout-tools-title">
+              <div class="section-heading">
+                <h3 id="layout-tools-title">Layout</h3>
+                <span class="muted">v1</span>
+              </div>
+              <div class="tool-grid">
+                <button id="save-layout" class="button button-secondary" type="button">Save layout</button>
+                <button id="export-layout" class="button button-secondary" type="button">Export JSON</button>
+                <label class="file-button button button-secondary" for="import-layout">
+                  Import JSON
+                  <input id="import-layout" type="file" accept="application/json,.json" />
+                </label>
+                <button id="reset-layout" class="button button-quiet" type="button">Reset pads</button>
+              </div>
+            </section>
 
-          <section class="sample-library" aria-labelledby="sample-library-title">
-            <div class="section-heading">
-              <h3 id="sample-library-title">Sample library</h3>
-              <span id="sample-count" class="muted">0 files</span>
-            </div>
-            <ul id="sample-list" class="sample-list">
-              <li class="empty-state">No local samples yet.</li>
-            </ul>
-          </section>
+            <section class="sample-library" aria-labelledby="sample-library-title">
+              <div class="section-heading">
+                <h3 id="sample-library-title">Sample library</h3>
+                <span id="sample-count" class="muted">0 files</span>
+              </div>
+              <div class="sample-tools">
+                <label class="sr-only" for="sample-search">Search samples</label>
+                <input id="sample-search" type="search" placeholder="Search samples" autocomplete="off" />
+                <label class="sr-only" for="sample-sort">Sort samples</label>
+                <select id="sample-sort">
+                  <option value="name">Name A–Z</option>
+                  <option value="newest">Newest first</option>
+                  <option value="largest">Largest first</option>
+                </select>
+              </div>
+              <ul id="sample-list" class="sample-list">
+                <li class="empty-state">No local samples yet.</li>
+              </ul>
+            </section>
+          </div>
         </aside>
       </section>
     </main>

@@ -141,6 +141,7 @@ h3 {
   grid-template-columns: minmax(0, 1fr) minmax(19rem, 23rem);
   align-items: start;
   gap: clamp(1rem, 3vw, 2rem);
+  min-width: 0;
 }
 
 .stage,
@@ -183,8 +184,14 @@ h3 {
   transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
 }
 
-.button:hover {
-  transform: translateY(-1px);
+.button:active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button:hover {
+    transform: translateY(-1px);
+  }
 }
 
 .button-primary {
@@ -288,6 +295,22 @@ output {
   color: #ffadbb;
 }
 
+.beat-indicator,
+.persistence-note {
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.beat-indicator {
+  color: #f7d878;
+  font-variant-numeric: tabular-nums;
+}
+
+.persistence-note {
+  color: #ffadbb;
+}
+
 .pad-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -310,7 +333,7 @@ output {
   isolation: isolate;
   touch-action: none;
   user-select: none;
-  transition: transform 90ms ease, filter 90ms ease, box-shadow 90ms ease, border-color 90ms ease;
+  transition: transform 90ms ease-out, opacity 90ms ease-out, filter 90ms ease-out, box-shadow 90ms ease-out, border-color 90ms ease-out;
 }
 
 .pad::before {
@@ -321,21 +344,58 @@ output {
   content: "";
 }
 
-.pad:hover,
-.pad:focus-visible {
-  filter: brightness(1.1);
+.pad:active,
+.pad.is-pressed {
+  transform: scale(0.97);
+  opacity: 0.92;
+  filter: brightness(1.22) saturate(1.12);
+  box-shadow: inset 0 0.28rem 0 rgba(0, 0, 0, 0.17), 0 0.35rem 0.8rem rgba(0, 0, 0, 0.22);
 }
 
-.pad:active,
 .pad.is-playing {
-  transform: scale(0.96);
-  filter: brightness(1.28) saturate(1.12);
-  box-shadow: inset 0 0.28rem 0 rgba(0, 0, 0, 0.17), 0 0.35rem 0.8rem rgba(0, 0, 0, 0.22);
+  filter: brightness(1.18) saturate(1.16);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3), 0 0 1.4rem rgba(255, 255, 255, 0.22), inset 0 -0.42rem 0 rgba(0, 0, 0, 0.2), 0 0.8rem 1.5rem rgba(0, 0, 0, 0.17);
+}
+
+.pad.is-queued {
+  filter: brightness(1.12) saturate(1.05);
+  box-shadow: 0 0 0 3px rgba(247, 216, 120, 0.66), inset 0 -0.42rem 0 rgba(0, 0, 0, 0.2), 0 0.8rem 1.5rem rgba(0, 0, 0, 0.17);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pad:hover,
+  .pad:focus-visible {
+    filter: brightness(1.1);
+  }
 }
 
 .pad.is-selected {
   border-color: #fff;
   box-shadow: 0 0 0 3px rgba(142, 167, 255, 0.72), inset 0 -0.42rem 0 rgba(0, 0, 0, 0.2), 0 0.8rem 1.5rem rgba(0, 0, 0, 0.17);
+}
+
+.pad-selection {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.7rem;
+  padding: 0.22rem 0.38rem;
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  border-radius: 999px;
+  background: rgba(9, 17, 38, 0.48);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  pointer-events: none;
+  text-transform: uppercase;
+  transform: translateY(-0.2rem);
+  transition: opacity 100ms ease-out, transform 100ms ease-out;
+}
+
+.pad.is-selected .pad-selection {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .pad.is-loading {
@@ -368,6 +428,9 @@ output {
   position: absolute;
   right: 0.7rem;
   bottom: 0.55rem;
+  padding: 0.12rem 0.28rem;
+  border-radius: 0.3rem;
+  background: rgba(9, 17, 38, 0.25);
   color: rgba(255, 255, 255, 0.75);
   font-size: 0.72rem;
   font-weight: 800;
@@ -391,6 +454,37 @@ output {
   gap: 0.75rem;
 }
 
+.panel-status {
+  display: grid;
+  justify-items: end;
+  gap: 0.35rem;
+}
+
+.dirty-indicator {
+  color: #f7d878;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.editor-toggle {
+  display: none;
+  min-height: 2.45rem;
+  margin: 0.85rem 0 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.65rem;
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.editor-content {
+  min-width: 0;
+}
+
 .panel-heading {
   padding-bottom: 1.1rem;
   border-bottom: 1px solid var(--line);
@@ -411,7 +505,9 @@ output {
 }
 
 .field input[type="text"],
-.field select {
+.field select,
+.sample-tools input,
+.sample-tools select {
   width: 100%;
   min-height: 2.65rem;
   padding: 0.55rem 0.65rem;
@@ -519,6 +615,17 @@ output {
   margin-top: 1.1rem;
 }
 
+.sample-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(7rem, 0.85fr);
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.sample-tools input::placeholder {
+  color: var(--quiet);
+}
+
 .sample-list {
   display: grid;
   gap: 0.45rem;
@@ -552,6 +659,17 @@ output {
   font-size: 0.75rem;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -565,6 +683,17 @@ output {
 
   .editor-panel {
     position: static;
+  }
+
+  .editor-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .editor-panel.is-collapsed .editor-content {
+    display: none;
   }
 }
 
@@ -629,8 +758,35 @@ output {
     font-size: 0.64rem;
   }
 
+  .pad-selection {
+    top: 0.45rem;
+    left: 0.45rem;
+    font-size: 0.52rem;
+  }
+
+  .sample-tools {
+    grid-template-columns: 1fr;
+  }
+
   .app-footer {
     display: grid;
     gap: 0.3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .pad:active,
+  .pad.is-pressed,
+  .button:active {
+    transform: none;
   }
 }

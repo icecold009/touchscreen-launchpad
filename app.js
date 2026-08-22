@@ -6,9 +6,12 @@ const MAX_SAMPLE_BYTES = 50 * 1024 * 1024;
 
 const padGrid = document.querySelector("#pad-grid");
 const statusMessage = document.querySelector("#status");
+const beatIndicator = document.querySelector("#beat-indicator");
+const persistenceNote = document.querySelector("#persistence-note");
 const connectionStatus = document.querySelector("#connection-status");
 const stopAllButton = document.querySelector("#stop-all");
 const tempoInput = document.querySelector("#tempo");
+const tempoValue = document.querySelector("#tempo-value");
 const quantizeInput = document.querySelector("#quantize");
 const masterVolumeInput = document.querySelector("#master-volume");
 const masterVolumeValue = document.querySelector("#master-volume-value");
@@ -22,12 +25,17 @@ const sampleFileInput = document.querySelector("#sample-file");
 const sampleName = document.querySelector("#sample-name");
 const clearSampleButton = document.querySelector("#clear-sample");
 const selectedPadIndicator = document.querySelector("#selected-pad-indicator");
+const editorDirtyIndicator = document.querySelector("#editor-dirty");
+const editorPanel = document.querySelector(".editor-panel");
+const editorToggle = document.querySelector("#editor-toggle");
 const saveLayoutButton = document.querySelector("#save-layout");
 const exportLayoutButton = document.querySelector("#export-layout");
 const importLayoutInput = document.querySelector("#import-layout");
 const resetLayoutButton = document.querySelector("#reset-layout");
 const sampleList = document.querySelector("#sample-list");
 const sampleCount = document.querySelector("#sample-count");
+const sampleSearchInput = document.querySelector("#sample-search");
+const sampleSortInput = document.querySelector("#sample-sort");
 const installAppButton = document.querySelector("#install-app");
 
 const padColors = [
@@ -47,6 +55,13 @@ let audioContext;
 let masterGain;
 let databasePromise;
 let deferredInstallPrompt;
+let storageMode = "persistent";
+let editorDirty = false;
+let draftSampleCleared = false;
+let playbackGeneration = 0;
+let beatCountdownTimer;
+const pointerPadById = new Map();
+const pointerIdByPad = new Map();
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -87,6 +102,13 @@ function normalizePads(candidatePads) {
   return Array.from({ length: PAD_COUNT }, (_, index) => normalizePad(candidatePads?.[index], index));
 }
 
+function markMemoryOnlyMode(message) {
+  storageMode = "memory";
+  updateConnectionStatus("Memory-only mode", "muted");
+  persistenceNote.textContent = message;
+  persistenceNote.hidden = false;
+}
+
 function readLayout() {
   try {
     const savedLayout = localStorage.getItem(LAYOUT_STORAGE_KEY);
@@ -95,6 +117,7 @@ function readLayout() {
     const parsedLayout = JSON.parse(savedLayout);
     return normalizePads(parsedLayout.pads);
   } catch {
+    markMemoryOnlyMode("Layout storage is unavailable. Changes will last until this tab is reloaded.");
     return createDefaultPads();
   }
 }
@@ -118,8 +141,9 @@ function serializeLayout() {
 function saveLayout(message = "Layout saved in this browser.") {
   try {
     localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(serializeLayout()));
-    setStatus(message, "success");
+    setStatus(storageMode === "memory" ? `${message} Memory-only mode: a reload may discard changes.` : message, storageMode === "memory" ? "error" : "success");
   } catch {
+    markMemoryOnlyMode("Layout storage failed. Changes remain in memory and may be lost on reload.");
     setStatus("This browser could not save the layout.", "error");
   }
 }
@@ -130,6 +154,7 @@ function setStatus(message, type = "info") {
 }
 
 function updateConnectionStatus(message, type = "ready") {
+  if (storageMode === "memory" && type === "ready") return;
   connectionStatus.textContent = message;
   connectionStatus.dataset.type = type;
 }
@@ -205,7 +230,7 @@ async function persistSample(file) {
   try {
     await writeSample(sample);
   } catch {
-    updateConnectionStatus("Memory-only mode", "muted");
+    markMemoryOnlyMode("Sample storage failed. This sample is available for this session only.");
   }
   samples.set(sample.id, sample);
   renderSampleLibrary();
@@ -213,14 +238,24 @@ async function persistSample(file) {
 }
 
 function renderSampleLibrary() {
-  const storedSamples = [...samples.values()].sort((left, right) => left.name.localeCompare(right.name));
-  sampleCount.textContent = `${storedSamples.length} ${storedSamples.length === 1 ? "file" : "files"}`;
+  const query = sampleSearchInput.value.trim().toLocaleLowerCase();
+  const allSamples = [...samples.values()];
+  const storedSamples = allSamples
+    .filter((sample) => !query || sample.name.toLocaleLowerCase().includes(query))
+    .sort((left, right) => {
+      if (sampleSortInput.value === "newest") return right.createdAt.localeCompare(left.createdAt);
+      if (sampleSortInput.value === "largest") return right.size - left.size;
+      return left.name.localeCompare(right.name);
+    });
+  sampleCount.textContent = query
+    ? `${storedSamples.length}/${allSamples.length} matches`
+    : `${storedSamples.length} ${storedSamples.length === 1 ? "file" : "files"}`;
   sampleList.replaceChildren();
 
   if (!storedSamples.length) {
     const emptyItem = document.createElement("li");
     emptyItem.className = "empty-state";
-    emptyItem.textContent = "No local samples yet.";
+    emptyItem.textContent = query ? "No samples match this search." : "No local samples yet.";
     sampleList.append(emptyItem);
     return;
   }
@@ -273,21 +308,61 @@ function getPadVoices(index) {
   return activeVoices.get(index) || new Set();
 }
 
+function clearBeatCountdown() {
+  if (beatCountdownTimer) window.clearInterval(beatCountdownTimer);
+  beatCountdownTimer = undefined;
+  beatIndicator.hidden = true;
+  beatIndicator.textContent = "";
+}
+
+function showBeatCountdown(time, message) {
+  clearBeatCountdown();
+  if (!quantizeInput.checked || !audioContext) return;
+
+  const update = () => {
+    const remaining = time - audioContext.currentTime;
+    if (remaining <= 0) {
+      clearBeatCountdown();
+      return;
+    }
+    beatIndicator.textContent = `${message} in ${remaining.toFixed(2)}s`;
+    beatIndicator.hidden = false;
+  };
+
+  update();
+  beatCountdownTimer = window.setInterval(update, 50);
+}
+
 function releaseVoice(index, voice) {
   const voices = activeVoices.get(index);
   if (!voices) return;
 
+  if (voice.startTimer) window.clearTimeout(voice.startTimer);
   voices.delete(voice);
   if (!voices.size) activeVoices.delete(index);
   updatePadState(index);
 }
 
-function registerVoice(index, source, startAt) {
-  const voice = { source, startAt };
+function registerVoice(index, source, startAt, { isLoop = false } = {}) {
+  const startContextTime = audioContext?.currentTime || 0;
+  const voice = {
+    source,
+    startAt,
+    isLoop,
+    started: startAt <= startContextTime + 0.02,
+    startTimer: undefined,
+  };
   const voices = getPadVoices(index);
   voices.add(voice);
   activeVoices.set(index, voices);
   source.addEventListener("ended", () => releaseVoice(index, voice), { once: true });
+  if (!voice.started) {
+    voice.startTimer = window.setTimeout(() => {
+      voice.started = true;
+      voice.startTimer = undefined;
+      updatePadState(index);
+    }, Math.max(0, (startAt - startContextTime) * 1000));
+  }
   updatePadState(index);
   return voice;
 }
@@ -307,14 +382,23 @@ function stopPad(index, { quantized = false, announce = false } = {}) {
 
   if (announce) {
     const pad = pads[index];
-    setStatus(stopAt > audioContext.currentTime + 0.02 ? `${pad.label} loop will stop on the next beat.` : `${pad.label} stopped.`);
+    if (stopAt > audioContext.currentTime + 0.02) {
+      setStatus(`${pad.label} loop will stop on the next beat.`);
+      showBeatCountdown(stopAt, `${pad.label} stops`);
+    } else {
+      clearBeatCountdown();
+      setStatus(`${pad.label} stopped.`);
+    }
   }
   return true;
 }
 
 function stopAll() {
+  playbackGeneration += 1;
+  clearBeatCountdown();
   for (const [index, voices] of activeVoices) {
     for (const voice of voices) {
+      if (voice.startTimer) window.clearTimeout(voice.startTimer);
       try {
         voice.source.stop();
       } catch {
@@ -324,6 +408,7 @@ function stopAll() {
   }
 
   activeVoices.clear();
+  pendingPads.clear();
   for (let index = 0; index < PAD_COUNT; index += 1) updatePadState(index);
   setStatus("All pads stopped.");
 }
@@ -367,8 +452,9 @@ function playPreviewTone(index, pad, context) {
   setStatus(`${pad.label} preview tone triggered.`);
 }
 
-async function playSample(index, pad, sample, context) {
+async function playSample(index, pad, sample, context, generation) {
   const buffer = await getSampleBuffer(sample, context);
+  if (generation !== playbackGeneration) return false;
   const source = context.createBufferSource();
   const gain = createVoiceGain(context, pad);
   const isLoop = pad.mode === "loop";
@@ -377,22 +463,24 @@ async function playSample(index, pad, sample, context) {
   source.buffer = buffer;
   source.loop = isLoop;
   source.connect(gain);
-  registerVoice(index, source, startAt);
+  registerVoice(index, source, startAt, { isLoop });
   source.start(startAt);
 
   if (isLoop && startAt > context.currentTime + 0.02) {
     setStatus(`${pad.label} loop queued for the next beat.`);
+    showBeatCountdown(startAt, `${pad.label} starts`);
   } else {
     setStatus(`${pad.label} triggered.`);
   }
+  return true;
 }
 
 async function triggerPad(index) {
   if (pendingPads.has(index)) return;
   const pad = pads[index];
-  const existingVoices = getPadVoices(index);
+  const existingVoices = [...getPadVoices(index)].filter((voice) => voice.isLoop);
 
-  if (pad.mode === "loop" && existingVoices.size) {
+  if (pad.mode === "loop" && existingVoices.length) {
     stopPad(index, { quantized: true, announce: true });
     return;
   }
@@ -405,9 +493,11 @@ async function triggerPad(index) {
 
   pendingPads.add(index);
   updatePadState(index);
+  const generation = playbackGeneration;
 
   try {
     const context = await prepareAudio();
+    if (generation !== playbackGeneration) return;
     const sample = pad.sampleId ? samples.get(pad.sampleId) : null;
 
     if (pad.sampleId && !sample) {
@@ -417,7 +507,7 @@ async function triggerPad(index) {
     }
 
     if (sample) {
-      await playSample(index, pad, sample, context);
+      await playSample(index, pad, sample, context, generation);
     } else {
       playPreviewTone(index, pad, context);
     }
@@ -432,13 +522,29 @@ async function triggerPad(index) {
 function updatePadState(index) {
   const button = padGrid.querySelector(`[data-index="${index}"]`);
   if (!button) return;
-  button.classList.toggle("is-playing", getPadVoices(index).size > 0);
+  const voices = getPadVoices(index);
+  const isPlaying = [...voices].some((voice) => voice.started);
+  const isQueued = !isPlaying && voices.size > 0;
+  button.classList.toggle("is-playing", isPlaying);
+  button.classList.toggle("is-queued", isQueued);
   button.classList.toggle("is-loading", pendingPads.has(index));
   button.classList.toggle("is-selected", selectedPadIndex === index);
+  button.setAttribute("aria-pressed", String(isPlaying || isQueued));
+  button.dataset.state = isPlaying ? "playing" : isQueued ? "queued" : "ready";
+}
+
+function releasePadPointer(button, event) {
+  const index = Number(button.dataset.index);
+  if (pointerPadById.get(event.pointerId) !== index) return;
+  pointerPadById.delete(event.pointerId);
+  if (pointerIdByPad.get(index) === event.pointerId) pointerIdByPad.delete(index);
+  button.classList.remove("is-pressed");
 }
 
 function renderPads() {
   padGrid.replaceChildren();
+  pointerPadById.clear();
+  pointerIdByPad.clear();
 
   pads.forEach((pad, index) => {
     const button = document.createElement("button");
@@ -455,17 +561,34 @@ function renderPads() {
     const key = document.createElement("span");
     key.className = "pad-key";
     key.textContent = pad.key;
-    button.append(label, key);
+    const selection = document.createElement("span");
+    selection.className = "pad-selection";
+    selection.textContent = "Selected";
+    selection.setAttribute("aria-hidden", "true");
+    button.append(label, key, selection);
 
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
+      if (pointerIdByPad.has(index)) return;
+      pointerIdByPad.set(index, event.pointerId);
+      pointerPadById.set(event.pointerId, index);
+      button.classList.add("is-pressed");
+      try {
+        button.setPointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture is not available in a few embedded browser contexts.
+      }
       button.focus({ preventScroll: true });
       selectPad(index);
       void triggerPad(index);
     });
+    button.addEventListener("pointerup", (event) => releasePadPointer(button, event));
+    button.addEventListener("pointercancel", (event) => releasePadPointer(button, event));
+    button.addEventListener("lostpointercapture", (event) => releasePadPointer(button, event));
     button.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" && event.key !== " ") return;
+      if (event.repeat || (event.key !== "Enter" && event.key !== " ")) return;
       event.preventDefault();
+      selectPad(index);
       void triggerPad(index);
     });
     button.addEventListener("contextmenu", (event) => event.preventDefault());
@@ -480,6 +603,8 @@ function updateSampleName() {
 
   if (selectedFile) {
     sampleName.textContent = selectedFile.name;
+  } else if (draftSampleCleared) {
+    sampleName.textContent = "Preview tone (not saved)";
   } else if (pad.sampleId && samples.has(pad.sampleId)) {
     sampleName.textContent = samples.get(pad.sampleId).name;
   } else if (pad.sampleId) {
@@ -487,6 +612,16 @@ function updateSampleName() {
   } else {
     sampleName.textContent = "Preview tone";
   }
+}
+
+function setEditorDirty(value) {
+  editorDirty = value;
+  editorDirtyIndicator.hidden = !value;
+  padEditor.classList.toggle("is-dirty", value);
+}
+
+function markEditorDirty() {
+  if (!editorDirty) setEditorDirty(true);
 }
 
 function selectPad(index) {
@@ -499,6 +634,8 @@ function selectPad(index) {
   padVolumeInput.value = String(pad.volume);
   padVolumeValue.textContent = `${Math.round(pad.volume * 100)}%`;
   sampleFileInput.value = "";
+  draftSampleCleared = false;
+  setEditorDirty(false);
   updateSampleName();
 
   for (let padIndex = 0; padIndex < PAD_COUNT; padIndex += 1) updatePadState(padIndex);
@@ -512,6 +649,11 @@ function updateMasterVolume() {
   const volume = Number(masterVolumeInput.value);
   masterVolumeValue.textContent = `${Math.round(volume * 100)}%`;
   if (masterGain) masterGain.gain.setTargetAtTime(volume, audioContext.currentTime, 0.01);
+}
+
+function updateTempoValue() {
+  const tempo = clamp(Number(tempoInput.value) || 120, 60, 200);
+  tempoValue.textContent = `${tempo} BPM`;
 }
 
 async function saveSelectedPad(event) {
@@ -531,7 +673,7 @@ async function saveSelectedPad(event) {
 
   try {
     const selectedFile = sampleFileInput.files?.[0];
-    let sampleId = pads[selectedPadIndex].sampleId;
+    let sampleId = draftSampleCleared ? null : pads[selectedPadIndex].sampleId;
     if (selectedFile) {
       const sample = await persistSample(selectedFile);
       sampleId = sample.id;
@@ -555,10 +697,11 @@ async function saveSelectedPad(event) {
 
 function clearSelectedSample() {
   stopPad(selectedPadIndex);
-  pads[selectedPadIndex].sampleId = null;
+  draftSampleCleared = true;
   sampleFileInput.value = "";
   updateSampleName();
-  saveLayout("Preview tone restored for the selected pad.");
+  markEditorDirty();
+  setStatus("Preview tone selected. Save the pad to apply it.");
 }
 
 function downloadText(filename, content, mimeType) {
@@ -572,8 +715,12 @@ function downloadText(filename, content, mimeType) {
 }
 
 function exportLayout() {
-  downloadText("launchpad-layout.json", `${JSON.stringify(serializeLayout(), null, 2)}\n`, "application/json");
-  setStatus("Layout exported. Sample files remain local to this browser.", "success");
+  try {
+    downloadText("launchpad-layout.json", `${JSON.stringify(serializeLayout(), null, 2)}\n`, "application/json");
+    setStatus("Layout exported. Sample files remain local to this browser.", "success");
+  } catch {
+    setStatus("Layout export failed. Check browser download permissions and try again.", "error");
+  }
 }
 
 async function importLayout(event) {
@@ -595,7 +742,7 @@ async function importLayout(event) {
 }
 
 function resetLayout() {
-  if (!window.confirm("Reset all pad names, shortcuts, and assignments? Saved audio files will remain in the library.")) return;
+  if (!window.confirm("Reset all pad names, shortcuts, and assignments? Saved audio files will remain in this browser; samples are never uploaded.")) return;
   stopAll();
   pads = createDefaultPads();
   renderPads();
@@ -611,16 +758,34 @@ function bindEvents() {
   stopAllButton.addEventListener("click", stopAll);
   padEditor.addEventListener("submit", (event) => void saveSelectedPad(event));
   clearSampleButton.addEventListener("click", clearSelectedSample);
-  sampleFileInput.addEventListener("change", updateSampleName);
+  padEditor.addEventListener("input", markEditorDirty);
+  padEditor.addEventListener("change", markEditorDirty);
+  sampleFileInput.addEventListener("change", () => {
+    draftSampleCleared = false;
+    updateSampleName();
+    markEditorDirty();
+  });
   padVolumeInput.addEventListener("input", updatePadVolumeLabel);
   masterVolumeInput.addEventListener("input", updateMasterVolume);
+  tempoInput.addEventListener("input", updateTempoValue);
   tempoInput.addEventListener("change", () => {
     tempoInput.value = String(clamp(Number(tempoInput.value) || 120, 60, 200));
+    updateTempoValue();
+  });
+  quantizeInput.addEventListener("change", () => {
+    if (!quantizeInput.checked) clearBeatCountdown();
   });
   saveLayoutButton.addEventListener("click", () => saveLayout());
   exportLayoutButton.addEventListener("click", exportLayout);
   importLayoutInput.addEventListener("change", (event) => void importLayout(event));
   resetLayoutButton.addEventListener("click", resetLayout);
+  sampleSearchInput.addEventListener("input", renderSampleLibrary);
+  sampleSortInput.addEventListener("change", renderSampleLibrary);
+  editorToggle.addEventListener("click", () => {
+    const isCollapsed = editorPanel.classList.toggle("is-collapsed");
+    editorToggle.setAttribute("aria-expanded", String(!isCollapsed));
+    editorToggle.textContent = isCollapsed ? "Expand editor" : "Collapse editor";
+  });
 
   document.addEventListener("keydown", (event) => {
     if (event.repeat || isEditableTarget(event.target)) return;
@@ -669,6 +834,7 @@ async function init() {
   renderPads();
   selectPad(0);
   updateMasterVolume();
+  updateTempoValue();
   renderSampleLibrary();
 
   try {
@@ -677,7 +843,7 @@ async function init() {
     renderSampleLibrary();
     updateSampleName();
   } catch {
-    updateConnectionStatus("Memory-only mode", "muted");
+    markMemoryOnlyMode("Sample storage is unavailable. Audio works, but sample files will not survive a reload.");
     setStatus("Audio works, but this browser cannot persist sample files.", "error");
   }
 
