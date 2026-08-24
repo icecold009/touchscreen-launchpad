@@ -3,7 +3,7 @@ name: Validate and deploy Pages
 on:
   push:
     branches:
-      - codex/launchpad-mvp
+      - 'codex/launchpad-*'
       - main
   pull_request:
     branches:

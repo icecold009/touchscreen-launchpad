@@ -200,31 +200,16 @@ h3 {
   color: #091126;
 }
 
-.button-primary:hover {
-  background: #a1b4ff;
-}
-
 .button-secondary {
   border-color: var(--line-strong);
   background: var(--surface-raised);
   color: var(--text);
 }
 
-.button-secondary:hover,
-.button-quiet:hover {
-  border-color: var(--accent);
-  background: #21304c;
-}
-
 .button-danger {
   border-color: rgba(255, 120, 144, 0.5);
   background: rgba(136, 39, 66, 0.34);
   color: #ffc1cd;
-}
-
-.button-danger:hover {
-  border-color: var(--danger);
-  background: rgba(166, 48, 80, 0.5);
 }
 
 .button-quiet {
@@ -573,8 +558,26 @@ output {
   font-weight: 750;
 }
 
-.text-button:hover {
-  color: #c2ceff;
+
+@media (hover: hover) and (pointer: fine) {
+  .button-primary:hover {
+    background: #a1b4ff;
+  }
+
+  .button-secondary:hover,
+  .button-quiet:hover {
+    border-color: var(--accent);
+    background: #21304c;
+  }
+
+  .button-danger:hover {
+    border-color: var(--danger);
+    background: rgba(166, 48, 80, 0.5);
+  }
+
+  .text-button:hover {
+    color: #c2ceff;
+  }
 }
 
 .field-help {
