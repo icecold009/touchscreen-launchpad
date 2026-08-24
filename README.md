@@ -61,4 +61,3 @@ Only load audio you created or have permission to use. Do not commit or redistri
 ## Deliberate limits
 
 Cloud accounts, shared layouts, MIDI, DAW export, and native mobile packaging are deferred until the local interaction and offline workflow have been validated on target devices.
-

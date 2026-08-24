@@ -1,0 +1,20 @@
+{
+  "name": "Touchscreen Launchpad",
+  "short_name": "Launchpad",
+  "description": "A local-first touchscreen launchpad for triggering samples and loops.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#080c17",
+  "theme_color": "#0b1020",
+  "orientation": "any",
+  "categories": ["music", "entertainment", "utilities"],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>Touchscreen Launchpad</title>
+  <rect width="512" height="512" rx="112" fill="#080c17"/>
+  <rect x="80" y="80" width="152" height="152" rx="34" fill="#ff5c77"/>
+  <rect x="280" y="80" width="152" height="152" rx="34" fill="#ffb454"/>
+  <rect x="80" y="280" width="152" height="152" rx="34" fill="#54a9dc"/>
+  <rect x="280" y="280" width="152" height="152" rx="34" fill="#a66cf1"/>
+</svg>

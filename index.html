@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1020" />
+    <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Touchscreen Launchpad</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">Local performance tool</p>
+          <h1>Touchscreen Launchpad</h1>
+          <p class="subtitle">Load your own sounds, shape a pad bank, and play it from any touch surface.</p>
+        </div>
+
+        <div class="header-actions">
+          <span id="connection-status" class="status-badge">Local-first</span>
+          <button id="install-app" class="button button-secondary" type="button" hidden>Install app</button>
+        </div>
+      </header>
+
+      <section class="workspace" aria-label="Launchpad workspace">
+        <div class="stage">
+          <section class="controls" aria-label="Launchpad controls">
+            <div class="control-row">
+              <button id="stop-all" class="button button-danger" type="button">Stop all</button>
+
+              <label class="compact-control" for="tempo">
+                <span>Tempo</span>
+                <input id="tempo" type="number" min="60" max="200" value="120" inputmode="numeric" />
+                <output id="tempo-value" for="tempo">120 BPM</output>
+              </label>
+
+              <label class="check-control" for="quantize">
+                <input id="quantize" type="checkbox" checked />
+                <span>Quantize loops</span>
+              </label>
+
+              <label class="range-control" for="master-volume">
+                <span>Master</span>
+                <input id="master-volume" type="range" min="0" max="1" step="0.01" value="0.8" />
+                <output id="master-volume-value" for="master-volume">80%</output>
+              </label>
+            </div>
+
+            <p id="status" class="status-message" role="status" aria-live="polite">Tap a pad to start audio.</p>
+            <p id="beat-indicator" class="beat-indicator" role="status" aria-live="off" hidden></p>
+            <p id="persistence-note" class="persistence-note" role="status" hidden></p>
+          </section>
+
+          <section id="pad-grid" class="pad-grid" aria-label="Launchpad pads"></section>
+
+          <footer class="app-footer">
+            <span>Touch, mouse, or keyboard</span>
+            <span>Saved locally in this browser</span>
+          </footer>
+        </div>
+
+        <aside class="editor-panel" aria-labelledby="editor-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Pad setup</p>
+              <h2 id="editor-title">Edit selected pad</h2>
+            </div>
+            <div class="panel-status">
+              <span id="selected-pad-indicator" class="selected-indicator">Pad 01</span>
+              <span id="editor-dirty" class="dirty-indicator" role="status" hidden>Unsaved changes</span>
+            </div>
+          </div>
+
+          <button id="editor-toggle" class="editor-toggle" type="button" aria-expanded="true" aria-controls="editor-content">
+            Collapse editor
+          </button>
+
+          <div id="editor-content" class="editor-content">
+            <form id="pad-editor" class="pad-editor">
+            <label class="field" for="pad-label">
+              <span>Pad name</span>
+              <input id="pad-label" name="label" type="text" maxlength="32" required />
+            </label>
+
+            <div class="field-grid">
+              <label class="field" for="pad-key">
+                <span>Shortcut</span>
+                <input id="pad-key" name="key" type="text" maxlength="1" pattern="[a-zA-Z0-9]" required />
+              </label>
+
+              <label class="field" for="pad-mode">
+                <span>Playback</span>
+                <select id="pad-mode" name="mode">
+                  <option value="oneshot">One-shot</option>
+                  <option value="loop">Loop</option>
+                </select>
+              </label>
+            </div>
+
+            <label class="field" for="pad-volume">
+              <span class="field-line">
+                <span>Pad volume</span>
+                <output id="pad-volume-value" for="pad-volume">80%</output>
+              </span>
+              <input id="pad-volume" name="volume" type="range" min="0" max="1" step="0.01" value="0.8" />
+            </label>
+
+            <div class="sample-picker">
+              <div class="field-line">
+                <span>Audio sample</span>
+                <span id="sample-name" class="sample-name">Preview tone</span>
+              </div>
+              <label class="file-button button button-secondary" for="sample-file">
+                Choose audio
+                <input id="sample-file" type="file" accept="audio/*" />
+              </label>
+              <button id="clear-sample" class="text-button" type="button">Use preview tone</button>
+              <p class="field-help">WAV and MP3 files stay in this browser and are not uploaded.</p>
+            </div>
+
+            <button class="button button-primary" type="submit">Save pad</button>
+            </form>
+
+            <section class="layout-tools" aria-labelledby="layout-tools-title">
+              <div class="section-heading">
+                <h3 id="layout-tools-title">Layout</h3>
+                <span class="muted">v1</span>
+              </div>
+              <div class="tool-grid">
+                <button id="save-layout" class="button button-secondary" type="button">Save layout</button>
+                <button id="export-layout" class="button button-secondary" type="button">Export JSON</button>
+                <label class="file-button button button-secondary" for="import-layout">
+                  Import JSON
+                  <input id="import-layout" type="file" accept="application/json,.json" />
+                </label>
+                <button id="reset-layout" class="button button-quiet" type="button">Reset pads</button>
+              </div>
+            </section>
+
+            <section class="sample-library" aria-labelledby="sample-library-title">
+              <div class="section-heading">
+                <h3 id="sample-library-title">Sample library</h3>
+                <span id="sample-count" class="muted">0 files</span>
+              </div>
+              <div class="sample-tools">
+                <label class="sr-only" for="sample-search">Search samples</label>
+                <input id="sample-search" type="search" placeholder="Search samples" autocomplete="off" />
+                <label class="sr-only" for="sample-sort">Sort samples</label>
+                <select id="sample-sort">
+                  <option value="name">Name A–Z</option>
+                  <option value="newest">Newest first</option>
+                  <option value="largest">Largest first</option>
+                </select>
+              </div>
+              <ul id="sample-list" class="sample-list">
+                <li class="empty-state">No local samples yet.</li>
+              </ul>
+            </section>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
