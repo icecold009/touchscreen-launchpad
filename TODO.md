@@ -71,4 +71,3 @@ The remaining work is lifecycle proof. A hidden/interrupted page can retain poin
 - [ ] Local checks are reproducible without changing the no-build delivery model.
 - [ ] Hosted PWA and physical touchscreen gates have explicit evidence.
 - [ ] Feature branch is pushed and clean; `main` is untouched and unmerged.
-
