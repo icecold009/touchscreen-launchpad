@@ -31,7 +31,7 @@ The remaining work is lifecycle proof. A hidden/interrupted page can retain poin
 
 - [ ] **3. Prove audio interruption and stop-all**
   Files: audio state logic and status UI.
-  What to build: Handle suspended/unavailable AudioContext, decode/output failure, visibility interruption, loop cancellation, and stop-all while keeping tempo/quantization state explicit.
+  What to build: Handle suspended/unavailable AudioContext, decode/output failure, visibility interruption, loop cancellation, and stop-all while keeping tempo/quantization state explicit. **In progress:** suspended/closed contexts, failed voice starts, retryable decode failures, hidden/pagehide stop-all, explicit tempo/quantize status, and throttled playback announcements are covered in code and local contract tests.
   Acceptance: No stuck loop or playing state survives a handled interruption; rapid pads are not announced noisily.
   Verify: Mocked audio tests plus physical/browser audio smoke.
 

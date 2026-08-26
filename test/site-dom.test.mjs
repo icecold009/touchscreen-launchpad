@@ -33,6 +33,6 @@ test("the launchpad DOM exposes its primary interaction surface", () => {
 });
 
 test("the DOM loads the app as a module and keeps the static delivery model", () => {
-  assert.match(html, /<script[^>]+type=["']module["'][^>]+src=["']app\.js["']/i);
+  assert.match(html, /<script[^>]+type=["']module["'][^>]+src=["']app\.js(?:\?[^"']*)?["']/i);
   assert.doesNotMatch(html, /<script[^>]+src=["'][^"']*(?:bundle|dist|build)[^"']*["']/i);
 });

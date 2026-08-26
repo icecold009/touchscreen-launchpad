@@ -60,6 +60,7 @@ let editorDirty = false;
 let draftSampleCleared = false;
 let playbackGeneration = 0;
 let beatCountdownTimer;
+let lastPlaybackStatusAt = 0;
 const pointerPadById = new Map();
 const pointerIdByPad = new Map();
 
@@ -72,7 +73,10 @@ function clearPointerState() {
 }
 
 function handleVisibilityChange() {
-  if (document.hidden || document.visibilityState === "hidden") clearPointerState();
+  if (document.hidden || document.visibilityState === "hidden") {
+    clearPointerState();
+    stopAll({ announce: false });
+  }
 }
 
 function clamp(value, minimum, maximum) {
@@ -163,6 +167,13 @@ function saveLayout(message = "Layout saved in this browser.") {
 function setStatus(message, type = "info") {
   statusMessage.textContent = message;
   statusMessage.dataset.type = type;
+}
+
+function setPlaybackStatus(message, type = "info", { force = false } = {}) {
+  const now = performance.now();
+  if (!force && type === "info" && now - lastPlaybackStatusAt < 250) return;
+  lastPlaybackStatusAt = now;
+  setStatus(message, type);
 }
 
 function updateConnectionStatus(message, type = "ready") {
@@ -306,7 +317,15 @@ function getAudioContext() {
 
 async function prepareAudio() {
   const context = getAudioContext();
-  if (context.state === "suspended") void context.resume().catch(() => {});
+  if (context.state === "closed") throw new Error("Audio is unavailable. Reload the page and try again.");
+  if (context.state === "suspended") {
+    try {
+      await context.resume();
+    } catch {
+      throw new Error("Audio is suspended. Interact with the page and try again.");
+    }
+  }
+  if (context.state !== "running") throw new Error("Audio is unavailable in the current browser state.");
   return context;
 }
 
@@ -379,6 +398,16 @@ function registerVoice(index, source, startAt, { isLoop = false } = {}) {
   return voice;
 }
 
+function startRegisteredVoice(index, voice, startAt, stopAt) {
+  try {
+    voice.source.start(startAt);
+    if (stopAt !== undefined) voice.source.stop(stopAt);
+  } catch (error) {
+    releaseVoice(index, voice);
+    throw error;
+  }
+}
+
 function stopPad(index, { quantized = false, announce = false } = {}) {
   const voices = activeVoices.get(index);
   if (!voices?.size || !audioContext) return false;
@@ -405,7 +434,7 @@ function stopPad(index, { quantized = false, announce = false } = {}) {
   return true;
 }
 
-function stopAll() {
+function stopAll({ announce = true } = {}) {
   playbackGeneration += 1;
   clearBeatCountdown();
   for (const [index, voices] of activeVoices) {
@@ -422,7 +451,11 @@ function stopAll() {
   activeVoices.clear();
   pendingPads.clear();
   for (let index = 0; index < PAD_COUNT; index += 1) updatePadState(index);
-  setStatus("All pads stopped.");
+  if (announce) {
+    const tempo = clamp(Number(tempoInput.value) || 120, 60, 200);
+    const quantizeState = quantizeInput.checked ? "on" : "off";
+    setPlaybackStatus(`All pads stopped. Tempo ${tempo} BPM · Quantize ${quantizeState}.`, "info", { force: true });
+  }
 }
 
 async function getSampleBuffer(sample, context) {
@@ -433,6 +466,10 @@ async function getSampleBuffer(sample, context) {
       .then((buffer) => {
         sample.buffer = buffer;
         return buffer;
+      })
+      .catch((error) => {
+        sample.bufferPromise = undefined;
+        throw error;
       });
   }
   return sample.bufferPromise;
@@ -458,10 +495,9 @@ function playPreviewTone(index, pad, context) {
   gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.48);
   oscillator.connect(gain);
   gain.connect(masterGain);
-  registerVoice(index, oscillator, now);
-  oscillator.start(now);
-  oscillator.stop(now + 0.5);
-  setStatus(`${pad.label} preview tone triggered.`);
+  const voice = registerVoice(index, oscillator, now);
+  startRegisteredVoice(index, voice, now, now + 0.5);
+  setPlaybackStatus(`${pad.label} preview tone triggered.`);
 }
 
 async function playSample(index, pad, sample, context, generation) {
@@ -475,14 +511,14 @@ async function playSample(index, pad, sample, context, generation) {
   source.buffer = buffer;
   source.loop = isLoop;
   source.connect(gain);
-  registerVoice(index, source, startAt, { isLoop });
-  source.start(startAt);
+  const voice = registerVoice(index, source, startAt, { isLoop });
+  startRegisteredVoice(index, voice, startAt);
 
   if (isLoop && startAt > context.currentTime + 0.02) {
-    setStatus(`${pad.label} loop queued for the next beat.`);
+    setPlaybackStatus(`${pad.label} loop queued for the next beat.`, "info", { force: true });
     showBeatCountdown(startAt, `${pad.label} starts`);
   } else {
-    setStatus(`${pad.label} triggered.`);
+    setPlaybackStatus(`${pad.label} triggered.`);
   }
   return true;
 }
@@ -772,7 +808,10 @@ function bindEvents() {
   stopAllButton.addEventListener("click", stopAll);
   document.addEventListener("visibilitychange", handleVisibilityChange);
   window.addEventListener("blur", clearPointerState);
-  window.addEventListener("pagehide", clearPointerState);
+  window.addEventListener("pagehide", () => {
+    clearPointerState();
+    stopAll({ announce: false });
+  });
   window.addEventListener("orientationchange", clearPointerState);
   padEditor.addEventListener("submit", (event) => void saveSelectedPad(event));
   clearSampleButton.addEventListener("click", clearSelectedSample);

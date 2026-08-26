@@ -15,9 +15,10 @@ test("pointer interruption cleanup is centralized and clears pressed styles", ()
 
 test("pointer lifecycle listeners cover hidden, blur, pagehide, and orientation interruption", () => {
   assert.match(app, /document\.addEventListener\("visibilitychange", handleVisibilityChange\);/);
-  for (const eventName of ["blur", "pagehide", "orientationchange"]) {
+  for (const eventName of ["blur", "orientationchange"]) {
     assert.match(app, new RegExp(`window\\.addEventListener\\("${eventName}", clearPointerState\\);`));
   }
+  assert.match(app, /window\.addEventListener\("pagehide", \(\) => \{[\s\S]*clearPointerState\(\);[\s\S]*stopAll\(\{ announce: false \}\);/);
 });
 
 test("pointer ownership rejects duplicate pointer or pad claims", () => {

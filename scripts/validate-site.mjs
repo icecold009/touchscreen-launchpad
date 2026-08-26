@@ -61,7 +61,8 @@ for (const reference of htmlReferences) {
 const serviceWorker = readSiteFile("sw.js");
 const cachedReferences = [...serviceWorker.matchAll(/["'](\.\/[^"']+)["']/g)].map((match) => match[1]);
 for (const reference of cachedReferences) {
-  const absoluteReference = path.resolve(root, reference);
+  const cleanReference = reference.split(/[?#]/, 1)[0];
+  const absoluteReference = path.resolve(root, cleanReference);
   check(fs.existsSync(absoluteReference), `Service-worker asset does not exist: ${reference}`);
 }
 
