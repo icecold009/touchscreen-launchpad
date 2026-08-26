@@ -1058,7 +1058,26 @@ async function registerServiceWorker() {
   }
 
   try {
-    await navigator.serviceWorker.register("./sw.js");
+    const hadController = Boolean(navigator.serviceWorker.controller);
+    const registration = await navigator.serviceWorker.register("./sw.js");
+    const installingWorker = registration.installing;
+
+    if (hadController) {
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        setStatus("Launchpad updated for offline use. Reloading…", "success");
+        window.location.reload();
+      }, { once: true });
+    }
+    if (installingWorker) {
+      installingWorker.addEventListener("statechange", () => {
+        if (installingWorker.state === "installed" && hadController) {
+          setStatus("Offline update ready. Reloading…", "success");
+        }
+      });
+    }
+    if (registration.waiting && hadController) {
+      setStatus("Offline update ready. Reload this tab to apply it.", "info");
+    }
     if (storageState === "saved") updateConnectionStatus(`${getStorageStateLabel(storageState)} · Offline-ready`, "ready");
   } catch {
     if (storageState === "saved") updateConnectionStatus("Saved locally · Browser mode", "muted");

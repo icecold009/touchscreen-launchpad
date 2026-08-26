@@ -49,7 +49,7 @@ The remaining work is lifecycle proof. A hidden/interrupted page can retain poin
 
 - [ ] **6. Verify PWA update/offline behavior**
   Files: service worker, manifest, update status, Pages workflow.
-  What to build: Make cache version/update/stale state understandable; verify scope, icons, installability, update activation, and offline reload on the intended Pages origin.
+  What to build: Make cache version/update/stale state understandable; verify scope, icons, installability, update activation, and offline reload on the intended Pages origin. **In progress:** shell versioning, manifest icon checks, navigation-only offline fallback, and update/controller status wiring are covered by the local contract.
   Acceptance: The workflow targets the actual release branch and no local check is called deployment proof.
   Verify: service-worker browser tests and deployed Lighthouse/PWA inspection.
 

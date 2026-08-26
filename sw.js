@@ -1,9 +1,9 @@
-const CACHE_NAME = "touchscreen-launchpad-v9";
+const CACHE_NAME = "touchscreen-launchpad-v10";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./style.css",
-  "./app.js?version=9",
+  "./app.js?version=10",
   "./manifest.webmanifest",
   "./icon.svg",
 ];
@@ -31,9 +31,11 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
+  const isNavigationRequest = event.request.mode === "navigate" || event.request.destination === "document";
+
   event.respondWith(
     caches.match(event.request)
       .then((cachedResponse) => cachedResponse || fetch(event.request))
-      .catch(() => caches.match("./index.html")),
+      .catch(() => isNavigationRequest ? caches.match("./index.html") : Response.error()),
   );
 });
