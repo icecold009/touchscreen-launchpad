@@ -189,6 +189,7 @@ function saveLayout(message = "Layout saved in this browser.") {
     localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(serializeLayout()));
     if (storageMode === "persistent") setStorageState("saved");
     setStatus(storageMode === "memory" ? `${message} Memory-only mode: a reload may discard changes.` : message, storageMode === "memory" ? "error" : "success");
+    return true;
   } catch (error) {
     markMemoryOnlyMode(
       isQuotaError(error)
@@ -197,6 +198,7 @@ function saveLayout(message = "Layout saved in this browser.") {
       isQuotaError(error) ? "quota" : "unavailable",
     );
     setStatus("This browser could not save the layout.", "error");
+    return false;
   }
 }
 
@@ -902,8 +904,16 @@ function downloadText(filename, content, mimeType) {
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
-  link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  link.hidden = true;
+  document.body.append(link);
+  try {
+    link.click();
+  } finally {
+    window.setTimeout(() => {
+      link.remove();
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }
 }
 
 function exportLayout() {
@@ -915,6 +925,20 @@ function exportLayout() {
   }
 }
 
+function validateImportedLayout(parsedLayout) {
+  if (!parsedLayout || typeof parsedLayout !== "object" || parsedLayout.version !== 1) {
+    throw new Error("This layout version is not supported.");
+  }
+  if (!Array.isArray(parsedLayout.pads) || parsedLayout.pads.length !== PAD_COUNT) {
+    throw new Error("This file is not a complete launchpad layout.");
+  }
+
+  const importedPads = normalizePads(parsedLayout.pads);
+  const missingSampleIds = [...new Set(importedPads.map((pad) => pad.sampleId).filter(Boolean))]
+    .filter((sampleId) => !samples.has(sampleId));
+  return { importedPads, missingSampleIds };
+}
+
 async function importLayout(event) {
   const file = event.target.files?.[0];
   event.target.value = "";
@@ -922,12 +946,24 @@ async function importLayout(event) {
 
   try {
     const parsedLayout = JSON.parse(await file.text());
-    if (!Array.isArray(parsedLayout.pads)) throw new Error("This file is not a launchpad layout.");
-    stopAll();
-    pads = normalizePads(parsedLayout.pads);
+    const { importedPads, missingSampleIds } = validateImportedLayout(parsedLayout);
+    const previousPads = pads;
+    stopAll({ announce: false });
+    pads = importedPads;
     renderPads();
     selectPad(0);
-    saveLayout("Layout imported and saved.");
+    if (!saveLayout("Layout imported and saved.")) {
+      pads = previousPads;
+      renderPads();
+      selectPad(0);
+      setStatus("Layout import failed; your existing layout was preserved.", "error");
+      return;
+    }
+
+    if (missingSampleIds.length) {
+      const sampleWord = missingSampleIds.length === 1 ? "sample is" : "samples are";
+      setStatus(`Layout imported and saved. ${missingSampleIds.length} assigned ${sampleWord} missing in this browser.`, storageMode === "memory" ? "error" : "success");
+    }
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "The layout could not be imported.", "error");
   }

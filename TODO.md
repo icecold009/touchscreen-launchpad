@@ -43,7 +43,7 @@ The remaining work is lifecycle proof. A hidden/interrupted page can retain poin
 
 - [ ] **5. Test download and import/export boundaries**
   Files: download helper, import validation, tests.
-  What to build: Cover repeated/large/cancelled downloads, delayed download start, clipboard/file failures, invalid JSON, schema version, and missing sample bytes.
+  What to build: Cover repeated/large/cancelled downloads, delayed download start, clipboard/file failures, invalid JSON, schema version, and missing sample bytes. **In progress:** export cleanup now preserves delayed download start, while import validation checks schema/pad count and reports missing local sample files without replacing the existing layout on save failure.
   Acceptance: Cleanup never races the download and failed export/import preserves user content.
   Verify: Chromium plus at least one second browser engine if available.
 
