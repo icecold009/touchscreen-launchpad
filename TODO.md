@@ -6,10 +6,10 @@ Feature branch: `codex/luna-launchpad-lifecycle-tests`
 
 ## Current verified baseline
 
-- `node --check app.js` and `node --check sw.js` pass.
-- The repository has no package manifest or `npm run validate`; the previous TODO command was inaccurate.
-- Reviewed hover rules are gated and object URLs are revoked after a delay.
-- Pointer maps handle pointerup, pointercancel, and lost capture, but there is no page visibility/blur cleanup.
+- `npm.cmd run validate` passes syntax, static-site, DOM, lifecycle, storage, import/export, and PWA contract checks.
+- The app remains a no-build static site; the verification package adds no production runtime dependencies or bundle step.
+- Reviewed hover rules are gated and download object URLs are revoked after a delayed cleanup.
+- Pointer maps handle pointerup, pointercancel, lost capture, visibility, blur, pagehide, orientation change, and pad rerender cleanup; direct synthetic interruption evidence remains open.
 
 ## Code-review conclusion
 
@@ -62,7 +62,10 @@ The remaining work is lifecycle proof. A hidden/interrupted page can retain poin
 
 1. `test(launchpad): add static lifecycle verification`
 2. `fix(launchpad): clear interrupted pointer and audio state`
-3. `feat(launchpad): expose storage and PWA recovery states`
+3. `feat(launchpad): expose storage recovery states`
+4. `fix(launchpad): harden import and export boundaries`
+5. `feat(launchpad): clarify PWA update and offline fallback`
+6. `fix(launchpad): release captured pointers on interruption`
 
 ## Definition of done
 
