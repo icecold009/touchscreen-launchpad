@@ -37,6 +37,9 @@ const sampleCount = document.querySelector("#sample-count");
 const sampleSearchInput = document.querySelector("#sample-search");
 const sampleSortInput = document.querySelector("#sample-sort");
 const installAppButton = document.querySelector("#install-app");
+const persistenceMessage = document.querySelector("#persistence-message");
+const repairStorageButton = document.querySelector("#repair-storage");
+const resetStorageButton = document.querySelector("#reset-storage");
 
 const padColors = [
   "#ff5c77", "#ff7a59", "#ffb454", "#f1d36b",
@@ -54,8 +57,10 @@ let selectedPadIndex = 0;
 let audioContext;
 let masterGain;
 let databasePromise;
+let sampleDatabase;
 let deferredInstallPrompt;
 let storageMode = "persistent";
+let storageState = "saved";
 let editorDirty = false;
 let draftSampleCleared = false;
 let playbackGeneration = 0;
@@ -118,11 +123,35 @@ function normalizePads(candidatePads) {
   return Array.from({ length: PAD_COUNT }, (_, index) => normalizePad(candidatePads?.[index], index));
 }
 
-function markMemoryOnlyMode(message) {
+function isQuotaError(error) {
+  return error?.name === "QuotaExceededError" || error?.code === 22;
+}
+
+function getStorageStateLabel(state) {
+  return {
+    saved: "Saved locally",
+    saving: "Saving…",
+    quota: "Storage full",
+    upgrade: "Updating storage…",
+    corrupt: "Repair needed",
+    unavailable: "Storage unavailable",
+    "memory-only": "Memory-only mode",
+  }[state] || "Storage status unknown";
+}
+
+function setStorageState(state, message = "") {
+  storageState = state;
+  updateConnectionStatus(getStorageStateLabel(state), state === "saved" ? "ready" : "muted");
+  persistenceMessage.textContent = message;
+  persistenceNote.hidden = !message;
+  const showRecoveryActions = ["quota", "corrupt", "unavailable"].includes(state);
+  repairStorageButton.hidden = !showRecoveryActions;
+  resetStorageButton.hidden = !showRecoveryActions;
+}
+
+function markMemoryOnlyMode(message, state = "memory-only") {
   storageMode = "memory";
-  updateConnectionStatus("Memory-only mode", "muted");
-  persistenceNote.textContent = message;
-  persistenceNote.hidden = false;
+  setStorageState(state, message);
 }
 
 function readLayout() {
@@ -133,7 +162,7 @@ function readLayout() {
     const parsedLayout = JSON.parse(savedLayout);
     return normalizePads(parsedLayout.pads);
   } catch {
-    markMemoryOnlyMode("Layout storage is unavailable. Changes will last until this tab is reloaded.");
+    markMemoryOnlyMode("Layout storage is unavailable. Changes will last until this tab is reloaded.", "unavailable");
     return createDefaultPads();
   }
 }
@@ -155,11 +184,18 @@ function serializeLayout() {
 }
 
 function saveLayout(message = "Layout saved in this browser.") {
+  if (storageMode === "persistent") setStorageState("saving", "Saving layout…");
   try {
     localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(serializeLayout()));
+    if (storageMode === "persistent") setStorageState("saved");
     setStatus(storageMode === "memory" ? `${message} Memory-only mode: a reload may discard changes.` : message, storageMode === "memory" ? "error" : "success");
-  } catch {
-    markMemoryOnlyMode("Layout storage failed. Changes remain in memory and may be lost on reload.");
+  } catch (error) {
+    markMemoryOnlyMode(
+      isQuotaError(error)
+        ? "Layout storage is full. Export the layout, then remove browser data or continue in memory-only mode."
+        : "Layout storage failed. Changes remain in memory and may be lost on reload.",
+      isQuotaError(error) ? "quota" : "unavailable",
+    );
     setStatus("This browser could not save the layout.", "error");
   }
 }
@@ -192,12 +228,21 @@ function openDatabase() {
       const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
 
       request.addEventListener("upgradeneeded", () => {
+        if (storageMode === "persistent") setStorageState("upgrade", "Updating sample storage…");
         if (!request.result.objectStoreNames.contains("samples")) {
           request.result.createObjectStore("samples", { keyPath: "id" });
         }
       });
-      request.addEventListener("success", () => resolve(request.result));
-      request.addEventListener("error", () => reject(request.error || new Error("Could not open sample storage.")));
+      request.addEventListener("success", () => {
+        sampleDatabase = request.result;
+        sampleDatabase.addEventListener("versionchange", () => sampleDatabase.close());
+        if (storageMode === "persistent") setStorageState("saved");
+        resolve(sampleDatabase);
+      });
+      request.addEventListener("error", () => {
+        markMemoryOnlyMode("Sample storage is unavailable. Audio works, but sample files will not survive a reload.", "unavailable");
+        reject(request.error || new Error("Could not open sample storage."));
+      });
     });
   }
 
@@ -250,14 +295,111 @@ async function persistSample(file) {
     createdAt: new Date().toISOString(),
   };
 
+  if (storageMode === "persistent") setStorageState("saving", "Saving sample…");
   try {
     await writeSample(sample);
-  } catch {
-    markMemoryOnlyMode("Sample storage failed. This sample is available for this session only.");
+    if (storageMode === "persistent") setStorageState("saved");
+  } catch (error) {
+    markMemoryOnlyMode(
+      isQuotaError(error)
+        ? "Sample storage is full. This sample is available for this session only; export your layout before resetting storage."
+        : "Sample storage failed. This sample is available for this session only.",
+      isQuotaError(error) ? "quota" : "unavailable",
+    );
   }
   samples.set(sample.id, sample);
   renderSampleLibrary();
   return sample;
+}
+
+function isValidStoredSample(sample) {
+  return Boolean(
+    sample
+      && typeof sample.id === "string"
+      && typeof sample.name === "string"
+      && sample.name.trim()
+      && typeof sample.mime === "string"
+      && Number.isFinite(sample.size)
+      && sample.size >= 0
+      && typeof sample.createdAt === "string"
+      && typeof sample.blob?.arrayBuffer === "function",
+  );
+}
+
+function partitionStoredSamples(storedSamples) {
+  return storedSamples.reduce((result, sample) => {
+    result[isValidStoredSample(sample) ? "valid" : "corrupt"].push(sample);
+    return result;
+  }, { valid: [], corrupt: [] });
+}
+
+async function repairSampleStorage() {
+  repairStorageButton.disabled = true;
+  setStorageState("upgrade", "Checking saved sample storage…");
+  sampleDatabase?.close();
+  sampleDatabase = undefined;
+  databasePromise = undefined;
+
+  try {
+    const { valid, corrupt } = partitionStoredSamples(await readSamples());
+    samples = new Map(valid.map((sample) => [sample.id, sample]));
+    renderSampleLibrary();
+    updateSampleName();
+
+    if (corrupt.length) {
+      storageMode = "memory";
+      setStorageState("corrupt", `${corrupt.length} saved sample${corrupt.length === 1 ? " is" : "s are"} corrupt. Export your layout, then reset sample storage if needed.`);
+      setStatus("Sample storage still needs repair.", "error");
+      return;
+    }
+
+    storageMode = "persistent";
+    setStorageState("saved");
+    setStatus("Sample storage repaired.", "success");
+  } catch (error) {
+    markMemoryOnlyMode("Sample storage is unavailable. Repair can be retried without deleting saved data.", "unavailable");
+    setStatus(error instanceof Error ? error.message : "Sample storage could not be repaired.", "error");
+  } finally {
+    repairStorageButton.disabled = false;
+  }
+}
+
+function deleteSampleDatabase() {
+  if (!("indexedDB" in window)) return Promise.reject(new Error("IndexedDB is unavailable."));
+
+  sampleDatabase?.close();
+  sampleDatabase = undefined;
+  databasePromise = undefined;
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(DATABASE_NAME);
+    request.addEventListener("success", resolve, { once: true });
+    request.addEventListener("error", () => reject(request.error || new Error("Sample storage could not be reset.")), { once: true });
+    request.addEventListener("blocked", () => reject(new Error("Close other launchpad tabs before resetting sample storage.")), { once: true });
+  });
+}
+
+async function resetSampleStorage() {
+  if (!window.confirm("Reset saved sample storage? This removes saved audio files from this browser. Export your layout first; pad assignments will be cleared after the reset.")) return;
+
+  stopAll({ announce: false });
+  resetStorageButton.disabled = true;
+  setStorageState("saving", "Resetting sample storage…");
+  try {
+    await deleteSampleDatabase();
+    samples.clear();
+    pads = pads.map((pad) => ({ ...pad, sampleId: null }));
+    storageMode = "persistent";
+    setStorageState("saved");
+    renderPads();
+    selectPad(selectedPadIndex);
+    renderSampleLibrary();
+    saveLayout("Sample storage reset. Layout saved without sample assignments.");
+  } catch (error) {
+    markMemoryOnlyMode("Sample storage reset did not complete. No saved samples were intentionally removed.", "unavailable");
+    setStatus(error instanceof Error ? error.message : "Sample storage could not be reset.", "error");
+  } finally {
+    resetStorageButton.disabled = false;
+  }
 }
 
 function renderSampleLibrary() {
@@ -836,6 +978,8 @@ function bindEvents() {
   exportLayoutButton.addEventListener("click", exportLayout);
   importLayoutInput.addEventListener("change", (event) => void importLayout(event));
   resetLayoutButton.addEventListener("click", resetLayout);
+  repairStorageButton.addEventListener("click", () => void repairSampleStorage());
+  resetStorageButton.addEventListener("click", () => void resetSampleStorage());
   sampleSearchInput.addEventListener("input", renderSampleLibrary);
   sampleSortInput.addEventListener("change", renderSampleLibrary);
   editorToggle.addEventListener("click", () => {
@@ -879,9 +1023,9 @@ async function registerServiceWorker() {
 
   try {
     await navigator.serviceWorker.register("./sw.js");
-    updateConnectionStatus("Offline-ready", "ready");
+    if (storageState === "saved") updateConnectionStatus(`${getStorageStateLabel(storageState)} · Offline-ready`, "ready");
   } catch {
-    updateConnectionStatus("Browser mode", "muted");
+    if (storageState === "saved") updateConnectionStatus("Saved locally · Browser mode", "muted");
   }
 }
 
@@ -895,12 +1039,19 @@ async function init() {
   renderSampleLibrary();
 
   try {
-    const storedSamples = await readSamples();
-    samples = new Map(storedSamples.map((sample) => [sample.id, sample]));
+    const { valid, corrupt } = partitionStoredSamples(await readSamples());
+    samples = new Map(valid.map((sample) => [sample.id, sample]));
     renderSampleLibrary();
     updateSampleName();
+    if (corrupt.length) {
+      storageMode = "memory";
+      setStorageState("corrupt", `${corrupt.length} saved sample${corrupt.length === 1 ? " is" : "s are"} corrupt. Export your layout, then repair or reset sample storage.`);
+      setStatus("Some saved samples need repair.", "error");
+    } else if (storageMode === "persistent") {
+      setStorageState("saved");
+    }
   } catch {
-    markMemoryOnlyMode("Sample storage is unavailable. Audio works, but sample files will not survive a reload.");
+    markMemoryOnlyMode("Sample storage is unavailable. Audio works, but sample files will not survive a reload.", "unavailable");
     setStatus("Audio works, but this browser cannot persist sample files.", "error");
   }
 

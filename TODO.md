@@ -37,7 +37,7 @@ The remaining work is lifecycle proof. A hidden/interrupted page can retain poin
 
 - [ ] **4. Finish IndexedDB recovery UX**
   Files: storage adapter, editor status, import/export.
-  What to build: Distinguish saved, saving, quota, upgrade, corrupt record, unavailable, and memory-only. Offer export/repair/reset without silent deletion.
+  What to build: Distinguish saved, saving, quota, upgrade, corrupt record, unavailable, and memory-only. Offer export/repair/reset without silent deletion. **In progress:** explicit storage states, corrupt-record quarantine, non-destructive repair, and confirmation-gated sample reset are wired into the status UI.
   Acceptance: A pattern can be created, reloaded, exported, and recovered offline or the limitation is explicit.
   Verify: Browser tests with rejected DB operations and corrupted records.
 

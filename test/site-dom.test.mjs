@@ -25,6 +25,9 @@ test("the launchpad DOM exposes its primary interaction surface", () => {
     "reset-layout",
     "sample-search",
     "install-app",
+    "persistence-message",
+    "repair-storage",
+    "reset-storage",
   ];
 
   for (const id of requiredIds) {
