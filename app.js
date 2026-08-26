@@ -63,6 +63,18 @@ let beatCountdownTimer;
 const pointerPadById = new Map();
 const pointerIdByPad = new Map();
 
+function clearPointerState() {
+  pointerPadById.clear();
+  pointerIdByPad.clear();
+  for (const button of padGrid.querySelectorAll(".is-pressed")) {
+    button.classList.remove("is-pressed");
+  }
+}
+
+function handleVisibilityChange() {
+  if (document.hidden || document.visibilityState === "hidden") clearPointerState();
+}
+
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
 }
@@ -535,16 +547,18 @@ function updatePadState(index) {
 
 function releasePadPointer(button, event) {
   const index = Number(button.dataset.index);
-  if (pointerPadById.get(event.pointerId) !== index) return;
-  pointerPadById.delete(event.pointerId);
-  if (pointerIdByPad.get(index) === event.pointerId) pointerIdByPad.delete(index);
-  button.classList.remove("is-pressed");
+  const pointerId = event.pointerId;
+  const ownsPointer = pointerPadById.get(pointerId) === index;
+  const ownsPad = pointerIdByPad.get(index) === pointerId;
+
+  if (ownsPointer) pointerPadById.delete(pointerId);
+  if (ownsPad) pointerIdByPad.delete(index);
+  if (ownsPointer || ownsPad || !pointerIdByPad.has(index)) button.classList.remove("is-pressed");
 }
 
 function renderPads() {
+  clearPointerState();
   padGrid.replaceChildren();
-  pointerPadById.clear();
-  pointerIdByPad.clear();
 
   pads.forEach((pad, index) => {
     const button = document.createElement("button");
@@ -569,7 +583,7 @@ function renderPads() {
 
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
-      if (pointerIdByPad.has(index)) return;
+      if (pointerIdByPad.has(index) || pointerPadById.has(event.pointerId)) return;
       pointerIdByPad.set(index, event.pointerId);
       pointerPadById.set(event.pointerId, index);
       button.classList.add("is-pressed");
@@ -756,6 +770,10 @@ function isEditableTarget(target) {
 
 function bindEvents() {
   stopAllButton.addEventListener("click", stopAll);
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  window.addEventListener("blur", clearPointerState);
+  window.addEventListener("pagehide", clearPointerState);
+  window.addEventListener("orientationchange", clearPointerState);
   padEditor.addEventListener("submit", (event) => void saveSelectedPad(event));
   clearSampleButton.addEventListener("click", clearSelectedSample);
   padEditor.addEventListener("input", markEditorDirty);

@@ -17,15 +17,15 @@ The remaining work is lifecycle proof. A hidden/interrupted page can retain poin
 
 ## Build checklist
 
-- [ ] **1. Add a minimal verification contract**
+- [x] **1. Add a minimal verification contract**
   Files: new small `package.json` only if justified, test config, README.
-  What to build: Provide scripts for JavaScript syntax, service-worker syntax, DOM/browser tests, and optional static asset validation without adding a production bundle step.
-  Acceptance: The app remains plain static files and a clean checkout can run all local checks reproducibly.
-  Verify: `npm.cmd ci` then named check/test scripts, or document an equally reproducible dependency-free alternative.
+  What to build: Provide scripts for JavaScript syntax, service-worker syntax, DOM/browser tests, and optional static asset validation without adding a production bundle step. **Done:** `package.json` exposes syntax, static, DOM-contract, and aggregate validation commands; the existing static validator is part of that contract.
+  Acceptance: The app remains plain static files and a clean checkout can run all local checks reproducibly. **Verified:** no production bundle step or runtime dependency was added.
+  Verify: `npm.cmd ci` then `npm.cmd run validate`.
 
 - [ ] **2. Centralize pointer interruption cleanup**
   Files: `app.js`, tests.
-  What to build: On visibility change, blur, pagehide, teardown/rerender, pointercancel, and lost capture, release bookkeeping, remove pressed styles, cancel queued pad state where appropriate, and avoid duplicate triggers.
+  What to build: On visibility change, blur, pagehide, teardown/rerender, pointercancel, and lost capture, release bookkeeping, remove pressed styles, cancel queued pad state where appropriate, and avoid duplicate triggers. **In progress:** centralized cleanup now covers hidden visibility, blur, pagehide, orientation change, and pad rerender; pointer ownership rejects duplicate pointer and pad claims. Local contract tests and normal pointer release pass; direct synthetic cancel/capture-loss evidence remains open.
   Acceptance: Multi-touch interruption cannot leave a pad visually pressed or logically owned by a dead pointer.
   Verify: Browser tests with synthetic multiple pointers, cancel, capture loss, hidden tab, and orientation change.
 
