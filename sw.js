@@ -1,9 +1,9 @@
-const CACHE_NAME = "touchscreen-launchpad-v10";
+const CACHE_NAME = "touchscreen-launchpad-v11";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./style.css",
-  "./app.js?version=10",
+  "./app.js?version=11",
   "./manifest.webmanifest",
   "./icon.svg",
 ];

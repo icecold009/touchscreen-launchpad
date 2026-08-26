@@ -9,6 +9,7 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 
 test("pointer interruption cleanup is centralized and clears pressed styles", () => {
   assert.match(app, /function clearPointerState\(\) \{[\s\S]*pointerPadById\.clear\(\);[\s\S]*pointerIdByPad\.clear\(\);[\s\S]*querySelectorAll\("\.is-pressed"\)[\s\S]*classList\.remove\("is-pressed"\);[\s\S]*\}/);
+  assert.match(app, /button\?\.hasPointerCapture\?\.\(pointerId\)[\s\S]*button\.releasePointerCapture\(pointerId\);/);
   assert.match(app, /function handleVisibilityChange\(\) \{[\s\S]*document\.hidden[\s\S]*document\.visibilityState === "hidden"[\s\S]*clearPointerState\(\);/);
   assert.match(app, /function renderPads\(\) \{\s*clearPointerState\(\);\s*padGrid\.replaceChildren\(\);/);
 });

@@ -25,7 +25,7 @@ The remaining work is lifecycle proof. A hidden/interrupted page can retain poin
 
 - [ ] **2. Centralize pointer interruption cleanup**
   Files: `app.js`, tests.
-  What to build: On visibility change, blur, pagehide, teardown/rerender, pointercancel, and lost capture, release bookkeeping, remove pressed styles, cancel queued pad state where appropriate, and avoid duplicate triggers. **In progress:** centralized cleanup now covers hidden visibility, blur, pagehide, orientation change, and pad rerender; pointer ownership rejects duplicate pointer and pad claims. Local contract tests and normal pointer release pass; direct synthetic cancel/capture-loss evidence remains open.
+  What to build: On visibility change, blur, pagehide, teardown/rerender, pointercancel, and lost capture, release bookkeeping, remove pressed styles, cancel queued pad state where appropriate, and avoid duplicate triggers. **In progress:** centralized cleanup now covers hidden visibility, blur, pagehide, orientation change, pad rerender, and explicit pointer-capture release; pointer ownership rejects duplicate pointer and pad claims. Local contract tests and normal pointer release pass; direct synthetic cancel/capture-loss evidence remains open.
   Acceptance: Multi-touch interruption cannot leave a pad visually pressed or logically owned by a dead pointer.
   Verify: Browser tests with synthetic multiple pointers, cancel, capture loss, hidden tab, and orientation change.
 

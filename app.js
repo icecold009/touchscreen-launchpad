@@ -70,6 +70,15 @@ const pointerPadById = new Map();
 const pointerIdByPad = new Map();
 
 function clearPointerState() {
+  for (const [pointerId, index] of pointerPadById) {
+    const button = padGrid.querySelector(`[data-index="${index}"]`);
+    if (!button?.hasPointerCapture?.(pointerId)) continue;
+    try {
+      button.releasePointerCapture(pointerId);
+    } catch {
+      // Pointer capture can disappear while the page is being torn down.
+    }
+  }
   pointerPadById.clear();
   pointerIdByPad.clear();
   for (const button of padGrid.querySelectorAll(".is-pressed")) {
