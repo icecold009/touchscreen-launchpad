@@ -1,0 +1,11 @@
+{
+  "name": "touchscreen-launchpad",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:syntax": "node --check app.js && node --check sw.js",
+    "check:static": "node scripts/validate-site.mjs",
+    "test:dom": "node --test test/site-dom.test.mjs test/pointer-lifecycle.test.mjs",
+    "validate": "npm run check:syntax && npm run check:static && npm run test:dom"
+  }
+}

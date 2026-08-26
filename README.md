@@ -25,6 +25,17 @@ python -m http.server 4173
 
 Open <http://localhost:4173> in a modern browser. Opening `index.html` directly is enough for a basic interaction check, but HTTP or HTTPS is required for offline installation and full persistence behavior.
 
+## Verify locally
+
+The repository includes a no-build verification contract. From a clean checkout, run:
+
+```bash
+npm ci
+npm run validate
+```
+
+This checks application and service-worker syntax, required static assets and PWA references, and the primary DOM contract. It does not replace rendered browser or physical touchscreen evidence.
+
 ## Use the launchpad
 
 1. Select a pad.
