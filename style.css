@@ -294,6 +294,16 @@ output {
 
 .persistence-note {
   color: #ffadbb;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.7rem;
+}
+
+.storage-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.7rem;
 }
 
 .pad-grid {

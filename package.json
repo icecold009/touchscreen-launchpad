@@ -1,0 +1,11 @@
+{
+  "name": "touchscreen-launchpad",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:syntax": "node --check app.js && node --check sw.js",
+    "check:static": "node scripts/validate-site.mjs",
+    "test:dom": "node --test test/site-dom.test.mjs test/pointer-lifecycle.test.mjs test/audio-lifecycle.test.mjs test/storage-recovery.test.mjs",
+    "validate": "node --check app.js && node --check sw.js && node scripts/validate-site.mjs && node --test test/site-dom.test.mjs test/pointer-lifecycle.test.mjs test/audio-lifecycle.test.mjs test/storage-recovery.test.mjs test/import-export.test.mjs test/pwa.test.mjs"
+  }
+}

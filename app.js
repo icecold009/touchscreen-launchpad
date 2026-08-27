@@ -37,6 +37,9 @@ const sampleCount = document.querySelector("#sample-count");
 const sampleSearchInput = document.querySelector("#sample-search");
 const sampleSortInput = document.querySelector("#sample-sort");
 const installAppButton = document.querySelector("#install-app");
+const persistenceMessage = document.querySelector("#persistence-message");
+const repairStorageButton = document.querySelector("#repair-storage");
+const resetStorageButton = document.querySelector("#reset-storage");
 
 const padColors = [
   "#ff5c77", "#ff7a59", "#ffb454", "#f1d36b",
@@ -54,14 +57,41 @@ let selectedPadIndex = 0;
 let audioContext;
 let masterGain;
 let databasePromise;
+let sampleDatabase;
 let deferredInstallPrompt;
 let storageMode = "persistent";
+let storageState = "saved";
 let editorDirty = false;
 let draftSampleCleared = false;
 let playbackGeneration = 0;
 let beatCountdownTimer;
+let lastPlaybackStatusAt = 0;
 const pointerPadById = new Map();
 const pointerIdByPad = new Map();
+
+function clearPointerState() {
+  for (const [pointerId, index] of pointerPadById) {
+    const button = padGrid.querySelector(`[data-index="${index}"]`);
+    if (!button?.hasPointerCapture?.(pointerId)) continue;
+    try {
+      button.releasePointerCapture(pointerId);
+    } catch {
+      // Pointer capture can disappear while the page is being torn down.
+    }
+  }
+  pointerPadById.clear();
+  pointerIdByPad.clear();
+  for (const button of padGrid.querySelectorAll(".is-pressed")) {
+    button.classList.remove("is-pressed");
+  }
+}
+
+function handleVisibilityChange() {
+  if (document.hidden || document.visibilityState === "hidden") {
+    clearPointerState();
+    stopAll({ announce: false });
+  }
+}
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -102,11 +132,35 @@ function normalizePads(candidatePads) {
   return Array.from({ length: PAD_COUNT }, (_, index) => normalizePad(candidatePads?.[index], index));
 }
 
-function markMemoryOnlyMode(message) {
+function isQuotaError(error) {
+  return error?.name === "QuotaExceededError" || error?.code === 22;
+}
+
+function getStorageStateLabel(state) {
+  return {
+    saved: "Saved locally",
+    saving: "Saving…",
+    quota: "Storage full",
+    upgrade: "Updating storage…",
+    corrupt: "Repair needed",
+    unavailable: "Storage unavailable",
+    "memory-only": "Memory-only mode",
+  }[state] || "Storage status unknown";
+}
+
+function setStorageState(state, message = "") {
+  storageState = state;
+  updateConnectionStatus(getStorageStateLabel(state), state === "saved" ? "ready" : "muted");
+  persistenceMessage.textContent = message;
+  persistenceNote.hidden = !message;
+  const showRecoveryActions = ["quota", "corrupt", "unavailable"].includes(state);
+  repairStorageButton.hidden = !showRecoveryActions;
+  resetStorageButton.hidden = !showRecoveryActions;
+}
+
+function markMemoryOnlyMode(message, state = "memory-only") {
   storageMode = "memory";
-  updateConnectionStatus("Memory-only mode", "muted");
-  persistenceNote.textContent = message;
-  persistenceNote.hidden = false;
+  setStorageState(state, message);
 }
 
 function readLayout() {
@@ -117,7 +171,7 @@ function readLayout() {
     const parsedLayout = JSON.parse(savedLayout);
     return normalizePads(parsedLayout.pads);
   } catch {
-    markMemoryOnlyMode("Layout storage is unavailable. Changes will last until this tab is reloaded.");
+    markMemoryOnlyMode("Layout storage is unavailable. Changes will last until this tab is reloaded.", "unavailable");
     return createDefaultPads();
   }
 }
@@ -139,18 +193,34 @@ function serializeLayout() {
 }
 
 function saveLayout(message = "Layout saved in this browser.") {
+  if (storageMode === "persistent") setStorageState("saving", "Saving layout…");
   try {
     localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(serializeLayout()));
+    if (storageMode === "persistent") setStorageState("saved");
     setStatus(storageMode === "memory" ? `${message} Memory-only mode: a reload may discard changes.` : message, storageMode === "memory" ? "error" : "success");
-  } catch {
-    markMemoryOnlyMode("Layout storage failed. Changes remain in memory and may be lost on reload.");
+    return true;
+  } catch (error) {
+    markMemoryOnlyMode(
+      isQuotaError(error)
+        ? "Layout storage is full. Export the layout, then remove browser data or continue in memory-only mode."
+        : "Layout storage failed. Changes remain in memory and may be lost on reload.",
+      isQuotaError(error) ? "quota" : "unavailable",
+    );
     setStatus("This browser could not save the layout.", "error");
+    return false;
   }
 }
 
 function setStatus(message, type = "info") {
   statusMessage.textContent = message;
   statusMessage.dataset.type = type;
+}
+
+function setPlaybackStatus(message, type = "info", { force = false } = {}) {
+  const now = performance.now();
+  if (!force && type === "info" && now - lastPlaybackStatusAt < 250) return;
+  lastPlaybackStatusAt = now;
+  setStatus(message, type);
 }
 
 function updateConnectionStatus(message, type = "ready") {
@@ -169,12 +239,21 @@ function openDatabase() {
       const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
 
       request.addEventListener("upgradeneeded", () => {
+        if (storageMode === "persistent") setStorageState("upgrade", "Updating sample storage…");
         if (!request.result.objectStoreNames.contains("samples")) {
           request.result.createObjectStore("samples", { keyPath: "id" });
         }
       });
-      request.addEventListener("success", () => resolve(request.result));
-      request.addEventListener("error", () => reject(request.error || new Error("Could not open sample storage.")));
+      request.addEventListener("success", () => {
+        sampleDatabase = request.result;
+        sampleDatabase.addEventListener("versionchange", () => sampleDatabase.close());
+        if (storageMode === "persistent") setStorageState("saved");
+        resolve(sampleDatabase);
+      });
+      request.addEventListener("error", () => {
+        markMemoryOnlyMode("Sample storage is unavailable. Audio works, but sample files will not survive a reload.", "unavailable");
+        reject(request.error || new Error("Could not open sample storage."));
+      });
     });
   }
 
@@ -227,14 +306,111 @@ async function persistSample(file) {
     createdAt: new Date().toISOString(),
   };
 
+  if (storageMode === "persistent") setStorageState("saving", "Saving sample…");
   try {
     await writeSample(sample);
-  } catch {
-    markMemoryOnlyMode("Sample storage failed. This sample is available for this session only.");
+    if (storageMode === "persistent") setStorageState("saved");
+  } catch (error) {
+    markMemoryOnlyMode(
+      isQuotaError(error)
+        ? "Sample storage is full. This sample is available for this session only; export your layout before resetting storage."
+        : "Sample storage failed. This sample is available for this session only.",
+      isQuotaError(error) ? "quota" : "unavailable",
+    );
   }
   samples.set(sample.id, sample);
   renderSampleLibrary();
   return sample;
+}
+
+function isValidStoredSample(sample) {
+  return Boolean(
+    sample
+      && typeof sample.id === "string"
+      && typeof sample.name === "string"
+      && sample.name.trim()
+      && typeof sample.mime === "string"
+      && Number.isFinite(sample.size)
+      && sample.size >= 0
+      && typeof sample.createdAt === "string"
+      && typeof sample.blob?.arrayBuffer === "function",
+  );
+}
+
+function partitionStoredSamples(storedSamples) {
+  return storedSamples.reduce((result, sample) => {
+    result[isValidStoredSample(sample) ? "valid" : "corrupt"].push(sample);
+    return result;
+  }, { valid: [], corrupt: [] });
+}
+
+async function repairSampleStorage() {
+  repairStorageButton.disabled = true;
+  setStorageState("upgrade", "Checking saved sample storage…");
+  sampleDatabase?.close();
+  sampleDatabase = undefined;
+  databasePromise = undefined;
+
+  try {
+    const { valid, corrupt } = partitionStoredSamples(await readSamples());
+    samples = new Map(valid.map((sample) => [sample.id, sample]));
+    renderSampleLibrary();
+    updateSampleName();
+
+    if (corrupt.length) {
+      storageMode = "memory";
+      setStorageState("corrupt", `${corrupt.length} saved sample${corrupt.length === 1 ? " is" : "s are"} corrupt. Export your layout, then reset sample storage if needed.`);
+      setStatus("Sample storage still needs repair.", "error");
+      return;
+    }
+
+    storageMode = "persistent";
+    setStorageState("saved");
+    setStatus("Sample storage repaired.", "success");
+  } catch (error) {
+    markMemoryOnlyMode("Sample storage is unavailable. Repair can be retried without deleting saved data.", "unavailable");
+    setStatus(error instanceof Error ? error.message : "Sample storage could not be repaired.", "error");
+  } finally {
+    repairStorageButton.disabled = false;
+  }
+}
+
+function deleteSampleDatabase() {
+  if (!("indexedDB" in window)) return Promise.reject(new Error("IndexedDB is unavailable."));
+
+  sampleDatabase?.close();
+  sampleDatabase = undefined;
+  databasePromise = undefined;
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(DATABASE_NAME);
+    request.addEventListener("success", resolve, { once: true });
+    request.addEventListener("error", () => reject(request.error || new Error("Sample storage could not be reset.")), { once: true });
+    request.addEventListener("blocked", () => reject(new Error("Close other launchpad tabs before resetting sample storage.")), { once: true });
+  });
+}
+
+async function resetSampleStorage() {
+  if (!window.confirm("Reset saved sample storage? This removes saved audio files from this browser. Export your layout first; pad assignments will be cleared after the reset.")) return;
+
+  stopAll({ announce: false });
+  resetStorageButton.disabled = true;
+  setStorageState("saving", "Resetting sample storage…");
+  try {
+    await deleteSampleDatabase();
+    samples.clear();
+    pads = pads.map((pad) => ({ ...pad, sampleId: null }));
+    storageMode = "persistent";
+    setStorageState("saved");
+    renderPads();
+    selectPad(selectedPadIndex);
+    renderSampleLibrary();
+    saveLayout("Sample storage reset. Layout saved without sample assignments.");
+  } catch (error) {
+    markMemoryOnlyMode("Sample storage reset did not complete. No saved samples were intentionally removed.", "unavailable");
+    setStatus(error instanceof Error ? error.message : "Sample storage could not be reset.", "error");
+  } finally {
+    resetStorageButton.disabled = false;
+  }
 }
 
 function renderSampleLibrary() {
@@ -294,7 +470,15 @@ function getAudioContext() {
 
 async function prepareAudio() {
   const context = getAudioContext();
-  if (context.state === "suspended") void context.resume().catch(() => {});
+  if (context.state === "closed") throw new Error("Audio is unavailable. Reload the page and try again.");
+  if (context.state === "suspended") {
+    try {
+      await context.resume();
+    } catch {
+      throw new Error("Audio is suspended. Interact with the page and try again.");
+    }
+  }
+  if (context.state !== "running") throw new Error("Audio is unavailable in the current browser state.");
   return context;
 }
 
@@ -367,6 +551,16 @@ function registerVoice(index, source, startAt, { isLoop = false } = {}) {
   return voice;
 }
 
+function startRegisteredVoice(index, voice, startAt, stopAt) {
+  try {
+    voice.source.start(startAt);
+    if (stopAt !== undefined) voice.source.stop(stopAt);
+  } catch (error) {
+    releaseVoice(index, voice);
+    throw error;
+  }
+}
+
 function stopPad(index, { quantized = false, announce = false } = {}) {
   const voices = activeVoices.get(index);
   if (!voices?.size || !audioContext) return false;
@@ -393,7 +587,7 @@ function stopPad(index, { quantized = false, announce = false } = {}) {
   return true;
 }
 
-function stopAll() {
+function stopAll({ announce = true } = {}) {
   playbackGeneration += 1;
   clearBeatCountdown();
   for (const [index, voices] of activeVoices) {
@@ -410,7 +604,11 @@ function stopAll() {
   activeVoices.clear();
   pendingPads.clear();
   for (let index = 0; index < PAD_COUNT; index += 1) updatePadState(index);
-  setStatus("All pads stopped.");
+  if (announce) {
+    const tempo = clamp(Number(tempoInput.value) || 120, 60, 200);
+    const quantizeState = quantizeInput.checked ? "on" : "off";
+    setPlaybackStatus(`All pads stopped. Tempo ${tempo} BPM · Quantize ${quantizeState}.`, "info", { force: true });
+  }
 }
 
 async function getSampleBuffer(sample, context) {
@@ -421,6 +619,10 @@ async function getSampleBuffer(sample, context) {
       .then((buffer) => {
         sample.buffer = buffer;
         return buffer;
+      })
+      .catch((error) => {
+        sample.bufferPromise = undefined;
+        throw error;
       });
   }
   return sample.bufferPromise;
@@ -446,10 +648,9 @@ function playPreviewTone(index, pad, context) {
   gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.48);
   oscillator.connect(gain);
   gain.connect(masterGain);
-  registerVoice(index, oscillator, now);
-  oscillator.start(now);
-  oscillator.stop(now + 0.5);
-  setStatus(`${pad.label} preview tone triggered.`);
+  const voice = registerVoice(index, oscillator, now);
+  startRegisteredVoice(index, voice, now, now + 0.5);
+  setPlaybackStatus(`${pad.label} preview tone triggered.`);
 }
 
 async function playSample(index, pad, sample, context, generation) {
@@ -463,14 +664,14 @@ async function playSample(index, pad, sample, context, generation) {
   source.buffer = buffer;
   source.loop = isLoop;
   source.connect(gain);
-  registerVoice(index, source, startAt, { isLoop });
-  source.start(startAt);
+  const voice = registerVoice(index, source, startAt, { isLoop });
+  startRegisteredVoice(index, voice, startAt);
 
   if (isLoop && startAt > context.currentTime + 0.02) {
-    setStatus(`${pad.label} loop queued for the next beat.`);
+    setPlaybackStatus(`${pad.label} loop queued for the next beat.`, "info", { force: true });
     showBeatCountdown(startAt, `${pad.label} starts`);
   } else {
-    setStatus(`${pad.label} triggered.`);
+    setPlaybackStatus(`${pad.label} triggered.`);
   }
   return true;
 }
@@ -535,16 +736,18 @@ function updatePadState(index) {
 
 function releasePadPointer(button, event) {
   const index = Number(button.dataset.index);
-  if (pointerPadById.get(event.pointerId) !== index) return;
-  pointerPadById.delete(event.pointerId);
-  if (pointerIdByPad.get(index) === event.pointerId) pointerIdByPad.delete(index);
-  button.classList.remove("is-pressed");
+  const pointerId = event.pointerId;
+  const ownsPointer = pointerPadById.get(pointerId) === index;
+  const ownsPad = pointerIdByPad.get(index) === pointerId;
+
+  if (ownsPointer) pointerPadById.delete(pointerId);
+  if (ownsPad) pointerIdByPad.delete(index);
+  if (ownsPointer || ownsPad || !pointerIdByPad.has(index)) button.classList.remove("is-pressed");
 }
 
 function renderPads() {
+  clearPointerState();
   padGrid.replaceChildren();
-  pointerPadById.clear();
-  pointerIdByPad.clear();
 
   pads.forEach((pad, index) => {
     const button = document.createElement("button");
@@ -569,7 +772,7 @@ function renderPads() {
 
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
-      if (pointerIdByPad.has(index)) return;
+      if (pointerIdByPad.has(index) || pointerPadById.has(event.pointerId)) return;
       pointerIdByPad.set(index, event.pointerId);
       pointerPadById.set(event.pointerId, index);
       button.classList.add("is-pressed");
@@ -710,8 +913,16 @@ function downloadText(filename, content, mimeType) {
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
-  link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  link.hidden = true;
+  document.body.append(link);
+  try {
+    link.click();
+  } finally {
+    window.setTimeout(() => {
+      link.remove();
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }
 }
 
 function exportLayout() {
@@ -723,6 +934,20 @@ function exportLayout() {
   }
 }
 
+function validateImportedLayout(parsedLayout) {
+  if (!parsedLayout || typeof parsedLayout !== "object" || parsedLayout.version !== 1) {
+    throw new Error("This layout version is not supported.");
+  }
+  if (!Array.isArray(parsedLayout.pads) || parsedLayout.pads.length !== PAD_COUNT) {
+    throw new Error("This file is not a complete launchpad layout.");
+  }
+
+  const importedPads = normalizePads(parsedLayout.pads);
+  const missingSampleIds = [...new Set(importedPads.map((pad) => pad.sampleId).filter(Boolean))]
+    .filter((sampleId) => !samples.has(sampleId));
+  return { importedPads, missingSampleIds };
+}
+
 async function importLayout(event) {
   const file = event.target.files?.[0];
   event.target.value = "";
@@ -730,12 +955,24 @@ async function importLayout(event) {
 
   try {
     const parsedLayout = JSON.parse(await file.text());
-    if (!Array.isArray(parsedLayout.pads)) throw new Error("This file is not a launchpad layout.");
-    stopAll();
-    pads = normalizePads(parsedLayout.pads);
+    const { importedPads, missingSampleIds } = validateImportedLayout(parsedLayout);
+    const previousPads = pads;
+    stopAll({ announce: false });
+    pads = importedPads;
     renderPads();
     selectPad(0);
-    saveLayout("Layout imported and saved.");
+    if (!saveLayout("Layout imported and saved.")) {
+      pads = previousPads;
+      renderPads();
+      selectPad(0);
+      setStatus("Layout import failed; your existing layout was preserved.", "error");
+      return;
+    }
+
+    if (missingSampleIds.length) {
+      const sampleWord = missingSampleIds.length === 1 ? "sample is" : "samples are";
+      setStatus(`Layout imported and saved. ${missingSampleIds.length} assigned ${sampleWord} missing in this browser.`, storageMode === "memory" ? "error" : "success");
+    }
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "The layout could not be imported.", "error");
   }
@@ -756,6 +993,13 @@ function isEditableTarget(target) {
 
 function bindEvents() {
   stopAllButton.addEventListener("click", stopAll);
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  window.addEventListener("blur", clearPointerState);
+  window.addEventListener("pagehide", () => {
+    clearPointerState();
+    stopAll({ announce: false });
+  });
+  window.addEventListener("orientationchange", clearPointerState);
   padEditor.addEventListener("submit", (event) => void saveSelectedPad(event));
   clearSampleButton.addEventListener("click", clearSelectedSample);
   padEditor.addEventListener("input", markEditorDirty);
@@ -779,6 +1023,8 @@ function bindEvents() {
   exportLayoutButton.addEventListener("click", exportLayout);
   importLayoutInput.addEventListener("change", (event) => void importLayout(event));
   resetLayoutButton.addEventListener("click", resetLayout);
+  repairStorageButton.addEventListener("click", () => void repairSampleStorage());
+  resetStorageButton.addEventListener("click", () => void resetSampleStorage());
   sampleSearchInput.addEventListener("input", renderSampleLibrary);
   sampleSortInput.addEventListener("change", renderSampleLibrary);
   editorToggle.addEventListener("click", () => {
@@ -821,10 +1067,29 @@ async function registerServiceWorker() {
   }
 
   try {
-    await navigator.serviceWorker.register("./sw.js");
-    updateConnectionStatus("Offline-ready", "ready");
+    const hadController = Boolean(navigator.serviceWorker.controller);
+    const registration = await navigator.serviceWorker.register("./sw.js");
+    const installingWorker = registration.installing;
+
+    if (hadController) {
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        setStatus("Launchpad updated for offline use. Reloading…", "success");
+        window.location.reload();
+      }, { once: true });
+    }
+    if (installingWorker) {
+      installingWorker.addEventListener("statechange", () => {
+        if (installingWorker.state === "installed" && hadController) {
+          setStatus("Offline update ready. Reloading…", "success");
+        }
+      });
+    }
+    if (registration.waiting && hadController) {
+      setStatus("Offline update ready. Reload this tab to apply it.", "info");
+    }
+    if (storageState === "saved") updateConnectionStatus(`${getStorageStateLabel(storageState)} · Offline-ready`, "ready");
   } catch {
-    updateConnectionStatus("Browser mode", "muted");
+    if (storageState === "saved") updateConnectionStatus("Saved locally · Browser mode", "muted");
   }
 }
 
@@ -838,12 +1103,19 @@ async function init() {
   renderSampleLibrary();
 
   try {
-    const storedSamples = await readSamples();
-    samples = new Map(storedSamples.map((sample) => [sample.id, sample]));
+    const { valid, corrupt } = partitionStoredSamples(await readSamples());
+    samples = new Map(valid.map((sample) => [sample.id, sample]));
     renderSampleLibrary();
     updateSampleName();
+    if (corrupt.length) {
+      storageMode = "memory";
+      setStorageState("corrupt", `${corrupt.length} saved sample${corrupt.length === 1 ? " is" : "s are"} corrupt. Export your layout, then repair or reset sample storage.`);
+      setStatus("Some saved samples need repair.", "error");
+    } else if (storageMode === "persistent") {
+      setStorageState("saved");
+    }
   } catch {
-    markMemoryOnlyMode("Sample storage is unavailable. Audio works, but sample files will not survive a reload.");
+    markMemoryOnlyMode("Sample storage is unavailable. Audio works, but sample files will not survive a reload.", "unavailable");
     setStatus("Audio works, but this browser cannot persist sample files.", "error");
   }
 

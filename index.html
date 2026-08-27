@@ -50,7 +50,13 @@
 
             <p id="status" class="status-message" role="status" aria-live="polite">Tap a pad to start audio.</p>
             <p id="beat-indicator" class="beat-indicator" role="status" aria-live="off" hidden></p>
-            <p id="persistence-note" class="persistence-note" role="status" hidden></p>
+            <div id="persistence-note" class="persistence-note" role="status" hidden>
+              <span id="persistence-message"></span>
+              <span class="storage-actions">
+                <button id="repair-storage" class="text-button" type="button" hidden>Repair storage</button>
+                <button id="reset-storage" class="text-button" type="button" hidden>Reset saved samples</button>
+              </span>
+            </div>
           </section>
 
           <section id="pad-grid" class="pad-grid" aria-label="Launchpad pads"></section>
@@ -163,6 +169,6 @@
       </section>
     </main>
 
-    <script type="module" src="app.js"></script>
+    <script type="module" src="app.js?version=11"></script>
   </body>
 </html>

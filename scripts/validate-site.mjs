@@ -41,7 +41,13 @@ try {
 if (manifest) {
   check(typeof manifest.start_url === "string" && !manifest.start_url.startsWith("/"), "Manifest start_url must be relative for project Pages hosting.");
   check(manifest.scope === "./", "Manifest scope must be ./ for project Pages hosting.");
+  check(manifest.display === "standalone", "Manifest display must be standalone for installable app behavior.");
   check(Array.isArray(manifest.icons) && manifest.icons.length > 0, "Manifest must declare at least one icon.");
+  for (const icon of manifest.icons || []) {
+    if (typeof icon.src !== "string") continue;
+    const iconPath = path.resolve(root, icon.src.split(/[?#]/, 1)[0]);
+    check(fs.existsSync(iconPath), `Manifest icon does not exist: ${icon.src}`);
+  }
 }
 
 const html = readSiteFile("index.html");
@@ -61,7 +67,8 @@ for (const reference of htmlReferences) {
 const serviceWorker = readSiteFile("sw.js");
 const cachedReferences = [...serviceWorker.matchAll(/["'](\.\/[^"']+)["']/g)].map((match) => match[1]);
 for (const reference of cachedReferences) {
-  const absoluteReference = path.resolve(root, reference);
+  const cleanReference = reference.split(/[?#]/, 1)[0];
+  const absoluteReference = path.resolve(root, cleanReference);
   check(fs.existsSync(absoluteReference), `Service-worker asset does not exist: ${reference}`);
 }
 
