@@ -1093,7 +1093,7 @@ async function registerServiceWorker() {
   }
 }
 
-async function init() {
+export async function initLaunchpad() {
   pads = readLayout();
   bindEvents();
   renderPads();
@@ -1121,5 +1121,3 @@ async function init() {
 
   await registerServiceWorker();
 }
-
-void init();

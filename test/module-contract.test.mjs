@@ -1,0 +1,57 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+import { validateModuleGraph } from "../scripts/validate-site.mjs";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const bootstrap = fs.readFileSync(path.join(root, "src", "bootstrap.js"), "utf8");
+const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+const serviceWorker = fs.readFileSync(path.join(root, "sw.js"), "utf8");
+
+test("bootstrap is the single browser entry and app initialization is exportable", () => {
+  assert.match(html, /<script[^>]+type=["']module["'][^>]+src=["']src\/bootstrap\.js\?version=(\d+)["']/i);
+  assert.match(bootstrap, /import \{ initLaunchpad \} from "\.\.\/app\.js\?version=\d+";/);
+  assert.match(bootstrap, /export async function bootstrapLaunchpad/);
+  assert.match(bootstrap, /void bootstrapLaunchpad\(\);/);
+  assert.match(app, /export async function initLaunchpad\(\)/);
+  assert.doesNotMatch(app, /void init(?:Launchpad)?\(\);/);
+});
+
+test("module URLs share one cache version and remain in the offline shell", () => {
+  const htmlVersion = html.match(/src\/bootstrap\.js\?version=(\d+)/)?.[1];
+  const bootstrapVersion = bootstrap.match(/app\.js\?version=(\d+)/)?.[1];
+  const cacheVersion = serviceWorker.match(/touchscreen-launchpad-v(\d+)/)?.[1];
+
+  assert.ok(htmlVersion);
+  assert.equal(bootstrapVersion, htmlVersion);
+  assert.equal(cacheVersion, htmlVersion);
+  assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/bootstrap\\.js\\?version=${htmlVersion}"`));
+  assert.match(serviceWorker, new RegExp(`"\\.\\/app\\.js\\?version=${htmlVersion}"`));
+});
+
+test("syntax and aggregate validation include every browser module", () => {
+  assert.match(packageJson.scripts["check:syntax"], /node --check app\.js/);
+  assert.match(packageJson.scripts["check:syntax"], /node --check src\/bootstrap\.js/);
+  assert.match(packageJson.scripts.validate, /npm run check:syntax/);
+  assert.match(packageJson.scripts.validate, /test\/module-contract\.test\.mjs/);
+});
+
+test("module graph validation catches missing imports and invalid syntax", (context) => {
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "launchpad-module-contract-"));
+  context.after(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }));
+
+  fs.writeFileSync(path.join(fixtureRoot, "entry.js"), 'import "./missing.js";\n', "utf8");
+  let result = validateModuleGraph(fixtureRoot, ["./entry.js"]);
+  assert.deepEqual(result.failures, ["Browser module does not exist: missing.js"]);
+
+  fs.writeFileSync(path.join(fixtureRoot, "broken.js"), "export const broken = ;\n", "utf8");
+  fs.writeFileSync(path.join(fixtureRoot, "entry.js"), 'import "./broken.js";\n', "utf8");
+  result = validateModuleGraph(fixtureRoot, ["./entry.js"]);
+  assert.deepEqual(result.failures, ["Browser module has invalid syntax: broken.js"]);
+});

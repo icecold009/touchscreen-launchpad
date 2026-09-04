@@ -20,6 +20,7 @@ test("the app reports service-worker updates and reloads after controller change
 
 test("the service worker caches a versioned shell and only falls back to HTML for navigations", () => {
   assert.match(serviceWorker, /const CACHE_NAME = "touchscreen-launchpad-v\d+";/);
+  assert.match(serviceWorker, /"\.\/src\/bootstrap\.js\?version=\d+"/);
   assert.match(serviceWorker, /"\.\/app\.js\?version=\d+"/);
   assert.match(serviceWorker, /self\.skipWaiting\(\)/);
   assert.match(serviceWorker, /self\.clients\.claim\(\)/);
