@@ -9,7 +9,7 @@ Baseline main: `c8d1c7c`; audit package baseline: `8c08c2c` plus cache-bust and 
 - `npm.cmd ci --ignore-scripts` and `npm.cmd run validate` pass; the aggregate contract now covers 32 tests including service-worker runtime behavior, storage transaction aborts, and release-artifact staging.
 - The app remains a no-build static site; the verification package adds no production runtime dependencies or bundle step.
 - Pages deployment now validates the repository contract, stages `src/bootstrap.js`, and deploys only from `main`.
-- A fresh MIME-safe browser smoke loaded `src/bootstrap.js?version=14`, rendered 16 pads, queued/stopped a persisted loop, reached the export success state, reported no console errors, and showed no horizontal overflow.
+- A fresh MIME-safe browser smoke loaded `src/bootstrap.js?version=15`, rendered 16 pads, queued/stopped a persisted loop, reached the export success state, reported no console errors, and showed no horizontal overflow.
 - Pointer maps handle pointerup, pointercancel, lost capture, visibility, blur, pagehide, orientation change, and pad rerender cleanup; direct synthetic interruption evidence remains open.
 
 ## Code-review conclusion
@@ -38,7 +38,7 @@ The remaining work is targeted runtime and release evidence: direct synthetic po
 
 - [ ] **4. Finish IndexedDB recovery UX**
   Files: storage adapter, editor status, import/export.
-  What to build: Distinguish saved, saving, quota, upgrade, corrupt record, unavailable, and memory-only. Offer export/repair/reset without silent deletion. **Implementation complete:** explicit storage states, corrupt-record quarantine, non-destructive repair, confirmation-gated sample reset, and transaction-abort rejection are wired into the status UI; browser fault injection and corrupt-record recovery evidence remain open.
+  What to build: Distinguish saved, saving, quota, upgrade, corrupt record, unavailable, and memory-only. Offer export/repair/reset without silent deletion. **Implementation complete:** explicit storage states, corrupt-record quarantine, non-destructive repair, confirmation-gated sample reset, and a functionally tested request/transaction failure bridge are wired into the status UI; browser fault injection and corrupt-record recovery evidence remain open.
   Acceptance: A pattern can be created, reloaded, exported, and recovered offline or the limitation is explicit.
   Verify: Browser tests with rejected DB operations and corrupted records.
 

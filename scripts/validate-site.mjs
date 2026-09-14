@@ -10,6 +10,7 @@ const requiredFiles = [
   "app.js",
   "src/bootstrap.js",
   "src/pointer-state.js",
+  "src/storage-request.js",
   "manifest.webmanifest",
   "sw.js",
   "icon.svg",

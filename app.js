@@ -1,5 +1,6 @@
 const PAD_COUNT = 16;
-import { createPointerState } from "./src/pointer-state.js?version=14";
+import { createPointerState } from "./src/pointer-state.js?version=15";
+import { attachStorageRequest } from "./src/storage-request.js?version=15";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const DATABASE_NAME = "touchscreen-launchpad";
@@ -265,11 +266,7 @@ function requestFromStore(mode, operation) {
     const transaction = database.transaction("samples", mode);
     const store = transaction.objectStore("samples");
     const request = operation(store);
-
-    request.addEventListener("success", () => resolve(request.result));
-    const rejectStorageOperation = () => reject(request.error || new Error("Sample storage failed."));
-    request.addEventListener("error", rejectStorageOperation, { once: true });
-    transaction.addEventListener("abort", rejectStorageOperation, { once: true });
+    attachStorageRequest(request, transaction, resolve, reject);
   }));
 }
 

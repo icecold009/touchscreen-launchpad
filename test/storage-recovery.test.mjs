@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { attachStorageRequest } from "../src/storage-request.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
@@ -45,9 +46,28 @@ test("a layout persistence failure is not hidden by a healthy sample read", () =
 });
 
 test("IndexedDB request and transaction aborts both reject storage operations", () => {
-  assert.match(app, /const rejectStorageOperation = \(\) => reject\(request\.error \|\| new Error\("Sample storage failed\."\)\);/);
-  assert.match(app, /request\.addEventListener\("error", rejectStorageOperation, \{ once: true \}\);/);
-  assert.match(app, /transaction\.addEventListener\("abort", rejectStorageOperation, \{ once: true \}\);/);
+  assert.match(app, /attachStorageRequest\(request, transaction, resolve, reject\);/);
+});
+
+test("storage request bridge resolves success and preserves request or abort failures", async () => {
+  const successRequest = new EventTarget();
+  successRequest.result = { id: "sample-1" };
+  const success = new Promise((resolve, reject) => attachStorageRequest(successRequest, new EventTarget(), resolve, reject));
+  successRequest.dispatchEvent(new Event("success"));
+  assert.deepEqual(await success, { id: "sample-1" });
+
+  const requestError = new Error("request failed");
+  const failedRequest = new EventTarget();
+  failedRequest.error = requestError;
+  const failed = new Promise((resolve, reject) => attachStorageRequest(failedRequest, new EventTarget(), resolve, reject));
+  failedRequest.dispatchEvent(new Event("error"));
+  await assert.rejects(failed, requestError);
+
+  const abortedRequest = new EventTarget();
+  const transaction = new EventTarget();
+  const aborted = new Promise((resolve, reject) => attachStorageRequest(abortedRequest, transaction, resolve, reject));
+  transaction.dispatchEvent(new Event("abort"));
+  await assert.rejects(aborted, /Sample storage failed\./);
 });
 
 test("storage recovery controls are present but hidden until an issue is reported", () => {
