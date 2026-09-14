@@ -2,14 +2,14 @@
 
 Repository: `C:\Users\91829\OneDrive\Documents\GitHub\touchscreen-launchpad`
 Reviewed: feature branch `codex/launchpad-static-contract-20260903` during the 2026-09-14 completion audit
-Baseline main: `c8d1c7c`; audit package: `4329de3`
+Baseline main: `c8d1c7c`; audit package baseline: `8c08c2c` plus the cache-bust follow-up at the current branch tip
 
 ## Current verified baseline
 
 - `npm.cmd ci --ignore-scripts` and `npm.cmd run validate` pass; the aggregate contract now covers 32 tests including service-worker runtime behavior, storage transaction aborts, and release-artifact staging.
 - The app remains a no-build static site; the verification package adds no production runtime dependencies or bundle step.
 - Pages deployment now validates the repository contract, stages `src/bootstrap.js`, and deploys only from `main`.
-- A fresh MIME-safe browser smoke loaded `src/bootstrap.js?version=12`, rendered 16 pads, queued/stopped a persisted loop, reached the export success state, reported no console errors, and showed no horizontal overflow.
+- A fresh MIME-safe browser smoke loaded `src/bootstrap.js?version=13`, rendered 16 pads, queued/stopped a persisted loop, reached the export success state, reported no console errors, and showed no horizontal overflow.
 - Pointer maps handle pointerup, pointercancel, lost capture, visibility, blur, pagehide, orientation change, and pad rerender cleanup; direct synthetic interruption evidence remains open.
 
 ## Code-review conclusion

@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serviceWorkerSource = fs.readFileSync(path.join(root, "sw.js"), "utf8");
+const shellVersion = serviceWorkerSource.match(/touchscreen-launchpad-v(\d+)/)?.[1];
 
 function createServiceWorkerHarness() {
   const listeners = new Map();
@@ -84,8 +85,9 @@ test("install caches the complete versioned shell and activates immediately", as
   await dispatchLifecycle(harness.listeners, "install");
 
   const currentCache = [...harness.cacheRecords.values()][0];
-  assert.ok(currentCache.added.includes("./src/bootstrap.js?version=12"));
-  assert.ok(currentCache.added.includes("./app.js?version=12"));
+  assert.ok(shellVersion);
+  assert.ok(currentCache.added.includes(`./src/bootstrap.js?version=${shellVersion}`));
+  assert.ok(currentCache.added.includes(`./app.js?version=${shellVersion}`));
   assert.deepEqual(harness.lifecycleCalls, ["skipWaiting"]);
 });
 
