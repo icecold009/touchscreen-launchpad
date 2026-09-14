@@ -6,7 +6,13 @@ import { downloadText as triggerTextDownload } from "./src/download.js?version=1
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const DATABASE_NAME = "touchscreen-launchpad";
 const DATABASE_VERSION = 1;
+const MAX_LAYOUT_BYTES = 256 * 1024;
 const MAX_SAMPLE_BYTES = 50 * 1024 * 1024;
+const MAX_SAMPLE_COUNT = 32;
+const MAX_SAMPLE_STORAGE_BYTES = 256 * 1024 * 1024;
+const MAX_SAMPLE_ID_LENGTH = 128;
+const MAX_DECODED_AUDIO_BYTES = 256 * 1024 * 1024;
+const MAX_DECODED_AUDIO_SECONDS = 15 * 60;
 
 const padGrid = document.querySelector("#pad-grid");
 const statusMessage = document.querySelector("#status");
@@ -65,6 +71,8 @@ let sampleDatabase;
 let deferredInstallPrompt;
 let storageMode = "persistent";
 let storageState = "saved";
+let pendingSampleBytes = 0;
+let pendingSampleCount = 0;
 let editorDirty = false;
 let draftSampleCleared = false;
 let playbackGeneration = 0;
@@ -118,6 +126,9 @@ function normalizePad(candidate, index) {
     ? candidate.color
     : fallback.color;
   const candidateVolume = Number(candidate?.volume);
+  const candidateSampleId = typeof candidate?.sampleId === "string" && candidate.sampleId.length <= MAX_SAMPLE_ID_LENGTH
+    ? candidate.sampleId
+    : null;
 
   return {
     id: index + 1,
@@ -126,7 +137,7 @@ function normalizePad(candidate, index) {
     color: candidateColor,
     mode: candidate?.mode === "loop" ? "loop" : "oneshot",
     volume: Number.isFinite(candidateVolume) ? clamp(candidateVolume, 0, 1) : fallback.volume,
-    sampleId: typeof candidate?.sampleId === "string" ? candidate.sampleId : null,
+    sampleId: candidateSampleId,
   };
 }
 
@@ -297,9 +308,18 @@ async function persistSample(file) {
     throw new Error("Choose a supported audio file.");
   }
 
-  if (file.size > MAX_SAMPLE_BYTES) {
+  if (!Number.isFinite(file.size) || file.size < 0 || file.size > MAX_SAMPLE_BYTES) {
     throw new Error("Samples must be smaller than 50 MB.");
   }
+  if (samples.size + pendingSampleCount >= MAX_SAMPLE_COUNT) {
+    throw new Error("This browser already has the maximum number of saved samples.");
+  }
+  if (getStoredSampleBytes() + pendingSampleBytes + file.size > MAX_SAMPLE_STORAGE_BYTES) {
+    throw new Error("This browser has reached the total saved-sample limit.");
+  }
+
+  pendingSampleCount += 1;
+  pendingSampleBytes += file.size;
 
   const sample = {
     id: makeId(),
@@ -321,6 +341,9 @@ async function persistSample(file) {
         : "Sample storage failed. This sample is available for this session only.",
       isQuotaError(error) ? "quota" : "unavailable",
     );
+  } finally {
+    pendingSampleCount -= 1;
+    pendingSampleBytes -= file.size;
   }
   samples.set(sample.id, sample);
   renderSampleLibrary();
@@ -336,9 +359,22 @@ function isValidStoredSample(sample) {
       && typeof sample.mime === "string"
       && Number.isFinite(sample.size)
       && sample.size >= 0
+      && sample.size <= MAX_SAMPLE_BYTES
       && typeof sample.createdAt === "string"
-      && typeof sample.blob?.arrayBuffer === "function",
+      && typeof sample.blob?.arrayBuffer === "function"
+      && Number.isFinite(sample.blob.size)
+      && sample.blob.size === sample.size
+      && sample.blob.size <= MAX_SAMPLE_BYTES,
   );
+}
+
+function getStoredSampleBytes() {
+  return [...samples.values()].reduce((total, sample) => {
+    if (!isValidStoredSample(sample)) return total;
+    const size = Number(sample?.size);
+    if (!Number.isFinite(size) || size <= 0) return total;
+    return Math.min(MAX_SAMPLE_STORAGE_BYTES + 1, total + size);
+  }, 0);
 }
 
 function partitionStoredSamples(storedSamples) {
@@ -346,6 +382,24 @@ function partitionStoredSamples(storedSamples) {
     result[isValidStoredSample(sample) ? "valid" : "corrupt"].push(sample);
     return result;
   }, { valid: [], corrupt: [] });
+}
+
+function limitStoredSamples(validSamples) {
+  const accepted = [];
+  const excess = [];
+  let totalBytes = 0;
+
+  for (const sample of validSamples) {
+    const nextTotal = totalBytes + sample.size;
+    if (accepted.length >= MAX_SAMPLE_COUNT || nextTotal > MAX_SAMPLE_STORAGE_BYTES) {
+      excess.push(sample);
+      continue;
+    }
+    accepted.push(sample);
+    totalBytes = nextTotal;
+  }
+
+  return { accepted, excess };
 }
 
 async function repairSampleStorage() {
@@ -357,13 +411,15 @@ async function repairSampleStorage() {
 
   try {
     const { valid, corrupt } = partitionStoredSamples(await readSamples());
-    samples = new Map(valid.map((sample) => [sample.id, sample]));
+    const { accepted, excess } = limitStoredSamples(valid);
+    samples = new Map(accepted.map((sample) => [sample.id, sample]));
     renderSampleLibrary();
     updateSampleName();
 
-    if (corrupt.length) {
+    if (corrupt.length || excess.length) {
+      const issueCount = corrupt.length + excess.length;
       storageMode = "memory";
-      setStorageState("corrupt", `${corrupt.length} saved sample${corrupt.length === 1 ? " is" : "s are"} corrupt. Export your layout, then reset sample storage if needed.`);
+      setStorageState("corrupt", `${issueCount} saved sample${issueCount === 1 ? " is" : "s are"} invalid or exceed local limits. Export your layout, then reset sample storage if needed.`);
       setStatus("Sample storage still needs repair.", "error");
       return;
     }
@@ -621,6 +677,10 @@ async function getSampleBuffer(sample, context) {
     sample.bufferPromise = sample.blob.arrayBuffer()
       .then((arrayBuffer) => context.decodeAudioData(arrayBuffer.slice(0)))
       .then((buffer) => {
+        const decodedBytes = buffer.length * buffer.numberOfChannels * Float32Array.BYTES_PER_ELEMENT;
+        if (!Number.isFinite(decodedBytes) || decodedBytes > MAX_DECODED_AUDIO_BYTES || !Number.isFinite(buffer.duration) || buffer.duration > MAX_DECODED_AUDIO_SECONDS) {
+          throw new Error("This sample is too large to decode safely.");
+        }
         sample.buffer = buffer;
         return buffer;
       })
@@ -954,6 +1014,9 @@ async function importLayout(event) {
   if (!file) return;
 
   try {
+    if (!Number.isFinite(file.size) || file.size > MAX_LAYOUT_BYTES) {
+      throw new Error("Layout files must be smaller than 256 KB.");
+    }
     const parsedLayout = JSON.parse(await file.text());
     const { importedPads, missingSampleIds } = validateImportedLayout(parsedLayout);
     const previousPads = pads;
@@ -1104,12 +1167,14 @@ export async function initLaunchpad() {
 
   try {
     const { valid, corrupt } = partitionStoredSamples(await readSamples());
-    samples = new Map(valid.map((sample) => [sample.id, sample]));
+    const { accepted, excess } = limitStoredSamples(valid);
+    samples = new Map(accepted.map((sample) => [sample.id, sample]));
     renderSampleLibrary();
     updateSampleName();
-    if (corrupt.length) {
+    if (corrupt.length || excess.length) {
+      const issueCount = corrupt.length + excess.length;
       storageMode = "memory";
-      setStorageState("corrupt", `${corrupt.length} saved sample${corrupt.length === 1 ? " is" : "s are"} corrupt. Export your layout, then repair or reset sample storage.`);
+      setStorageState("corrupt", `${issueCount} saved sample${issueCount === 1 ? " is" : "s are"} invalid or exceed local limits. Export your layout, then repair or reset sample storage.`);
       setStatus("Some saved samples need repair.", "error");
     } else if (storageMode === "persistent") {
       setStorageState("saved");
