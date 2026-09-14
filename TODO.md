@@ -1,9 +1,9 @@
 # Completion audit — Touchscreen Launchpad
 
 Repository: `C:\Users\91829\OneDrive\Documents\GitHub\touchscreen-launchpad`
-Reviewed: feature branch `codex/launchpad-security-hardening-20260914` during the 2026-09-14 completion audit
-Release baseline: PR #6 was merged to `main` as `f162d9e`.
-Audit package baseline: `1dde9e9`; this branch contains the security hardening and release-workflow pinning below.
+Reviewed: feature branch `codex/vercel-canonical-hosting-20260914` during the 2026-09-14 completion audit
+Release baseline: PR #7 was merged to `main` as `9c214a8`.
+Audit package baseline: `1dde9e9`; the merged release contains the security hardening, release-workflow pinning, and hosted Vercel deployment below.
 
 ## Current verified baseline
 
@@ -13,10 +13,11 @@ Audit package baseline: `1dde9e9`; this branch contains the security hardening a
 - Layout imports, sample identifiers, sample count/storage, in-flight sample reservations, legacy-record admission, and decoded-audio size/duration are bounded before persistence or retention; service-worker cache cleanup and lookup are scoped to this app's cache namespace.
 - A fresh MIME-safe browser smoke loaded `src/bootstrap.js?version=16`, rendered 16 pads, queued/stopped a persisted loop, reached the export success state, reported no console errors, and showed no horizontal overflow.
 - Laptop-screen browser QA loaded the app, triggered a pad, stopped all, renamed and persisted a pad, reloaded it, exported JSON, and triggered the renamed pad by keyboard without console errors or overflow.
+- Production browser QA loaded `https://touchscreen-launchpad.vercel.app/`, rendered 16 pads, triggered a preview tone, stopped all, exported JSON, reported no console errors, and showed no horizontal overflow.
 
 ## Code-review conclusion
 
-The code and local contract are complete for the laptop-screen scope. Remaining evidence is environmental: decoder peak allocation is browser-owned, the public Pages custom-domain route currently resolves to the portfolio site's 404 page, and browser fault-injection/offline-install evidence is still separate from the automated contract. Physical touchscreen proof is waived by the user because no physical device is available.
+The code, local contract, and hosted Vercel demo are complete for the laptop-screen scope. Remaining evidence is environmental: decoder peak allocation is browser-owned, browser fault-injection evidence is still separate from the automated contract, and physical touchscreen proof is waived by the user because no physical device is available. GitHub Pages remains a secondary workflow; Vercel is the canonical hosted demo.
 
 ## Build checklist
 
@@ -52,7 +53,7 @@ The code and local contract are complete for the laptop-screen scope. Remaining 
 
 - [x] **6. Verify PWA update/offline behavior**
   Files: service worker, manifest, update status, Pages workflow.
-  What to build: Make cache version/update/stale state understandable; verify scope, icons, installability, update activation, and offline reload on the intended Pages origin. **Implementation complete locally:** shell versioning, manifest icon checks, navigation-only offline fallback, update/controller status wiring, functional service-worker runtime tests, and main-only Pages packaging are covered. This feature branch still needs hosted deployment evidence.
+  What to build: Make cache version/update/stale state understandable; verify scope, icons, installability, update activation, and offline reload on the intended hosted origin. **Implementation complete:** shell versioning, manifest icon checks, navigation-only offline fallback, update/controller status wiring, functional service-worker runtime tests, main-only Pages packaging, and production Vercel browser smoke are covered.
   Acceptance: The workflow targets the actual release branch and no local check is called deployment proof.
   Verify: service-worker browser tests and deployed Lighthouse/PWA inspection.
 
@@ -75,5 +76,5 @@ The code and local contract are complete for the laptop-screen scope. Remaining 
 - [x] Interrupted pointers/audio cannot leave stuck state in the laptop-screen and automated scope. Direct physical multi-touch evidence is N/A; synthetic/browser fault injection remains a separate evidence enhancement.
 - [x] Storage, download, import/export, offline, and update failure handling is bounded and locally contract-tested. Browser fault injection and hosted offline evidence remain separate environmental checks.
 - [x] Local checks are reproducible without changing the no-build delivery model.
-- [ ] Hosted PWA route has explicit evidence; deployment workflow success is recorded, but the configured custom-domain route is currently a portfolio 404.
-- [ ] Feature branch is pushed, reviewed, and clean; `main` is already updated by the earlier release PR and remains untouched by this package until its PR is merged.
+- [x] Hosted PWA route has explicit evidence at `https://touchscreen-launchpad.vercel.app/`; GitHub Pages remains a secondary deployment path whose account-level project redirect is not used for the demo.
+- [x] Release branch was pushed, reviewed, merged to `main` as `9c214a8`, and the follow-up documentation branch is clean after publication.
