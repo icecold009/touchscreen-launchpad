@@ -1,4 +1,8 @@
 const PAD_COUNT = 16;
+import { createPointerState } from "./src/pointer-state.js?version=16";
+import { attachStorageRequest } from "./src/storage-request.js?version=16";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=16";
+
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const DATABASE_NAME = "touchscreen-launchpad";
 const DATABASE_VERSION = 1;
@@ -66,11 +70,10 @@ let draftSampleCleared = false;
 let playbackGeneration = 0;
 let beatCountdownTimer;
 let lastPlaybackStatusAt = 0;
-const pointerPadById = new Map();
-const pointerIdByPad = new Map();
+const pointerState = createPointerState();
 
 function clearPointerState() {
-  for (const [pointerId, index] of pointerPadById) {
+  for (const { pointerId, index } of pointerState.activeEntries()) {
     const button = padGrid.querySelector(`[data-index="${index}"]`);
     if (!button?.hasPointerCapture?.(pointerId)) continue;
     try {
@@ -79,8 +82,7 @@ function clearPointerState() {
       // Pointer capture can disappear while the page is being torn down.
     }
   }
-  pointerPadById.clear();
-  pointerIdByPad.clear();
+  pointerState.clear();
   for (const button of padGrid.querySelectorAll(".is-pressed")) {
     button.classList.remove("is-pressed");
   }
@@ -265,9 +267,7 @@ function requestFromStore(mode, operation) {
     const transaction = database.transaction("samples", mode);
     const store = transaction.objectStore("samples");
     const request = operation(store);
-
-    request.addEventListener("success", () => resolve(request.result));
-    request.addEventListener("error", () => reject(request.error || new Error("Sample storage failed.")));
+    attachStorageRequest(request, transaction, resolve, reject);
   }));
 }
 
@@ -277,6 +277,10 @@ function readSamples() {
 
 function writeSample(sample) {
   return requestFromStore("readwrite", (store) => store.put(sample));
+}
+
+function deleteSample(sampleId) {
+  return requestFromStore("readwrite", (store) => store.delete(sampleId));
 }
 
 function makeId() {
@@ -737,12 +741,8 @@ function updatePadState(index) {
 function releasePadPointer(button, event) {
   const index = Number(button.dataset.index);
   const pointerId = event.pointerId;
-  const ownsPointer = pointerPadById.get(pointerId) === index;
-  const ownsPad = pointerIdByPad.get(index) === pointerId;
-
-  if (ownsPointer) pointerPadById.delete(pointerId);
-  if (ownsPad) pointerIdByPad.delete(index);
-  if (ownsPointer || ownsPad || !pointerIdByPad.has(index)) button.classList.remove("is-pressed");
+  const { shouldClearPressed } = pointerState.release(pointerId, index);
+  if (shouldClearPressed) button.classList.remove("is-pressed");
 }
 
 function renderPads() {
@@ -772,9 +772,7 @@ function renderPads() {
 
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
-      if (pointerIdByPad.has(index) || pointerPadById.has(event.pointerId)) return;
-      pointerIdByPad.set(index, event.pointerId);
-      pointerPadById.set(event.pointerId, index);
+      if (!pointerState.claim(event.pointerId, index)) return;
       button.classList.add("is-pressed");
       try {
         button.setPointerCapture(event.pointerId);
@@ -877,11 +875,13 @@ async function saveSelectedPad(event) {
   try {
     const selectedFile = sampleFileInput.files?.[0];
     let sampleId = draftSampleCleared ? null : pads[selectedPadIndex].sampleId;
+    let createdSample;
     if (selectedFile) {
-      const sample = await persistSample(selectedFile);
-      sampleId = sample.id;
+      createdSample = await persistSample(selectedFile);
+      sampleId = createdSample.id;
     }
 
+    const previousPad = pads[selectedPadIndex];
     pads[selectedPadIndex] = {
       ...pads[selectedPadIndex],
       label: nextLabel,
@@ -892,7 +892,21 @@ async function saveSelectedPad(event) {
     };
     renderPads();
     selectPad(selectedPadIndex);
-    saveLayout(`${pads[selectedPadIndex].label} updated and saved.`);
+    if (!saveLayout(`${pads[selectedPadIndex].label} updated and saved.`)) {
+      pads[selectedPadIndex] = previousPad;
+      if (createdSample) {
+        samples.delete(createdSample.id);
+        try {
+          await deleteSample(createdSample.id);
+        } catch {
+          // A failed cleanup remains recoverable through sample-storage reset.
+        }
+        renderSampleLibrary();
+      }
+      renderPads();
+      selectPad(selectedPadIndex);
+      setStatus("Pad save failed; your existing layout was preserved.", "error");
+    }
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "The pad could not be saved.", "error");
   }
@@ -908,21 +922,7 @@ function clearSelectedSample() {
 }
 
 function downloadText(filename, content, mimeType) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.hidden = true;
-  document.body.append(link);
-  try {
-    link.click();
-  } finally {
-    window.setTimeout(() => {
-      link.remove();
-      URL.revokeObjectURL(url);
-    }, 1000);
-  }
+  triggerTextDownload({ documentRef: document, windowRef: window }, filename, content, mimeType);
 }
 
 function exportLayout() {
@@ -1093,7 +1093,7 @@ async function registerServiceWorker() {
   }
 }
 
-async function init() {
+export async function initLaunchpad() {
   pads = readLayout();
   bindEvents();
   renderPads();
@@ -1121,5 +1121,3 @@ async function init() {
 
   await registerServiceWorker();
 }
-
-void init();
