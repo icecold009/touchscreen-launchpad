@@ -26,13 +26,16 @@ test("bootstrap is the single browser entry and app initialization is exportable
 test("module URLs share one cache version and remain in the offline shell", () => {
   const htmlVersion = html.match(/src\/bootstrap\.js\?version=(\d+)/)?.[1];
   const bootstrapVersion = bootstrap.match(/app\.js\?version=(\d+)/)?.[1];
+  const pointerVersion = app.match(/pointer-state\.js\?version=(\d+)/)?.[1];
   const cacheVersion = serviceWorker.match(/touchscreen-launchpad-v(\d+)/)?.[1];
 
   assert.ok(htmlVersion);
   assert.equal(bootstrapVersion, htmlVersion);
+  assert.equal(pointerVersion, htmlVersion);
   assert.equal(cacheVersion, htmlVersion);
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/bootstrap\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/app\\.js\\?version=${htmlVersion}"`));
+  assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/pointer-state\\.js\\?version=${htmlVersion}"`));
 });
 
 test("syntax and aggregate validation include every browser module", () => {

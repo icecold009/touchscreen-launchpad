@@ -1,4 +1,4 @@
-import { initLaunchpad } from "../app.js?version=13";
+import { initLaunchpad } from "../app.js?version=14";
 
 function reportBootstrapFailure(error, documentRef = document, consoleRef = console) {
   const statusMessage = documentRef.querySelector("#status");

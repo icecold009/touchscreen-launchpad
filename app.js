@@ -1,4 +1,6 @@
 const PAD_COUNT = 16;
+import { createPointerState } from "./src/pointer-state.js?version=14";
+
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const DATABASE_NAME = "touchscreen-launchpad";
 const DATABASE_VERSION = 1;
@@ -66,11 +68,10 @@ let draftSampleCleared = false;
 let playbackGeneration = 0;
 let beatCountdownTimer;
 let lastPlaybackStatusAt = 0;
-const pointerPadById = new Map();
-const pointerIdByPad = new Map();
+const pointerState = createPointerState();
 
 function clearPointerState() {
-  for (const [pointerId, index] of pointerPadById) {
+  for (const { pointerId, index } of pointerState.activeEntries()) {
     const button = padGrid.querySelector(`[data-index="${index}"]`);
     if (!button?.hasPointerCapture?.(pointerId)) continue;
     try {
@@ -79,8 +80,7 @@ function clearPointerState() {
       // Pointer capture can disappear while the page is being torn down.
     }
   }
-  pointerPadById.clear();
-  pointerIdByPad.clear();
+  pointerState.clear();
   for (const button of padGrid.querySelectorAll(".is-pressed")) {
     button.classList.remove("is-pressed");
   }
@@ -743,12 +743,8 @@ function updatePadState(index) {
 function releasePadPointer(button, event) {
   const index = Number(button.dataset.index);
   const pointerId = event.pointerId;
-  const ownsPointer = pointerPadById.get(pointerId) === index;
-  const ownsPad = pointerIdByPad.get(index) === pointerId;
-
-  if (ownsPointer) pointerPadById.delete(pointerId);
-  if (ownsPad) pointerIdByPad.delete(index);
-  if (ownsPointer || ownsPad || !pointerIdByPad.has(index)) button.classList.remove("is-pressed");
+  const { shouldClearPressed } = pointerState.release(pointerId, index);
+  if (shouldClearPressed) button.classList.remove("is-pressed");
 }
 
 function renderPads() {
@@ -778,9 +774,7 @@ function renderPads() {
 
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
-      if (pointerIdByPad.has(index) || pointerPadById.has(event.pointerId)) return;
-      pointerIdByPad.set(index, event.pointerId);
-      pointerPadById.set(event.pointerId, index);
+      if (!pointerState.claim(event.pointerId, index)) return;
       button.classList.add("is-pressed");
       try {
         button.setPointerCapture(event.pointerId);

@@ -59,6 +59,7 @@ The hosted site remains local-first. Sample audio is stored in each visitor’s 
 ```text
 app.js                 Pointer, keyboard, audio, storage, and export logic
 src/bootstrap.js       Browser entrypoint and startup error boundary
+src/pointer-state.js   Testable pointer ownership and interruption bookkeeping
 index.html              Application shell
 manifest.webmanifest    Install metadata
 style.css               Responsive and reduced-motion styling
