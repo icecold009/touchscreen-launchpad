@@ -74,6 +74,16 @@ test("imports validate schema, pad count, and missing local sample bytes", () =>
   assert.match(app, /assigned \$\{sampleWord\} missing in this browser/);
 });
 
+test("import and sample resource boundaries reject oversized local inputs", () => {
+  assert.match(app, /const MAX_LAYOUT_BYTES = 256 \* 1024;/);
+  assert.match(app, /if \(!Number\.isFinite\(file\.size\) \|\| file\.size > MAX_LAYOUT_BYTES\)/);
+  assert.match(app, /const MAX_SAMPLE_COUNT = 32;/);
+  assert.match(app, /const MAX_SAMPLE_STORAGE_BYTES = 256 \* 1024 \* 1024;/);
+  assert.match(app, /getStoredSampleBytes\(\) \+ file\.size > MAX_SAMPLE_STORAGE_BYTES/);
+  assert.match(app, /const MAX_DECODED_AUDIO_BYTES = 256 \* 1024 \* 1024;/);
+  assert.match(app, /buffer\.duration > MAX_DECODED_AUDIO_SECONDS/);
+});
+
 test("saving returns an explicit result for import rollback", () => {
   assert.match(app, /setStatus\(storageMode === "memory" \? `\$\{message\} Memory-only mode: a reload may discard changes\.\` : message, storageMode === "memory" \? "error" : "success"\);\s*return true;/);
   assert.match(app, /setStatus\("This browser could not save the layout\.", "error"\);\s*return false;/);

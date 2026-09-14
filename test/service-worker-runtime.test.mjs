@@ -26,6 +26,10 @@ function createServiceWorkerHarness() {
         async addAll(references) {
           record.added.push(...references);
         },
+        async match(request) {
+          const key = typeof request === "string" ? request : request.url;
+          return record.responses.get(key);
+        },
       };
     },
     async keys() {
@@ -93,10 +97,12 @@ test("install caches the complete versioned shell and activates immediately", as
 
 test("activate removes stale caches and claims clients", async () => {
   const harness = createServiceWorkerHarness();
-  harness.cacheRecords.set("old-cache", { added: [], responses: new Map() });
+  harness.cacheRecords.set("touchscreen-launchpad-v15", { added: [], responses: new Map() });
+  harness.cacheRecords.set("unrelated-app-cache", { added: [], responses: new Map() });
   await dispatchLifecycle(harness.listeners, "activate");
 
-  assert.deepEqual(harness.deletedCaches, ["old-cache"]);
+  assert.deepEqual(harness.deletedCaches, ["touchscreen-launchpad-v15"]);
+  assert.ok(harness.cacheRecords.has("unrelated-app-cache"));
   assert.deepEqual(harness.lifecycleCalls, ["claim"]);
 });
 

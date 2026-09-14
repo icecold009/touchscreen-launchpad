@@ -25,8 +25,11 @@ test("the service worker caches a versioned shell and only falls back to HTML fo
   assert.match(serviceWorker, /"\.\/app\.js\?version=\d+"/);
   assert.match(serviceWorker, /self\.skipWaiting\(\)/);
   assert.match(serviceWorker, /self\.clients\.claim\(\)/);
+  assert.match(serviceWorker, /const CACHE_PREFIX = "touchscreen-launchpad-";/);
+  assert.match(serviceWorker, /cacheName\.startsWith\(CACHE_PREFIX\)/);
+  assert.match(serviceWorker, /caches\.open\(CACHE_NAME\)/);
   assert.match(serviceWorker, /const isNavigationRequest = event\.request\.mode === "navigate"/);
-  assert.match(serviceWorker, /isNavigationRequest \? caches\.match\("\.\/index\.html"\) : Response\.error\(\)/);
+  assert.match(serviceWorker, /isNavigationRequest[\s\S]*caches\.open\(CACHE_NAME\)/);
 });
 
 test("manifest and app shell use relative installable-PWA metadata", () => {
@@ -43,4 +46,8 @@ test("Pages validates and stages the same module graph that local checks exercis
   assert.match(pagesWorkflow, /cp -R src _site\/src/);
   assert.doesNotMatch(pagesWorkflow, /codex\/launchpad-\*/);
   assert.match(pagesWorkflow, /github\.ref == 'refs\/heads\/main'/);
+  assert.match(pagesWorkflow, /actions\/checkout@[0-9a-f]{40}/g);
+  assert.match(pagesWorkflow, /actions\/configure-pages@[0-9a-f]{40}/);
+  assert.match(pagesWorkflow, /actions\/upload-pages-artifact@[0-9a-f]{40}/);
+  assert.match(pagesWorkflow, /actions\/deploy-pages@[0-9a-f]{40}/);
 });
