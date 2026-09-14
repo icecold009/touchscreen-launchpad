@@ -61,6 +61,7 @@ app.js                 Pointer, keyboard, audio, storage, and export logic
 src/bootstrap.js       Browser entrypoint and startup error boundary
 src/pointer-state.js   Testable pointer ownership and interruption bookkeeping
 src/storage-request.js Testable IndexedDB request and transaction failure bridge
+src/download.js        Testable delayed text-download lifecycle
 index.html              Application shell
 manifest.webmanifest    Install metadata
 style.css               Responsive and reduced-motion styling

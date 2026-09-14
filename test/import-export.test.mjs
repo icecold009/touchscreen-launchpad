@@ -3,15 +3,59 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { downloadText } from "../src/download.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 
 test("downloads keep object URLs alive through delayed browser start and clean up", () => {
-  assert.match(app, /function downloadText\(filename, content, mimeType\)/);
-  assert.match(app, /document\.body\.append\(link\);/);
-  assert.match(app, /try \{\s*link\.click\(\);\s*\} finally \{/);
-  assert.match(app, /window\.setTimeout\(\(\) => \{\s*link\.remove\(\);\s*URL\.revokeObjectURL\(url\);/);
+  assert.match(app, /triggerTextDownload\(\{ documentRef: document, windowRef: window \}, filename, content, mimeType\);/);
+
+  let cleanup;
+  let appendedLink;
+  let revokedUrl;
+  const link = {
+    hidden: false,
+    clickCalled: false,
+    removed: false,
+    click() { this.clickCalled = true; },
+    remove() { this.removed = true; },
+  };
+  const documentRef = {
+    body: { append(node) { appendedLink = node; } },
+    createElement() { return link; },
+  };
+  const windowRef = {
+    setTimeout(callback, delay) {
+      assert.equal(delay, 1000);
+      cleanup = callback;
+    },
+  };
+  const urlApi = {
+    createObjectURL(blob) {
+      assert.deepEqual(blob.parts, ["{}"]);
+      assert.deepEqual(blob.options, { type: "application/json" });
+      return "blob:test";
+    },
+    revokeObjectURL(url) { revokedUrl = url; },
+  };
+  class BlobCtor {
+    constructor(parts, options) {
+      this.parts = parts;
+      this.options = options;
+    }
+  }
+
+  downloadText({ documentRef, windowRef, urlApi, BlobCtor }, "layout.json", "{}", "application/json");
+  assert.equal(appendedLink, link);
+  assert.equal(link.href, "blob:test");
+  assert.equal(link.download, "layout.json");
+  assert.equal(link.hidden, true);
+  assert.equal(link.clickCalled, true);
+  assert.equal(link.removed, false);
+  cleanup();
+  assert.equal(link.removed, true);
+  assert.equal(revokedUrl, "blob:test");
 });
 
 test("export and import surface file failures without discarding layout state", () => {

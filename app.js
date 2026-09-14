@@ -1,6 +1,7 @@
 const PAD_COUNT = 16;
-import { createPointerState } from "./src/pointer-state.js?version=15";
-import { attachStorageRequest } from "./src/storage-request.js?version=15";
+import { createPointerState } from "./src/pointer-state.js?version=16";
+import { attachStorageRequest } from "./src/storage-request.js?version=16";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=16";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const DATABASE_NAME = "touchscreen-launchpad";
@@ -921,21 +922,7 @@ function clearSelectedSample() {
 }
 
 function downloadText(filename, content, mimeType) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.hidden = true;
-  document.body.append(link);
-  try {
-    link.click();
-  } finally {
-    window.setTimeout(() => {
-      link.remove();
-      URL.revokeObjectURL(url);
-    }, 1000);
-  }
+  triggerTextDownload({ documentRef: document, windowRef: window }, filename, content, mimeType);
 }
 
 function exportLayout() {

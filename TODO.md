@@ -9,7 +9,7 @@ Baseline main: `c8d1c7c`; audit package baseline: `8c08c2c` plus cache-bust and 
 - `npm.cmd ci --ignore-scripts` and `npm.cmd run validate` pass; the aggregate contract now covers 32 tests including service-worker runtime behavior, storage transaction aborts, and release-artifact staging.
 - The app remains a no-build static site; the verification package adds no production runtime dependencies or bundle step.
 - Pages deployment now validates the repository contract, stages `src/bootstrap.js`, and deploys only from `main`.
-- A fresh MIME-safe browser smoke loaded `src/bootstrap.js?version=15`, rendered 16 pads, queued/stopped a persisted loop, reached the export success state, reported no console errors, and showed no horizontal overflow.
+- A fresh MIME-safe browser smoke loaded `src/bootstrap.js?version=16`, rendered 16 pads, queued/stopped a persisted loop, reached the export success state, reported no console errors, and showed no horizontal overflow.
 - Pointer maps handle pointerup, pointercancel, lost capture, visibility, blur, pagehide, orientation change, and pad rerender cleanup; direct synthetic interruption evidence remains open.
 
 ## Code-review conclusion
@@ -44,7 +44,7 @@ The remaining work is targeted runtime and release evidence: direct synthetic po
 
 - [ ] **5. Test download and import/export boundaries**
   Files: download helper, import validation, tests.
-  What to build: Cover repeated/large/cancelled downloads, delayed download start, clipboard/file failures, invalid JSON, schema version, and missing sample bytes. **Implementation complete:** export cleanup preserves delayed download start, pad-save rollback removes a newly persisted sample when layout storage fails, and import validation checks schema/pad count and reports missing local sample files without replacing the existing layout on save failure. Browser download/import failure evidence remains open.
+  What to build: Cover repeated/large/cancelled downloads, delayed download start, clipboard/file failures, invalid JSON, schema version, and missing sample bytes. **Implementation complete:** the download lifecycle is functionally tested through delayed cleanup, pad-save rollback removes a newly persisted sample when layout storage fails, and import validation checks schema/pad count and reports missing local sample files without replacing the existing layout on save failure. Browser download/import failure evidence remains open.
   Acceptance: Cleanup never races the download and failed export/import preserves user content.
   Verify: Chromium plus at least one second browser engine if available.
 
