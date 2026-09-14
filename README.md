@@ -46,13 +46,11 @@ This checks application and service-worker syntax, required static assets and PW
 
 Exported JSON contains pad assignments and settings, not audio bytes. An imported layout may therefore show missing samples until those files are assigned again in the current browser.
 
-## Publish with GitHub Pages
+## Published demo
 
-The repository uses a no-build workflow at `.github/workflows/pages.yml`. Enable **Settings → Pages → GitHub Actions**, then use the Actions tab for a manual validation or merge the reviewed feature branch into `main`. Production Pages deployment is restricted to `main`.
+The canonical personal demo is <https://touchscreen-launchpad.vercel.app/>. It is a static production deployment on Vercel and does not require DNS changes or access to the portfolio domain. The deployment is local-first: sample audio is stored in each visitor’s browser and is never uploaded to Vercel.
 
-Expected project URL: <https://icecold009.github.io/touchscreen-launchpad/>
-
-The hosted site remains local-first. Sample audio is stored in each visitor’s browser and is never uploaded to GitHub Pages.
+The repository also retains the no-build GitHub Pages workflow at `.github/workflows/pages.yml` as a reproducible secondary deployment path. Its project URL is not the canonical demo because the account-level `icecold009.github.io` Pages site uses the portfolio custom domain and redirects project requests. Use the Vercel URL above for hosted verification.
 
 ## Project structure
 
