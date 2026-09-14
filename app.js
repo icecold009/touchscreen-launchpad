@@ -71,6 +71,8 @@ let sampleDatabase;
 let deferredInstallPrompt;
 let storageMode = "persistent";
 let storageState = "saved";
+let pendingSampleBytes = 0;
+let pendingSampleCount = 0;
 let editorDirty = false;
 let draftSampleCleared = false;
 let playbackGeneration = 0;
@@ -309,12 +311,15 @@ async function persistSample(file) {
   if (!Number.isFinite(file.size) || file.size < 0 || file.size > MAX_SAMPLE_BYTES) {
     throw new Error("Samples must be smaller than 50 MB.");
   }
-  if (samples.size >= MAX_SAMPLE_COUNT) {
+  if (samples.size + pendingSampleCount >= MAX_SAMPLE_COUNT) {
     throw new Error("This browser already has the maximum number of saved samples.");
   }
-  if (getStoredSampleBytes() + file.size > MAX_SAMPLE_STORAGE_BYTES) {
+  if (getStoredSampleBytes() + pendingSampleBytes + file.size > MAX_SAMPLE_STORAGE_BYTES) {
     throw new Error("This browser has reached the total saved-sample limit.");
   }
+
+  pendingSampleCount += 1;
+  pendingSampleBytes += file.size;
 
   const sample = {
     id: makeId(),
@@ -336,6 +341,9 @@ async function persistSample(file) {
         : "Sample storage failed. This sample is available for this session only.",
       isQuotaError(error) ? "quota" : "unavailable",
     );
+  } finally {
+    pendingSampleCount -= 1;
+    pendingSampleBytes -= file.size;
   }
   samples.set(sample.id, sample);
   renderSampleLibrary();
@@ -376,6 +384,24 @@ function partitionStoredSamples(storedSamples) {
   }, { valid: [], corrupt: [] });
 }
 
+function limitStoredSamples(validSamples) {
+  const accepted = [];
+  const excess = [];
+  let totalBytes = 0;
+
+  for (const sample of validSamples) {
+    const nextTotal = totalBytes + sample.size;
+    if (accepted.length >= MAX_SAMPLE_COUNT || nextTotal > MAX_SAMPLE_STORAGE_BYTES) {
+      excess.push(sample);
+      continue;
+    }
+    accepted.push(sample);
+    totalBytes = nextTotal;
+  }
+
+  return { accepted, excess };
+}
+
 async function repairSampleStorage() {
   repairStorageButton.disabled = true;
   setStorageState("upgrade", "Checking saved sample storage…");
@@ -385,13 +411,15 @@ async function repairSampleStorage() {
 
   try {
     const { valid, corrupt } = partitionStoredSamples(await readSamples());
-    samples = new Map(valid.map((sample) => [sample.id, sample]));
+    const { accepted, excess } = limitStoredSamples(valid);
+    samples = new Map(accepted.map((sample) => [sample.id, sample]));
     renderSampleLibrary();
     updateSampleName();
 
-    if (corrupt.length) {
+    if (corrupt.length || excess.length) {
+      const issueCount = corrupt.length + excess.length;
       storageMode = "memory";
-      setStorageState("corrupt", `${corrupt.length} saved sample${corrupt.length === 1 ? " is" : "s are"} corrupt. Export your layout, then reset sample storage if needed.`);
+      setStorageState("corrupt", `${issueCount} saved sample${issueCount === 1 ? " is" : "s are"} invalid or exceed local limits. Export your layout, then reset sample storage if needed.`);
       setStatus("Sample storage still needs repair.", "error");
       return;
     }
@@ -1139,12 +1167,14 @@ export async function initLaunchpad() {
 
   try {
     const { valid, corrupt } = partitionStoredSamples(await readSamples());
-    samples = new Map(valid.map((sample) => [sample.id, sample]));
+    const { accepted, excess } = limitStoredSamples(valid);
+    samples = new Map(accepted.map((sample) => [sample.id, sample]));
     renderSampleLibrary();
     updateSampleName();
-    if (corrupt.length) {
+    if (corrupt.length || excess.length) {
+      const issueCount = corrupt.length + excess.length;
       storageMode = "memory";
-      setStorageState("corrupt", `${corrupt.length} saved sample${corrupt.length === 1 ? " is" : "s are"} corrupt. Export your layout, then repair or reset sample storage.`);
+      setStorageState("corrupt", `${issueCount} saved sample${issueCount === 1 ? " is" : "s are"} invalid or exceed local limits. Export your layout, then repair or reset sample storage.`);
       setStatus("Some saved samples need repair.", "error");
     } else if (storageMode === "persistent") {
       setStorageState("saved");

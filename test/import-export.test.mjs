@@ -79,9 +79,15 @@ test("import and sample resource boundaries reject oversized local inputs", () =
   assert.match(app, /if \(!Number\.isFinite\(file\.size\) \|\| file\.size > MAX_LAYOUT_BYTES\)/);
   assert.match(app, /const MAX_SAMPLE_COUNT = 32;/);
   assert.match(app, /const MAX_SAMPLE_STORAGE_BYTES = 256 \* 1024 \* 1024;/);
-  assert.match(app, /getStoredSampleBytes\(\) \+ file\.size > MAX_SAMPLE_STORAGE_BYTES/);
+  assert.match(app, /getStoredSampleBytes\(\) \+ pendingSampleBytes \+ file\.size > MAX_SAMPLE_STORAGE_BYTES/);
   assert.match(app, /const MAX_DECODED_AUDIO_BYTES = 256 \* 1024 \* 1024;/);
   assert.match(app, /buffer\.duration > MAX_DECODED_AUDIO_SECONDS/);
+  assert.match(app, /let pendingSampleBytes = 0;/);
+  assert.match(app, /let pendingSampleCount = 0;/);
+  assert.match(app, /samples\.size \+ pendingSampleCount >= MAX_SAMPLE_COUNT/);
+  assert.match(app, /getStoredSampleBytes\(\) \+ pendingSampleBytes \+ file\.size > MAX_SAMPLE_STORAGE_BYTES/);
+  assert.match(app, /function limitStoredSamples\(validSamples\)/);
+  assert.match(app, /const \{ accepted, excess \} = limitStoredSamples\(valid\);/g);
 });
 
 test("saving returns an explicit result for import rollback", () => {

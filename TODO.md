@@ -2,7 +2,7 @@
 
 Repository: `C:\Users\91829\OneDrive\Documents\GitHub\touchscreen-launchpad`
 Reviewed: feature branch `codex/launchpad-security-hardening-20260914` during the 2026-09-14 completion audit
-Release baseline: PR #6 was merged to `main` as `f162d9e`; the local `origin/main` ref is stale at `c8d1c7c` until the next fetch.
+Release baseline: PR #6 was merged to `main` as `f162d9e`.
 Audit package baseline: `1dde9e9`; this branch contains the security hardening and release-workflow pinning below.
 
 ## Current verified baseline
@@ -10,13 +10,13 @@ Audit package baseline: `1dde9e9`; this branch contains the security hardening a
 - `npm.cmd ci --ignore-scripts` and `npm.cmd run validate` pass; the aggregate contract now covers 35 tests including service-worker runtime behavior, storage transaction aborts, import/sample bounds, and release-artifact staging.
 - The app remains a no-build static site; the verification package adds no production runtime dependencies or bundle step.
 - Pages deployment validates the repository contract, stages `src/bootstrap.js`, deploys only from `main`, and pins its four third-party actions to full commit SHAs.
-- Layout imports, sample identifiers, sample count/storage, and decoded-audio size/duration are bounded before persistence or retention; service-worker cache cleanup and lookup are scoped to this app's cache namespace.
+- Layout imports, sample identifiers, sample count/storage, in-flight sample reservations, legacy-record admission, and decoded-audio size/duration are bounded before persistence or retention; service-worker cache cleanup and lookup are scoped to this app's cache namespace.
 - A fresh MIME-safe browser smoke loaded `src/bootstrap.js?version=16`, rendered 16 pads, queued/stopped a persisted loop, reached the export success state, reported no console errors, and showed no horizontal overflow.
 - Laptop-screen browser QA loaded the app, triggered a pad, stopped all, renamed and persisted a pad, reloaded it, exported JSON, and triggered the renamed pad by keyboard without console errors or overflow.
 
 ## Code-review conclusion
 
-The code and local contract are complete for the laptop-screen scope. Remaining evidence is environmental: the public Pages custom-domain route currently resolves to the portfolio site's 404 page, and browser fault-injection/offline-install evidence is still separate from the automated contract. Physical touchscreen proof is waived by the user because no physical device is available.
+The code and local contract are complete for the laptop-screen scope. Remaining evidence is environmental: decoder peak allocation is browser-owned, the public Pages custom-domain route currently resolves to the portfolio site's 404 page, and browser fault-injection/offline-install evidence is still separate from the automated contract. Physical touchscreen proof is waived by the user because no physical device is available.
 
 ## Build checklist
 
