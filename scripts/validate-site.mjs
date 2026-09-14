@@ -13,6 +13,7 @@ const requiredFiles = [
   "sw.js",
   "icon.svg",
 ];
+const pagesWorkflowPath = ".github/workflows/pages.yml";
 
 function check(failures, condition, message) {
   if (!condition) failures.push(message);
@@ -140,6 +141,12 @@ export function validateSite(rootDirectory = root) {
     const absoluteReference = path.resolve(rootDirectory, cleanReference);
     check(failures, fs.existsSync(absoluteReference), `Service-worker asset does not exist: ${reference}`);
   }
+
+  const pagesWorkflow = readSiteFile(rootDirectory, pagesWorkflowPath, failures);
+  check(failures, pagesWorkflow.includes("npm run validate"), "Pages workflow must run the repository validation contract.");
+  check(failures, pagesWorkflow.includes("cp -R src _site/src"), "Pages workflow must stage browser modules under _site/src.");
+  check(failures, !pagesWorkflow.includes("codex/launchpad-*"), "Pages workflow must not deploy feature branches to the production Pages site.");
+  check(failures, pagesWorkflow.includes("github.ref == 'refs/heads/main'"), "Pages deployment must be restricted to main.");
 
   return { failures, moduleCount: moduleResult.modules.length };
 }

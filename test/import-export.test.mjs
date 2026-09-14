@@ -34,3 +34,12 @@ test("saving returns an explicit result for import rollback", () => {
   assert.match(app, /setStatus\(storageMode === "memory" \? `\$\{message\} Memory-only mode: a reload may discard changes\.\` : message, storageMode === "memory" \? "error" : "success"\);\s*return true;/);
   assert.match(app, /setStatus\("This browser could not save the layout\.", "error"\);\s*return false;/);
 });
+
+test("pad save rolls back the pad and newly persisted sample when layout storage fails", () => {
+  assert.match(app, /const previousPad = pads\[selectedPadIndex\];/);
+  assert.match(app, /if \(!saveLayout\(`\$\{pads\[selectedPadIndex\]\.label\} updated and saved\.\`\)\) \{/);
+  assert.match(app, /pads\[selectedPadIndex\] = previousPad;/);
+  assert.match(app, /samples\.delete\(createdSample\.id\);/);
+  assert.match(app, /await deleteSample\(createdSample\.id\);/);
+  assert.match(app, /Pad save failed; your existing layout was preserved\./);
+});

@@ -44,6 +44,12 @@ test("a layout persistence failure is not hidden by a healthy sample read", () =
   assert.match(app, /\} else if \(storageMode === "persistent"\) \{\s*setStorageState\("saved"\);/);
 });
 
+test("IndexedDB request and transaction aborts both reject storage operations", () => {
+  assert.match(app, /const rejectStorageOperation = \(\) => reject\(request\.error \|\| new Error\("Sample storage failed\."\)\);/);
+  assert.match(app, /request\.addEventListener\("error", rejectStorageOperation, \{ once: true \}\);/);
+  assert.match(app, /transaction\.addEventListener\("abort", rejectStorageOperation, \{ once: true \}\);/);
+});
+
 test("storage recovery controls are present but hidden until an issue is reported", () => {
   assert.match(html, /id="persistence-note"[^>]*role="status"/);
   assert.match(html, /id="repair-storage"[^>]*hidden/);

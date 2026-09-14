@@ -9,6 +9,7 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.webmanifest"), "utf8"));
 const serviceWorker = fs.readFileSync(path.join(root, "sw.js"), "utf8");
+const pagesWorkflow = fs.readFileSync(path.join(root, ".github", "workflows", "pages.yml"), "utf8");
 
 test("the app reports service-worker updates and reloads after controller change", () => {
   assert.match(app, /const hadController = Boolean\(navigator\.serviceWorker\.controller\);/);
@@ -35,4 +36,11 @@ test("manifest and app shell use relative installable-PWA metadata", () => {
   assert.ok(manifest.icons.length > 0);
   assert.match(html, /<link rel="manifest" href="manifest\.webmanifest" \/>/);
   assert.match(html, /<meta name="theme-color" content="#0b1020" \/>/);
+});
+
+test("Pages validates and stages the same module graph that local checks exercise", () => {
+  assert.match(pagesWorkflow, /npm run validate/);
+  assert.match(pagesWorkflow, /cp -R src _site\/src/);
+  assert.doesNotMatch(pagesWorkflow, /codex\/launchpad-\*/);
+  assert.match(pagesWorkflow, /github\.ref == 'refs\/heads\/main'/);
 });

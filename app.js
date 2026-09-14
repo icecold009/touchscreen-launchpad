@@ -267,7 +267,9 @@ function requestFromStore(mode, operation) {
     const request = operation(store);
 
     request.addEventListener("success", () => resolve(request.result));
-    request.addEventListener("error", () => reject(request.error || new Error("Sample storage failed.")));
+    const rejectStorageOperation = () => reject(request.error || new Error("Sample storage failed."));
+    request.addEventListener("error", rejectStorageOperation, { once: true });
+    transaction.addEventListener("abort", rejectStorageOperation, { once: true });
   }));
 }
 
@@ -277,6 +279,10 @@ function readSamples() {
 
 function writeSample(sample) {
   return requestFromStore("readwrite", (store) => store.put(sample));
+}
+
+function deleteSample(sampleId) {
+  return requestFromStore("readwrite", (store) => store.delete(sampleId));
 }
 
 function makeId() {
@@ -877,11 +883,13 @@ async function saveSelectedPad(event) {
   try {
     const selectedFile = sampleFileInput.files?.[0];
     let sampleId = draftSampleCleared ? null : pads[selectedPadIndex].sampleId;
+    let createdSample;
     if (selectedFile) {
-      const sample = await persistSample(selectedFile);
-      sampleId = sample.id;
+      createdSample = await persistSample(selectedFile);
+      sampleId = createdSample.id;
     }
 
+    const previousPad = pads[selectedPadIndex];
     pads[selectedPadIndex] = {
       ...pads[selectedPadIndex],
       label: nextLabel,
@@ -892,7 +900,21 @@ async function saveSelectedPad(event) {
     };
     renderPads();
     selectPad(selectedPadIndex);
-    saveLayout(`${pads[selectedPadIndex].label} updated and saved.`);
+    if (!saveLayout(`${pads[selectedPadIndex].label} updated and saved.`)) {
+      pads[selectedPadIndex] = previousPad;
+      if (createdSample) {
+        samples.delete(createdSample.id);
+        try {
+          await deleteSample(createdSample.id);
+        } catch {
+          // A failed cleanup remains recoverable through sample-storage reset.
+        }
+        renderSampleLibrary();
+      }
+      renderPads();
+      selectPad(selectedPadIndex);
+      setStatus("Pad save failed; your existing layout was preserved.", "error");
+    }
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "The pad could not be saved.", "error");
   }

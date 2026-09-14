@@ -48,7 +48,7 @@ Exported JSON contains pad assignments and settings, not audio bytes. An importe
 
 ## Publish with GitHub Pages
 
-The repository uses a no-build workflow at `.github/workflows/pages.yml`. Enable **Settings → Pages → GitHub Actions**, then use the Actions tab for a manual run or merge the reviewed feature branch into `main`.
+The repository uses a no-build workflow at `.github/workflows/pages.yml`. Enable **Settings → Pages → GitHub Actions**, then use the Actions tab for a manual validation or merge the reviewed feature branch into `main`. Production Pages deployment is restricted to `main`.
 
 Expected project URL: <https://icecold009.github.io/touchscreen-launchpad/>
 
@@ -58,6 +58,7 @@ The hosted site remains local-first. Sample audio is stored in each visitor’s 
 
 ```text
 app.js                 Pointer, keyboard, audio, storage, and export logic
+src/bootstrap.js       Browser entrypoint and startup error boundary
 index.html              Application shell
 manifest.webmanifest    Install metadata
 style.css               Responsive and reduced-motion styling
