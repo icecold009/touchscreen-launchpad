@@ -13,7 +13,7 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Files: `app.js`, `index.html`, `style.css`, `sw.js`, `src/bootstrap.js`, `README.md`, `package.json`, and kit/import contract tests.
 - Tests: `npm.cmd run validate`, rendered local smoke, kit lifecycle smoke, reload smoke, and screenshot/console inspection where available.
 - Acceptance: Existing layouts remain available as `Kit 1 — Starter`; five slots are visible; switching stops voices and preserves transport controls; imports map the first 16 naturally sorted audio files and retain extras; duplicate content is stored once; pack import rejects unsafe/oversized/malformed content without partially applying it.
-- Evidence: Local contract is authoritative for this branch. Hosted Vercel QA, GitHub checks, independent review, deployment, and PR publication remain pending until explicitly performed.
+- Evidence: Local contract is authoritative for this branch. Vercel preview QA is complete at `https://touchscreen-launchpad-6uowl5rhf-shaurya-s-projects11.vercel.app/`; PR #10 is open with GitGuardian passing. Independent review and merge to `main` remain pending.
 
 ## Package: Performance-surface UI/UX revamp — `codex/kit-library-20260915`
 
@@ -23,7 +23,7 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Files: `index.html`, `style.css`, `app.js`, `sw.js`, `src/bootstrap.js`, and the UI package evidence in this backlog.
 - Tests: `npm.cmd run validate`, `git diff --check`, desktop rendered smoke, 390px rendered smoke, console inspection, kit-switch smoke, and pad playback/Stop all smoke.
 - Acceptance: The primary viewport exposes performance controls, kit switching, and pads as one coherent surface; the mobile layout has no horizontal overflow; import labels explain the next step; the existing kit and playback workflows remain functional.
-- Evidence: Local contract passes 40/40; rendered localhost smoke passes at 1103×613 and 390×844 with no console errors or horizontal overflow. Hosted deployment and independent review remain pending.
+- Evidence: Local contract passes 40/40; rendered localhost smoke passes at 1103×613 and 390×844 with no console errors or horizontal overflow. The current Vercel preview is READY and passes the same visual shell checks; independent review and merge to `main` remain pending.
 
 ## Package: Control and storage card visual separation — `codex/apple-inspired-ui-20260915`
 
@@ -33,7 +33,7 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Files: `index.html`, `style.css`, `app.js`, `src/bootstrap.js`, `sw.js`, and this backlog entry.
 - Tests: `npm.cmd run validate`, `git diff --check`, desktop and 390px rendered smoke, console inspection, kit-switch smoke, and pad playback/Stop all smoke.
 - Acceptance: Shortcut and Playback are visually distinct at both target viewports; Backup & transfer reads as its own card; no horizontal overflow; existing kit, pad, and transport interactions remain functional.
-- Evidence: Local contract and rendered localhost evidence are required; hosted deployment, independent review, and PR publication remain pending.
+- Evidence: Local contract and rendered localhost evidence pass; the current Vercel preview is READY and visibly contains the v26 control/card changes. Independent review and merge to `main` remain pending.
 
 ## Completion audit — 2026-09-15
 
@@ -41,7 +41,7 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Local contract evidence is current: `npm.cmd run validate` passes all 40 tests and `git diff --check` passes. Rendered localhost QA passes at 1103×613 and 390×844 with 16 pads, no horizontal overflow, no console errors/warnings, distinct Shortcut/Playback treatments, and a framed Backup & transfer card.
 - Local interaction evidence is current: kit switching loads the selected arrangement; Pad 01 reaches `playing`; Stop all returns it to `ready` while preserving 120 BPM and Quantize on.
 - Hosted baseline evidence is separate: `https://touchscreen-launchpad.vercel.app/` is reachable and its existing version-16 shell passes the legacy 16-pad playback/Stop all smoke, but it does not contain the current five-kit or Backup & transfer work because this branch is not deployed.
-- Remote publication evidence is separate: GitHub lists PRs through #9 and no PR for this branch; the current branch has no remote ref. Push, hosted deployment, PR creation, review, and merge remain authorization-controlled release gates.
+- Remote publication evidence is current: `codex/apple-inspired-ui-20260915` is pushed, PR #10 is open against `main`, and the GitGuardian Security Checks status is successful. Merge and independent review remain separate release gates.
 - Independent-review evidence is not claimed: Antigravity is installed, but its private-repository audit delegation was rejected because repository transmission to the external service was not authorized. Browser storage fault injection is also not claimed because the available read-only page scope does not expose IndexedDB/localStorage mutation; the automated storage/import contract remains green.
 - Physical touchscreen proof remains N/A under the existing project boundary; emulated responsive evidence is labelled separately from device evidence.
 
