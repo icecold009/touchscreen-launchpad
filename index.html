@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=27" />
+    <link rel="stylesheet" href="style.css?version=30" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -29,14 +29,14 @@
           <div class="stage-heading">
             <div>
               <p class="eyebrow">Performance surface</p>
-              <h2>Play your kit</h2>
+              <h2>Play your pads</h2>
             </div>
-            <span class="stage-hint">Tap a pad · use Q–4</span>
           </div>
 
           <section class="controls" aria-label="Launchpad controls">
             <div class="control-row">
               <button id="stop-all" class="button button-danger" type="button">Stop all</button>
+              <button id="loop-toggle" class="button button-loop" type="button" aria-label="Toggle loop mode for the selected pad" aria-pressed="false">Loop off</button>
 
               <label class="compact-control" for="tempo">
                 <span>Tempo</span>
@@ -49,11 +49,6 @@
                 <span>Quantize loops</span>
               </label>
 
-              <label class="range-control" for="master-volume">
-                <span>Master</span>
-                <input id="master-volume" type="range" min="0" max="1" step="0.01" value="0.8" />
-                <output id="master-volume-value" for="master-volume">80%</output>
-              </label>
             </div>
 
             <p id="status" class="status-message" role="status" aria-live="polite">Tap a pad to start audio.</p>
@@ -67,11 +62,22 @@
             </div>
           </section>
 
+          <div class="pad-performance">
+            <section id="pad-grid" class="pad-grid" aria-label="Launchpad pads"></section>
+
+            <aside class="volume-rail" aria-label="Master volume">
+              <label class="volume-rail-control" for="master-volume">
+                <span class="volume-rail-title">Volume</span>
+                <output id="master-volume-value" for="master-volume">80%</output>
+                <input id="master-volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-orientation="vertical" />
+              </label>
+            </aside>
+          </div>
+
           <section class="kit-tools kit-dock" aria-labelledby="kit-tools-title">
             <div class="section-heading">
               <div>
                 <h3 id="kit-tools-title">Kit library</h3>
-                <p class="section-subtitle">Switch sound worlds or build a new one.</p>
               </div>
               <span id="kit-count" class="muted">1/5 used</span>
             </div>
@@ -98,15 +104,7 @@
               <button id="duplicate-kit" class="button button-secondary" type="button">Duplicate</button>
               <button id="delete-kit" class="button button-danger" type="button">Delete</button>
             </div>
-            <p class="field-help">Switching stops active voices. Save edits before switching.</p>
           </section>
-
-          <section id="pad-grid" class="pad-grid" aria-label="Launchpad pads"></section>
-
-          <footer class="app-footer">
-            <span>Touch, mouse, or keyboard</span>
-            <span>Saved locally in this browser</span>
-          </footer>
         </div>
 
         <aside class="editor-panel" aria-labelledby="editor-title">
@@ -116,10 +114,16 @@
               <h2 id="editor-title">Shape the selected pad</h2>
             </div>
             <div class="panel-status">
-              <span id="selected-pad-indicator" class="selected-indicator">Pad 01</span>
+              <span id="selected-pad-indicator" class="selected-indicator">01</span>
               <span id="editor-dirty" class="dirty-indicator" role="status" hidden>Unsaved changes</span>
             </div>
           </div>
+
+          <nav class="editor-nav" aria-label="Pad setup sections">
+            <a class="editor-nav-link is-current" href="#pad-editor">Pad</a>
+            <a class="editor-nav-link" href="#layout-tools">Backup</a>
+            <a class="editor-nav-link" href="#sample-library">Samples</a>
+          </nav>
 
           <button id="editor-toggle" class="editor-toggle" type="button" aria-expanded="true" aria-controls="editor-content">
             Collapse editor
@@ -129,7 +133,7 @@
             <form id="pad-editor" class="pad-editor">
             <label class="field" for="pad-label">
               <span>Pad name</span>
-              <input id="pad-label" name="label" type="text" maxlength="32" required />
+              <input id="pad-label" name="label" type="text" maxlength="32" placeholder="Optional label" />
             </label>
 
             <div class="field-grid">
@@ -171,7 +175,7 @@
             <button class="button button-primary" type="submit">Save pad</button>
             </form>
 
-            <section class="layout-tools backup-card" aria-labelledby="layout-tools-title">
+            <section id="layout-tools" class="layout-tools backup-card" aria-labelledby="layout-tools-title">
               <div class="section-heading">
                 <div>
                   <h3 id="layout-tools-title">Backup &amp; transfer</h3>
@@ -199,7 +203,7 @@
               </div>
             </section>
 
-            <section class="sample-library" aria-labelledby="sample-library-title">
+            <section id="sample-library" class="sample-library" aria-labelledby="sample-library-title">
               <div class="section-heading">
                 <div>
                   <h3 id="sample-library-title">Sample library</h3>
@@ -226,6 +230,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/bootstrap.js?version=27"></script>
+    <script type="module" src="src/bootstrap.js?version=30"></script>
   </body>
 </html>

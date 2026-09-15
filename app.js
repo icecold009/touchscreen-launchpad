@@ -1,8 +1,8 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createPointerState } from "./src/pointer-state.js?version=27";
-import { attachStorageRequest } from "./src/storage-request.js?version=27";
-import { downloadText as triggerTextDownload } from "./src/download.js?version=27";
+import { createPointerState } from "./src/pointer-state.js?version=30";
+import { attachStorageRequest } from "./src/storage-request.js?version=30";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=30";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -31,6 +31,7 @@ const tempoValue = document.querySelector("#tempo-value");
 const quantizeInput = document.querySelector("#quantize");
 const masterVolumeInput = document.querySelector("#master-volume");
 const masterVolumeValue = document.querySelector("#master-volume-value");
+const loopToggleButton = document.querySelector("#loop-toggle");
 const padEditor = document.querySelector("#pad-editor");
 const padLabelInput = document.querySelector("#pad-label");
 const padKeyInput = document.querySelector("#pad-key");
@@ -44,6 +45,7 @@ const selectedPadIndicator = document.querySelector("#selected-pad-indicator");
 const editorDirtyIndicator = document.querySelector("#editor-dirty");
 const editorPanel = document.querySelector(".editor-panel");
 const editorToggle = document.querySelector("#editor-toggle");
+const editorNavLinks = [...document.querySelectorAll(".editor-nav-link")];
 const saveLayoutButton = document.querySelector("#save-layout");
 const exportLayoutButton = document.querySelector("#export-layout");
 const importLayoutInput = document.querySelector("#import-layout");
@@ -67,10 +69,10 @@ const repairStorageButton = document.querySelector("#repair-storage");
 const resetStorageButton = document.querySelector("#reset-storage");
 
 const padColors = [
-  "#ff6b78", "#ff8566", "#ffb85c", "#efd66f",
-  "#5bc6a5", "#69d58e", "#6ccfc5", "#8bd29b",
-  "#69b9dd", "#7194ea", "#8189df", "#9b91d9",
-  "#b68cde", "#c79adf", "#d79bd6", "#ad9be5",
+  "#f7b7bd", "#f8c6aa", "#f4e6a8", "#b7e3d0",
+  "#f8dcaa", "#c6e6c8", "#bce4e3", "#c5c6ed",
+  "#bde9c5", "#b9dced", "#d4c9ed", "#e0c8ec",
+  "#c1cef2", "#d6cbed", "#e4d0ea", "#e7c8df",
 ];
 
 const keyboardKeys = ["Q", "W", "E", "R", "A", "S", "D", "F", "Z", "X", "C", "V", "1", "2", "3", "4"];
@@ -129,13 +131,26 @@ function clamp(value, minimum, maximum) {
 function createDefaultPads() {
   return Array.from({ length: PAD_COUNT }, (_, index) => ({
     id: index + 1,
-    label: `Pad ${String(index + 1).padStart(2, "0")}`,
+    label: "",
     key: keyboardKeys[index],
     color: padColors[index],
     mode: "oneshot",
     volume: 0.8,
     sampleId: null,
   }));
+}
+
+function defaultPadName(index) {
+  return `Pad ${String(index + 1).padStart(2, "0")}`;
+}
+
+function getPadName(pad, index = Math.max(0, Number(pad?.id) - 1)) {
+  return pad?.label?.trim() || `#${String(index + 1).padStart(2, "0")}`;
+}
+
+function getVisiblePadLabel(pad, index) {
+  const label = typeof pad?.label === "string" ? pad.label.trim() : "";
+  return label && label !== defaultPadName(index) ? label : "";
 }
 
 function normalizePad(candidate, index) {
@@ -984,7 +999,7 @@ function assignSampleToSelectedPad(sampleId) {
   sampleFileInput.value = "";
   updateSampleName();
   markEditorDirty();
-  setStatus(`${sample.name} selected for ${pads[selectedPadIndex].label}. Save the pad to apply it.`);
+  setStatus(`${sample.name} selected for ${getPadName(pads[selectedPadIndex], selectedPadIndex)}. Save the pad to apply it.`);
 }
 
 function formatBytes(bytes) {
@@ -1114,12 +1129,13 @@ function stopPad(index, { quantized = false, announce = false } = {}) {
 
   if (announce) {
     const pad = pads[index];
+    const padName = getPadName(pad, index);
     if (stopAt > audioContext.currentTime + 0.02) {
-      setStatus(`${pad.label} loop will stop on the next beat.`);
-      showBeatCountdown(stopAt, `${pad.label} stops`);
+      setStatus(`${padName} loop will stop on the next beat.`);
+      showBeatCountdown(stopAt, `${padName} stops`);
     } else {
       clearBeatCountdown();
-      setStatus(`${pad.label} stopped.`);
+      setStatus(`${padName} stopped.`);
     }
   }
   return true;
@@ -1192,7 +1208,7 @@ function playPreviewTone(index, pad, context) {
   gain.connect(masterGain);
   const voice = registerVoice(index, oscillator, now);
   startRegisteredVoice(index, voice, now, now + 0.5);
-  setPlaybackStatus(`${pad.label} preview tone triggered.`);
+  setPlaybackStatus(`${getPadName(pad, index)} preview tone triggered.`);
 }
 
 async function playSample(index, pad, sample, context, generation) {
@@ -1210,10 +1226,10 @@ async function playSample(index, pad, sample, context, generation) {
   startRegisteredVoice(index, voice, startAt);
 
   if (isLoop && startAt > context.currentTime + 0.02) {
-    setPlaybackStatus(`${pad.label} loop queued for the next beat.`, "info", { force: true });
-    showBeatCountdown(startAt, `${pad.label} starts`);
+    setPlaybackStatus(`${getPadName(pad, index)} loop queued for the next beat.`, "info", { force: true });
+    showBeatCountdown(startAt, `${getPadName(pad, index)} starts`);
   } else {
-    setPlaybackStatus(`${pad.label} triggered.`);
+    setPlaybackStatus(`${getPadName(pad, index)} triggered.`);
   }
   return true;
 }
@@ -1229,7 +1245,7 @@ async function triggerPad(index) {
   }
 
   if (pad.mode === "loop" && !pad.sampleId) {
-    setStatus(`${pad.label} needs an audio sample before it can loop.`, "error");
+    setStatus(`${getPadName(pad, index)} needs an audio sample before it can loop.`, "error");
     selectPad(index);
     return;
   }
@@ -1244,7 +1260,7 @@ async function triggerPad(index) {
     const sample = pad.sampleId ? samples.get(pad.sampleId) : null;
 
     if (pad.sampleId && !sample) {
-      setStatus(`${pad.label} is missing its saved sample. Choose a new file.`, "error");
+      setStatus(`${getPadName(pad, index)} is missing its saved sample. Choose a new file.`, "error");
       selectPad(index);
       return;
     }
@@ -1293,20 +1309,27 @@ function renderPads() {
     button.type = "button";
     button.dataset.index = String(index);
     button.style.setProperty("--pad-color", pad.color);
-    button.setAttribute("aria-label", `${pad.label}, keyboard shortcut ${pad.key}`);
-    button.title = `${pad.label} · ${pad.key}`;
+    button.setAttribute("aria-label", `${getPadName(pad, index)}, keyboard shortcut ${pad.key}, ${pad.mode === "loop" ? "loop" : "one-shot"}`);
+    button.title = `${String(pad.id).padStart(2, "0")}${getVisiblePadLabel(pad, index) ? ` · ${getVisiblePadLabel(pad, index)}` : ""} · ${pad.key}`;
 
+    const number = document.createElement("span");
+    number.className = "pad-number";
+    number.textContent = String(pad.id).padStart(2, "0");
+    number.setAttribute("aria-hidden", "true");
     const label = document.createElement("span");
     label.className = "pad-label";
-    label.textContent = pad.label;
+    label.textContent = getVisiblePadLabel(pad, index);
     const key = document.createElement("span");
     key.className = "pad-key";
     key.textContent = pad.key;
-    const selection = document.createElement("span");
-    selection.className = "pad-selection";
-    selection.textContent = "Selected";
-    selection.setAttribute("aria-hidden", "true");
-    button.append(label, key, selection);
+    button.append(number, label, key);
+    if (pad.mode === "loop") {
+      const mode = document.createElement("span");
+      mode.className = "pad-mode";
+      mode.textContent = "Loop";
+      mode.setAttribute("aria-hidden", "true");
+      button.append(mode);
+    }
 
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
@@ -1369,10 +1392,11 @@ function markEditorDirty() {
 function selectPad(index) {
   selectedPadIndex = index;
   const pad = pads[index];
-  selectedPadIndicator.textContent = pad.label;
-  padLabelInput.value = pad.label;
+  selectedPadIndicator.textContent = String(pad.id).padStart(2, "0");
+  padLabelInput.value = getVisiblePadLabel(pad, index);
   padKeyInput.value = pad.key;
   padModeInput.value = pad.mode;
+  updateLoopToggle();
   padVolumeInput.value = String(pad.volume);
   padVolumeValue.textContent = `${Math.round(pad.volume * 100)}%`;
   sampleFileInput.value = "";
@@ -1382,6 +1406,25 @@ function selectPad(index) {
   updateSampleName();
 
   for (let padIndex = 0; padIndex < PAD_COUNT; padIndex += 1) updatePadState(padIndex);
+}
+
+function updateLoopToggle() {
+  const isLoop = padModeInput.value === "loop";
+  loopToggleButton.textContent = isLoop ? "Loop on" : "Loop off";
+  loopToggleButton.setAttribute("aria-pressed", String(isLoop));
+  loopToggleButton.classList.toggle("is-on", isLoop);
+}
+
+async function toggleSelectedPadLoop() {
+  if (loopToggleButton.disabled) return;
+  padModeInput.value = padModeInput.value === "loop" ? "oneshot" : "loop";
+  updateLoopToggle();
+  loopToggleButton.disabled = true;
+  try {
+    await saveSelectedPad(new Event("submit", { cancelable: true }));
+  } finally {
+    loopToggleButton.disabled = false;
+  }
 }
 
 function updatePadVolumeLabel() {
@@ -1405,8 +1448,8 @@ async function saveSelectedPad(event) {
   const nextKey = padKeyInput.value.trim().slice(0, 1).toUpperCase();
   const duplicateKey = pads.some((pad, index) => index !== selectedPadIndex && pad.key === nextKey);
 
-  if (!nextLabel || !/^[A-Z0-9]$/.test(nextKey)) {
-    setStatus("Give the pad a name and a single letter or number shortcut.", "error");
+  if (!/^[A-Z0-9]$/.test(nextKey)) {
+    setStatus("Choose a single letter or number shortcut.", "error");
     return;
   }
   if (duplicateKey) {
@@ -1440,7 +1483,7 @@ async function saveSelectedPad(event) {
     };
     renderPads();
     selectPad(selectedPadIndex);
-    if (!saveLayout(`${pads[selectedPadIndex].label} updated and saved.`)) {
+    if (!saveLayout(`${getPadName(pads[selectedPadIndex], selectedPadIndex)} updated and saved.`)) {
       pads[selectedPadIndex] = previousPad;
       if (createdSample) {
         samples.delete(createdSample.id);
@@ -1456,7 +1499,7 @@ async function saveSelectedPad(event) {
       setStatus("Pad save failed; your existing layout was preserved.", "error");
       return;
     }
-    const savedMessage = `${pads[selectedPadIndex].label} updated and saved.`;
+    const savedMessage = `${getPadName(pads[selectedPadIndex], selectedPadIndex)} updated and saved.`;
 
     const nextKit = {
       ...(kits.get(currentKitId) || createKitRecord(kitSlotNumber(currentKitId) || 1)),
@@ -1904,6 +1947,8 @@ function bindEvents() {
   });
   padVolumeInput.addEventListener("input", updatePadVolumeLabel);
   masterVolumeInput.addEventListener("input", updateMasterVolume);
+  loopToggleButton.addEventListener("click", () => void toggleSelectedPadLoop());
+  padModeInput.addEventListener("change", updateLoopToggle);
   tempoInput.addEventListener("input", updateTempoValue);
   tempoInput.addEventListener("change", () => {
     tempoInput.value = String(clamp(Number(tempoInput.value) || 120, 60, 200));
@@ -1931,6 +1976,11 @@ function bindEvents() {
     const isCollapsed = editorPanel.classList.toggle("is-collapsed");
     editorToggle.setAttribute("aria-expanded", String(!isCollapsed));
     editorToggle.textContent = isCollapsed ? "Expand editor" : "Collapse editor";
+  });
+  editorNavLinks.forEach((link) => {
+    link.addEventListener("click", () => {
+      editorNavLinks.forEach((navLink) => navLink.classList.toggle("is-current", navLink === link));
+    });
   });
 
   document.addEventListener("keydown", (event) => {

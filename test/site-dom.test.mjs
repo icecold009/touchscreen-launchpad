@@ -17,7 +17,11 @@ test("the launchpad DOM exposes its primary interaction surface", () => {
     "pad-grid",
     "status",
     "stop-all",
+    "loop-toggle",
+    "master-volume",
     "pad-editor",
+    "layout-tools",
+    "sample-library",
     "sample-file",
     "save-layout",
     "export-layout",
@@ -43,6 +47,13 @@ test("the launchpad DOM exposes its primary interaction surface", () => {
   for (const id of requiredIds) {
     assert.equal(hasId(id), true, `index.html is missing #${id}`);
   }
+
+  assert.match(html, /class=["'][^"']*volume-rail[^"']*["']/i);
+  assert.match(html, /id=["']master-volume["'][^>]+aria-orientation=["']vertical["']/i);
+  assert.match(html, /class=["'][^"']*editor-nav[^"']*["']/i);
+  assert.match(html, /href=["']#pad-editor["']/i);
+  assert.match(html, /href=["']#layout-tools["']/i);
+  assert.match(html, /href=["']#sample-library["']/i);
 });
 
 test("the DOM loads the app as a module and keeps the static delivery model", () => {

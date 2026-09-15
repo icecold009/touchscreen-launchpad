@@ -1,14 +1,14 @@
-const CACHE_NAME = "touchscreen-launchpad-v27";
+const CACHE_NAME = "touchscreen-launchpad-v30";
 const CACHE_PREFIX = "touchscreen-launchpad-";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?version=27",
-  "./src/bootstrap.js?version=27",
-  "./app.js?version=27",
-  "./src/pointer-state.js?version=27",
-  "./src/storage-request.js?version=27",
-  "./src/download.js?version=27",
+  "./style.css?version=30",
+  "./src/bootstrap.js?version=30",
+  "./app.js?version=30",
+  "./src/pointer-state.js?version=30",
+  "./src/storage-request.js?version=30",
+  "./src/download.js?version=30",
   "./manifest.webmanifest",
   "./icon.svg",
 ];

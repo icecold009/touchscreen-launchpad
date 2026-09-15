@@ -97,7 +97,7 @@ test("saving returns an explicit result for import rollback", () => {
 
 test("pad save rolls back the pad and newly persisted sample when layout storage fails", () => {
   assert.match(app, /const previousPad = pads\[selectedPadIndex\];/);
-  assert.match(app, /if \(!saveLayout\(`\$\{pads\[selectedPadIndex\]\.label\} updated and saved\.\`\)\) \{/);
+  assert.match(app, /if \(!saveLayout\(`\$\{getPadName\(pads\[selectedPadIndex\], selectedPadIndex\)\} updated and saved\.\`\)\) \{/);
   assert.match(app, /pads\[selectedPadIndex\] = previousPad;/);
   assert.match(app, /samples\.delete\(createdSample\.id\);/);
   assert.match(app, /await deleteSample\(createdSample\.id\);/);
