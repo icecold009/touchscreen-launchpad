@@ -1,8 +1,8 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createPointerState } from "./src/pointer-state.js?version=24";
-import { attachStorageRequest } from "./src/storage-request.js?version=24";
-import { downloadText as triggerTextDownload } from "./src/download.js?version=24";
+import { createPointerState } from "./src/pointer-state.js?version=25";
+import { attachStorageRequest } from "./src/storage-request.js?version=25";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=25";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -67,10 +67,10 @@ const repairStorageButton = document.querySelector("#repair-storage");
 const resetStorageButton = document.querySelector("#reset-storage");
 
 const padColors = [
-  "#ff5c77", "#ff7a59", "#ffb454", "#f1d36b",
-  "#50c7a7", "#57d88d", "#65d3c0", "#81d69b",
-  "#54a9dc", "#5688ff", "#6875ee", "#7a7fe0",
-  "#a66cf1", "#bd80e8", "#d58de8", "#b694f4",
+  "#ff6b78", "#ff8566", "#ffb85c", "#efd66f",
+  "#5bc6a5", "#69d58e", "#6ccfc5", "#8bd29b",
+  "#69b9dd", "#7194ea", "#8189df", "#9b91d9",
+  "#b68cde", "#c79adf", "#d79bd6", "#ad9be5",
 ];
 
 const keyboardKeys = ["Q", "W", "E", "R", "A", "S", "D", "F", "Z", "X", "C", "V", "1", "2", "3", "4"];

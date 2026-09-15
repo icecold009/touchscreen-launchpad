@@ -1260,3 +1260,323 @@ select:focus {
     width: 100%;
   }
 }
+
+/* Apple-inspired visual system: light canvas, system typography, quiet depth. */
+:root {
+  color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  --page: #f5f5f7;
+  --surface: #ffffff;
+  --surface-raised: #f8f8fa;
+  --surface-soft: rgba(245, 245, 247, 0.92);
+  --line: rgba(29, 29, 31, 0.12);
+  --line-strong: rgba(29, 29, 31, 0.24);
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --quiet: #86868b;
+  --accent: #0071e3;
+  --success: #248a3d;
+  --danger: #d70015;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+body {
+  color: var(--text);
+  background:
+    radial-gradient(circle at 10% -10%, rgba(0, 113, 227, 0.08), transparent 28rem),
+    radial-gradient(circle at 100% 8%, rgba(175, 82, 222, 0.07), transparent 25rem),
+    var(--page);
+}
+
+.app-shell {
+  padding: clamp(1rem, 4vw, 3.75rem);
+}
+
+.app-header {
+  align-items: center;
+  margin-bottom: clamp(1.4rem, 4vw, 2.8rem);
+}
+
+.eyebrow {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+}
+
+.app-header h1 {
+  max-width: 12ch;
+  color: var(--text);
+  font-size: clamp(2.45rem, 5vw, 4.35rem);
+  font-weight: 700;
+  letter-spacing: -0.065em;
+  line-height: 0.92;
+}
+
+.subtitle {
+  max-width: 34rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.status-badge,
+.selected-indicator {
+  border-color: rgba(29, 29, 31, 0.14);
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 0.5rem 1.4rem rgba(29, 29, 31, 0.06);
+}
+
+.status-badge {
+  color: var(--success);
+}
+
+.status-badge::before {
+  box-shadow: 0 0 0 0.2rem rgba(36, 138, 61, 0.1);
+}
+
+.selected-indicator {
+  color: var(--accent);
+}
+
+.workspace {
+  gap: clamp(1rem, 2.4vw, 1.75rem);
+}
+
+.stage,
+.editor-panel {
+  border-color: var(--line);
+  border-radius: 1.75rem;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 1.5rem 4rem rgba(29, 29, 31, 0.08), inset 0 1px rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+}
+
+.stage {
+  padding: clamp(0.85rem, 2.4vw, 1.5rem);
+}
+
+.stage-heading h2,
+.panel-heading h2 {
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+}
+
+.stage-hint {
+  border-color: var(--line);
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
+.controls {
+  border-color: var(--line);
+  background: var(--surface-soft);
+}
+
+.control-row > .button,
+.compact-control,
+.check-control,
+.range-control {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.compact-control input {
+  color: var(--text);
+}
+
+.check-control input,
+.range-control input,
+.field input[type="range"] {
+  accent-color: var(--accent);
+}
+
+.status-message {
+  color: var(--muted);
+}
+
+.status-message::before {
+  background: var(--accent);
+  box-shadow: 0 0 0 0.22rem rgba(0, 113, 227, 0.1);
+}
+
+.status-message[data-type="success"] {
+  color: var(--success);
+}
+
+.status-message[data-type="success"]::before {
+  background: var(--success);
+  box-shadow: 0 0 0 0.22rem rgba(36, 138, 61, 0.1);
+}
+
+.status-message[data-type="error"] {
+  color: var(--danger);
+}
+
+.status-message[data-type="error"]::before {
+  background: var(--danger);
+  box-shadow: 0 0 0 0.22rem rgba(215, 0, 21, 0.1);
+}
+
+.kit-dock {
+  border-color: rgba(0, 113, 227, 0.18);
+  background: linear-gradient(145deg, rgba(239, 246, 255, 0.95), rgba(248, 248, 250, 0.95));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.9), 0 0.8rem 2rem rgba(29, 29, 31, 0.06);
+}
+
+.kit-dock .field select,
+.kit-dock .field input[type="text"] {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.pad-grid {
+  gap: clamp(0.55rem, 1.25vw, 0.9rem);
+}
+
+.pad {
+  border-color: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 -0.38rem 0 rgba(29, 29, 31, 0.16), 0 0.8rem 1.4rem rgba(29, 29, 31, 0.12);
+}
+
+.pad.is-playing {
+  box-shadow: 0 0 0 3px rgba(29, 29, 31, 0.3), 0 0 1.25rem rgba(0, 113, 227, 0.22), inset 0 -0.38rem 0 rgba(29, 29, 31, 0.16), 0 0.8rem 1.4rem rgba(29, 29, 31, 0.12);
+}
+
+.pad.is-selected {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.75), 0 0.8rem 1.4rem rgba(29, 29, 31, 0.15), inset 0 -0.38rem 0 rgba(29, 29, 31, 0.16);
+}
+
+.app-footer {
+  border-top-color: var(--line);
+  color: var(--quiet);
+}
+
+.editor-panel {
+  padding: 1rem;
+}
+
+.panel-heading {
+  border-color: var(--line);
+  background: var(--surface-soft);
+}
+
+.field,
+.compact-control,
+.check-control,
+.range-control {
+  color: var(--muted);
+}
+
+.field input[type="text"],
+.field select,
+.sample-tools input,
+.sample-tools select,
+.compact-control input {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.field input[type="text"]::placeholder,
+.sample-tools input::placeholder {
+  color: var(--quiet);
+}
+
+.sample-picker {
+  border-color: var(--line);
+  background: var(--surface-soft);
+}
+
+.sample-name,
+output {
+  color: var(--text);
+}
+
+.field-help,
+.section-subtitle {
+  color: var(--quiet);
+}
+
+.layout-tools,
+.kit-tools,
+.sample-library {
+  border-top-color: var(--line);
+}
+
+.sample-item {
+  border-color: var(--line);
+  background: var(--surface-soft);
+  color: var(--text);
+}
+
+.empty-state {
+  color: var(--quiet);
+}
+
+.button-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 0.5rem 1rem rgba(0, 113, 227, 0.18);
+}
+
+.button-secondary {
+  border-color: var(--line);
+  background: #f5f5f7;
+  color: var(--text);
+  box-shadow: none;
+}
+
+.button-danger {
+  border-color: rgba(215, 0, 21, 0.2);
+  background: #fff0f1;
+  color: var(--danger);
+  box-shadow: none;
+}
+
+.button-quiet {
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.text-button {
+  color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button-primary:hover {
+    border-color: #0077ed;
+    background: #0077ed;
+  }
+
+  .button-secondary:hover,
+  .button-quiet:hover {
+    border-color: rgba(0, 113, 227, 0.3);
+    background: #ebebed;
+  }
+
+  .button-danger:hover {
+    border-color: rgba(215, 0, 21, 0.35);
+    background: #ffe2e5;
+  }
+
+  .text-button:hover {
+    color: #0066cc;
+  }
+}
+
+@media (max-width: 560px) {
+  .stage,
+  .editor-panel {
+    border-radius: 1.35rem;
+  }
+
+  .status-badge {
+    box-shadow: none;
+  }
+}

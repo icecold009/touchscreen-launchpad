@@ -18,7 +18,7 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 ## Package: Performance-surface UI/UX revamp — `codex/kit-library-20260915`
 
 - Goal: Make the local performance workflow easier to understand and quicker to operate on desktop and touch-sized screens.
-- Scope: Surface kit switching above the pad grid, clarify single-file versus folder audio import, strengthen visual hierarchy and active states, improve compact transport controls, and refresh the PWA cache version for the new shell.
+- Scope: Surface kit switching above the pad grid, clarify single-file versus folder audio import, strengthen visual hierarchy and active states, improve compact transport controls, replace the neon-dark palette with an Apple-inspired light system-font theme, and refresh the PWA cache version for the new shell.
 - Non-goals: Change audio behavior, add cloud storage, add accounts, introduce a build system, or alter the five-kit data model.
 - Files: `index.html`, `style.css`, `app.js`, `sw.js`, `src/bootstrap.js`, and the UI package evidence in this backlog.
 - Tests: `npm.cmd run validate`, `git diff --check`, desktop rendered smoke, 390px rendered smoke, console inspection, kit-switch smoke, and pad playback/Stop all smoke.
