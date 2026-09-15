@@ -6,6 +6,6 @@
     "check:syntax": "node --check app.js && node --check src/bootstrap.js && node --check sw.js",
     "check:static": "node scripts/validate-site.mjs",
     "test:dom": "node --test test/site-dom.test.mjs test/pointer-lifecycle.test.mjs test/audio-lifecycle.test.mjs test/storage-recovery.test.mjs",
-    "validate": "npm run check:syntax && node scripts/validate-site.mjs && node --test test/site-dom.test.mjs test/module-contract.test.mjs test/pointer-lifecycle.test.mjs test/audio-lifecycle.test.mjs test/storage-recovery.test.mjs test/import-export.test.mjs test/pwa.test.mjs test/service-worker-runtime.test.mjs"
+    "validate": "npm run check:syntax && node scripts/validate-site.mjs && node --test test/site-dom.test.mjs test/module-contract.test.mjs test/pointer-lifecycle.test.mjs test/audio-lifecycle.test.mjs test/storage-recovery.test.mjs test/import-export.test.mjs test/kit-library.test.mjs test/pwa.test.mjs test/service-worker-runtime.test.mjs"
   }
 }

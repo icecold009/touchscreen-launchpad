@@ -5,6 +5,16 @@ Reviewed: feature branch `codex/vercel-canonical-hosting-20260914` during the 20
 Release baseline: PR #7 was merged to `main` as `9c214a8`.
 Audit package baseline: `1dde9e9`; the merged release contains the security hardening, release-workflow pinning, and hosted Vercel deployment below.
 
+## Package: Five-kit sample library — `codex/kit-library-20260915`
+
+- Goal: Add five local-first reusable kit slots that share one IndexedDB sample library and support portable `.launchpack` backups.
+- Scope: IndexedDB v2 kit migration, starter-layout preservation, kit lifecycle controls, folder/multi-file import, natural sorting, SHA-256 deduplication, 128-sample/512 MB logical guardrails, transactional pack validation/import/export, playback-safe switching, and cache-version updates.
+- Non-goals: Cloud sync, accounts, recording, MIDI, time-stretching, slicing, effects, timeline sequencing, or native packaging.
+- Files: `app.js`, `index.html`, `style.css`, `sw.js`, `src/bootstrap.js`, `README.md`, `package.json`, and kit/import contract tests.
+- Tests: `npm.cmd run validate`, rendered local smoke, kit lifecycle smoke, reload smoke, and screenshot/console inspection where available.
+- Acceptance: Existing layouts remain available as `Kit 1 — Starter`; five slots are visible; switching stops voices and preserves transport controls; imports map the first 16 naturally sorted audio files and retain extras; duplicate content is stored once; pack import rejects unsafe/oversized/malformed content without partially applying it.
+- Evidence: Local contract is authoritative for this branch. Hosted Vercel QA, GitHub checks, independent review, deployment, and PR publication remain pending until explicitly performed.
+
 ## Current verified baseline
 
 - `npm.cmd ci --ignore-scripts` and `npm.cmd run validate` pass; the aggregate contract now covers 35 tests including service-worker runtime behavior, storage transaction aborts, import/sample bounds, and release-artifact staging.
