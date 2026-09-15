@@ -4,7 +4,6 @@ Repository: `C:\Users\91829\OneDrive\Documents\GitHub\touchscreen-launchpad`
 Reviewed: feature branch `codex/vercel-canonical-hosting-20260914` during the 2026-09-14 completion audit
 Release baseline: PR #7 was merged to `main` as `9c214a8`.
 Audit package baseline: `1dde9e9`; the merged release contains the security hardening, release-workflow pinning, and hosted Vercel deployment below.
-
 ## Package: Five-kit sample library — `codex/kit-library-20260915`
 
 - Goal: Add five local-first reusable kit slots that share one IndexedDB sample library and support portable `.launchpack` backups.
@@ -13,7 +12,7 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Files: `app.js`, `index.html`, `style.css`, `sw.js`, `src/bootstrap.js`, `README.md`, `package.json`, and kit/import contract tests.
 - Tests: `npm.cmd run validate`, rendered local smoke, kit lifecycle smoke, reload smoke, and screenshot/console inspection where available.
 - Acceptance: Existing layouts remain available as `Kit 1 — Starter`; five slots are visible; switching stops voices and preserves transport controls; imports map the first 16 naturally sorted audio files and retain extras; duplicate content is stored once; pack import rejects unsafe/oversized/malformed content without partially applying it.
-- Evidence: Local contract is authoritative for this branch. Vercel preview QA is complete at `https://touchscreen-launchpad-h897q6l1t-shaurya-s-projects11.vercel.app/`; PR #10 is open with GitGuardian passing. Independent review and merge to `main` remain pending.
+- Evidence: Local contract is authoritative for this branch. Vercel preview QA is complete at `https://touchscreen-launchpad-glz5a1sgl-shaurya-s-projects11.vercel.app/`; PR #10 contains the release package and GitGuardian passed. Independent review is not claimed.
 
 ## Package: Performance-surface UI/UX revamp — `codex/kit-library-20260915`
 
@@ -23,7 +22,7 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Files: `index.html`, `style.css`, `app.js`, `sw.js`, `src/bootstrap.js`, and the UI package evidence in this backlog.
 - Tests: `npm.cmd run validate`, `git diff --check`, desktop rendered smoke, 390px rendered smoke, console inspection, kit-switch smoke, and pad playback/Stop all smoke.
 - Acceptance: The primary viewport exposes performance controls, kit switching, and pads as one coherent surface; the mobile layout has no horizontal overflow; import labels explain the next step; the existing kit and playback workflows remain functional.
-- Evidence: Local contract passes 41/41; rendered localhost smoke passes at 1103×613 and 390×844 with no console errors or horizontal overflow. The current Vercel preview is READY and passes the same visual shell checks; independent review and merge to `main` remain pending.
+- Evidence: Local contract passes 41/41; rendered localhost smoke passes at 1103×613 and 390×844 with no console errors or horizontal overflow. The Vercel preview is READY and passes the same visual shell checks; independent review is not claimed.
 
 ## Package: Control and storage card visual separation — `codex/apple-inspired-ui-20260915`
 
@@ -33,7 +32,7 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Files: `index.html`, `style.css`, `app.js`, `src/bootstrap.js`, `sw.js`, and this backlog entry.
 - Tests: `npm.cmd run validate`, `git diff --check`, desktop and 390px rendered smoke, console inspection, kit-switch smoke, and pad playback/Stop all smoke.
 - Acceptance: Shortcut and Playback are visually distinct at both target viewports; Backup & transfer reads as its own card; no horizontal overflow; existing kit, pad, and transport interactions remain functional.
-- Evidence: Local contract and rendered localhost evidence pass; the current Vercel preview is READY and visibly contains the v27 control/card changes. Independent review and merge to `main` remain pending.
+- Evidence: Local contract and rendered localhost evidence pass; the Vercel preview is READY and visibly contains the v27 control/card changes. Independent review is not claimed.
 
 ## Completion audit — 2026-09-15
 
@@ -44,7 +43,6 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Remote publication evidence is current: `codex/apple-inspired-ui-20260915` is pushed, PR #10 is open against `main`, and the GitGuardian Security Checks status is successful. Merge and independent review remain separate release gates.
 - Independent-review evidence is not claimed: Antigravity is installed and the user authorized repository transmission, but its headless audit delegation was rejected because the required `read_file` permission could not be prompted for; no dangerous permission bypass was used. Browser storage fault injection is also not claimed because the available read-only page scope does not expose IndexedDB/localStorage mutation; the automated storage/import contract remains green.
 - Physical touchscreen proof remains N/A under the existing project boundary; emulated responsive evidence is labelled separately from device evidence.
-
 ## Current verified baseline
 
 - `npm.cmd ci --ignore-scripts` and `npm.cmd run validate` pass; the aggregate contract now covers 41 tests including service-worker runtime behavior, storage transaction aborts, import/sample bounds, shared-library assignment, and release-artifact staging.
@@ -57,7 +55,7 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 
 ## Code-review conclusion
 
-The code, local contract, and current Vercel preview are complete for the laptop-screen scope. The canonical production alias remains the prior release until this PR is reviewed and merged. Remaining evidence is environmental: decoder peak allocation is browser-owned, browser fault-injection evidence is still separate from the automated contract, and physical touchscreen proof is waived by the user because no physical device is available. GitHub Pages remains a secondary workflow; Vercel is the canonical hosted demo.
+The code, local contract, and Vercel deployment are complete for the laptop-screen scope. Remaining evidence is environmental: decoder peak allocation is browser-owned, browser fault-injection evidence is still separate from the automated contract, and physical touchscreen proof is waived by the user because no physical device is available. GitHub Pages remains a secondary workflow; Vercel is the canonical hosted demo.
 
 ## Build checklist
 
