@@ -39,8 +39,8 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Local implementation is complete through `c7cc14e` on `codex/apple-inspired-ui-20260915`; the worktree is clean and `main` is untouched.
 - Local contract evidence is current: `npm.cmd run validate` passes all 41 tests and `git diff --check` passes. Rendered localhost QA passes at 1103×613 and 390×844 with 16 pads, no horizontal overflow, no console errors/warnings, distinct Shortcut/Playback treatments, a framed Backup & transfer card, and assignable shared-library samples.
 - Local interaction evidence is current: kit switching loads the selected arrangement; Pad 01 reaches `playing`; Stop all returns it to `ready` while preserving 120 BPM and Quantize on.
-- Hosted baseline evidence is separate: `https://touchscreen-launchpad.vercel.app/` remains the existing version-16 production shell. The current branch is deployed separately at `https://touchscreen-launchpad-h897q6l1t-shaurya-s-projects11.vercel.app/`, where the v27 five-kit, shared-library, control-card, and playback smoke passes.
-- Remote publication evidence is current: `codex/apple-inspired-ui-20260915` is pushed, PR #10 is open against `main`, and the GitGuardian Security Checks status is successful. Merge and independent review remain separate release gates.
+- Hosted evidence is current: `https://touchscreen-launchpad.vercel.app/` is the READY production deployment `dpl_7MhCb65a1uNbCiBgaAUnnyn487HD` from merged `main` commit `4336af5`; v27 renders 16 pads and five kit slots with no horizontal overflow, and its playback/Stop all smoke passes without console errors.
+- Remote publication evidence is current: PR #10 was merged into `main` as `4336af5` after its GitGuardian and `validate` checks passed. Independent review remains unclaimed because Antigravity headless delegation could not obtain its required repository read permission.
 - Independent-review evidence is not claimed: Antigravity is installed and the user authorized repository transmission, but its headless audit delegation was rejected because the required `read_file` permission could not be prompted for; no dangerous permission bypass was used. Browser storage fault injection is also not claimed because the available read-only page scope does not expose IndexedDB/localStorage mutation; the automated storage/import contract remains green.
 - Physical touchscreen proof remains N/A under the existing project boundary; emulated responsive evidence is labelled separately from device evidence.
 ## Current verified baseline
@@ -51,7 +51,7 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Layout imports, sample identifiers, sample count/storage, in-flight sample reservations, legacy-record admission, and decoded-audio size/duration are bounded before persistence or retention; service-worker cache cleanup and lookup are scoped to this app's cache namespace.
 - A fresh MIME-safe browser smoke loaded `src/bootstrap.js?version=16`, rendered 16 pads, queued/stopped a persisted loop, reached the export success state, reported no console errors, and showed no horizontal overflow.
 - Laptop-screen browser QA loaded the app, triggered a pad, stopped all, renamed and persisted a pad, reloaded it, exported JSON, and triggered the renamed pad by keyboard without console errors or overflow.
-- Production browser QA loaded `https://touchscreen-launchpad.vercel.app/`, rendered 16 pads, triggered a preview tone, stopped all, exported JSON, reported no console errors, and showed no horizontal overflow.
+- Final production browser QA loaded `https://touchscreen-launchpad.vercel.app/` with `src/bootstrap.js?version=27`, rendered 16 pads and five kit slots, confirmed distinct Shortcut/Playback treatments and the framed Backup & transfer card, triggered a preview tone, stopped all while preserving 120 BPM and Quantize on, reported no console errors, and showed no horizontal overflow.
 
 ## Code-review conclusion
 
@@ -115,4 +115,4 @@ The code, local contract, and Vercel deployment are complete for the laptop-scre
 - [x] Storage, download, import/export, offline, and update failure handling is bounded and locally contract-tested. Browser fault injection and hosted offline evidence remain separate environmental checks.
 - [x] Local checks are reproducible without changing the no-build delivery model.
 - [x] Hosted PWA route has explicit evidence at `https://touchscreen-launchpad.vercel.app/`; GitHub Pages remains a secondary deployment path whose account-level project redirect is not used for the demo.
-- [x] Release branch was pushed, reviewed, merged to `main` as `9c214a8`, and the follow-up documentation branch is clean after publication.
+- [x] Feature branch was pushed and PR #10 merged to `main` as `4336af5`; the final production deployment is READY at the canonical Vercel URL.
