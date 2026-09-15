@@ -35,6 +35,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: Shortcut and Playback are visually distinct at both target viewports; Backup & transfer reads as its own card; no horizontal overflow; existing kit, pad, and transport interactions remain functional.
 - Evidence: Local contract and rendered localhost evidence are required; hosted deployment, independent review, and PR publication remain pending.
 
+## Completion audit — 2026-09-15
+
+- Local implementation is complete through `c616cdc` on `codex/apple-inspired-ui-20260915`; the worktree is clean and `main` is untouched.
+- Local contract evidence is current: `npm.cmd run validate` passes all 40 tests and `git diff --check` passes. Rendered localhost QA passes at 1103×613 and 390×844 with 16 pads, no horizontal overflow, no console errors/warnings, distinct Shortcut/Playback treatments, and a framed Backup & transfer card.
+- Local interaction evidence is current: kit switching loads the selected arrangement; Pad 01 reaches `playing`; Stop all returns it to `ready` while preserving 120 BPM and Quantize on.
+- Hosted baseline evidence is separate: `https://touchscreen-launchpad.vercel.app/` is reachable and its existing version-16 shell passes the legacy 16-pad playback/Stop all smoke, but it does not contain the current five-kit or Backup & transfer work because this branch is not deployed.
+- Remote publication evidence is separate: GitHub lists PRs through #9 and no PR for this branch; the current branch has no remote ref. Push, hosted deployment, PR creation, review, and merge remain authorization-controlled release gates.
+- Independent-review evidence is not claimed: Antigravity is installed, but its private-repository audit delegation was rejected because repository transmission to the external service was not authorized. Browser storage fault injection is also not claimed because the available read-only page scope does not expose IndexedDB/localStorage mutation; the automated storage/import contract remains green.
+- Physical touchscreen proof remains N/A under the existing project boundary; emulated responsive evidence is labelled separately from device evidence.
+
 ## Current verified baseline
 
 - `npm.cmd ci --ignore-scripts` and `npm.cmd run validate` pass; the aggregate contract now covers 35 tests including service-worker runtime behavior, storage transaction aborts, import/sample bounds, and release-artifact staging.
