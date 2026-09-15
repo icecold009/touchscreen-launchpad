@@ -1,16 +1,22 @@
 const PAD_COUNT = 16;
-import { createPointerState } from "./src/pointer-state.js?version=16";
-import { attachStorageRequest } from "./src/storage-request.js?version=16";
-import { downloadText as triggerTextDownload } from "./src/download.js?version=16";
+const KIT_COUNT = 5;
+import { createPointerState } from "./src/pointer-state.js?version=27";
+import { attachStorageRequest } from "./src/storage-request.js?version=27";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=27";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
+const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
+const KITS_MIRROR_STORAGE_KEY = "touchscreen-launchpad.kits-mirror.v1";
 const DATABASE_NAME = "touchscreen-launchpad";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const MAX_LAYOUT_BYTES = 256 * 1024;
 const MAX_SAMPLE_BYTES = 50 * 1024 * 1024;
-const MAX_SAMPLE_COUNT = 32;
-const MAX_SAMPLE_STORAGE_BYTES = 256 * 1024 * 1024;
+const MAX_SAMPLE_COUNT = 128;
+const MAX_SAMPLE_STORAGE_BYTES = 512 * 1024 * 1024;
+const MAX_LAUNCHPACK_BYTES = 700 * 1024 * 1024;
 const MAX_SAMPLE_ID_LENGTH = 128;
+const MAX_KIT_NAME_LENGTH = 40;
+const MAX_PACK_PATH_LENGTH = 240;
 const MAX_DECODED_AUDIO_BYTES = 256 * 1024 * 1024;
 const MAX_DECODED_AUDIO_SECONDS = 15 * 60;
 
@@ -46,16 +52,25 @@ const sampleList = document.querySelector("#sample-list");
 const sampleCount = document.querySelector("#sample-count");
 const sampleSearchInput = document.querySelector("#sample-search");
 const sampleSortInput = document.querySelector("#sample-sort");
+const kitSelect = document.querySelector("#kit-select");
+const kitNameInput = document.querySelector("#kit-name");
+const kitCount = document.querySelector("#kit-count");
+const renameKitButton = document.querySelector("#rename-kit");
+const duplicateKitButton = document.querySelector("#duplicate-kit");
+const deleteKitButton = document.querySelector("#delete-kit");
+const exportPackButton = document.querySelector("#export-pack");
+const importPackInput = document.querySelector("#import-pack");
+const importLaunchpackInput = document.querySelector("#import-launchpack");
 const installAppButton = document.querySelector("#install-app");
 const persistenceMessage = document.querySelector("#persistence-message");
 const repairStorageButton = document.querySelector("#repair-storage");
 const resetStorageButton = document.querySelector("#reset-storage");
 
 const padColors = [
-  "#ff5c77", "#ff7a59", "#ffb454", "#f1d36b",
-  "#50c7a7", "#57d88d", "#65d3c0", "#81d69b",
-  "#54a9dc", "#5688ff", "#6875ee", "#7a7fe0",
-  "#a66cf1", "#bd80e8", "#d58de8", "#b694f4",
+  "#ff6b78", "#ff8566", "#ffb85c", "#efd66f",
+  "#5bc6a5", "#69d58e", "#6ccfc5", "#8bd29b",
+  "#69b9dd", "#7194ea", "#8189df", "#9b91d9",
+  "#b68cde", "#c79adf", "#d79bd6", "#ad9be5",
 ];
 
 const keyboardKeys = ["Q", "W", "E", "R", "A", "S", "D", "F", "Z", "X", "C", "V", "1", "2", "3", "4"];
@@ -63,6 +78,8 @@ const activeVoices = new Map();
 const pendingPads = new Set();
 let pads = [];
 let samples = new Map();
+let kits = new Map();
+let currentKitId = "kit-1";
 let selectedPadIndex = 0;
 let audioContext;
 let masterGain;
@@ -74,7 +91,9 @@ let storageState = "saved";
 let pendingSampleBytes = 0;
 let pendingSampleCount = 0;
 let editorDirty = false;
+let kitDirty = false;
 let draftSampleCleared = false;
+let draftSampleId = null;
 let playbackGeneration = 0;
 let beatCountdownTimer;
 let lastPlaybackStatusAt = 0;
@@ -143,6 +162,113 @@ function normalizePad(candidate, index) {
 
 function normalizePads(candidatePads) {
   return Array.from({ length: PAD_COUNT }, (_, index) => normalizePad(candidatePads?.[index], index));
+}
+
+function clonePads(sourcePads = pads) {
+  return sourcePads.map((pad) => ({ ...pad }));
+}
+
+function kitSlotNumber(kitId) {
+  const match = /^kit-([1-5])$/.exec(kitId || "");
+  return match ? Number(match[1]) : 0;
+}
+
+function defaultKitName(slot) {
+  return `Kit ${slot}`;
+}
+
+function createKitRecord(slot, kitPads = createDefaultPads(), { name, empty = false, createdAt } = {}) {
+  const timestamp = createdAt || new Date().toISOString();
+  return {
+    id: `kit-${slot}`,
+    name: typeof name === "string" && name.trim() ? name.trim().slice(0, MAX_KIT_NAME_LENGTH) : defaultKitName(slot),
+    pads: normalizePads(kitPads),
+    empty: Boolean(empty),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+function normalizeKit(candidate, slot) {
+  const fallback = createKitRecord(slot);
+  const name = typeof candidate?.name === "string" && candidate.name.trim()
+    ? candidate.name.trim().slice(0, MAX_KIT_NAME_LENGTH)
+    : fallback.name;
+  return {
+    id: `kit-${slot}`,
+    name,
+    pads: normalizePads(candidate?.pads),
+    empty: Boolean(candidate?.empty),
+    createdAt: typeof candidate?.createdAt === "string" ? candidate.createdAt : fallback.createdAt,
+    updatedAt: typeof candidate?.updatedAt === "string" ? candidate.updatedAt : fallback.updatedAt,
+  };
+}
+
+function isValidStoredKit(kit) {
+  const slot = kitSlotNumber(kit?.id);
+  return Boolean(
+    slot
+      && typeof kit?.name === "string"
+      && kit.name.trim()
+      && kit.name.length <= MAX_KIT_NAME_LENGTH
+      && Array.isArray(kit.pads)
+      && kit.pads.length === PAD_COUNT
+      && typeof kit.createdAt === "string"
+      && typeof kit.updatedAt === "string",
+  );
+}
+
+function createDefaultKitMap(legacyPads = createDefaultPads()) {
+  return new Map(Array.from({ length: KIT_COUNT }, (_, index) => {
+    const slot = index + 1;
+    return [`kit-${slot}`, createKitRecord(
+      slot,
+      slot === 1 ? legacyPads : createDefaultPads(),
+      { name: slot === 1 ? "Kit 1 — Starter" : defaultKitName(slot), empty: slot !== 1 },
+    )];
+  }));
+}
+
+function setKitDirty(value) {
+  kitDirty = Boolean(value);
+  if (kitDirty && !editorDirty) editorDirtyIndicator.textContent = "Unsaved kit changes";
+  if (!kitDirty && !editorDirty) editorDirtyIndicator.textContent = "Unsaved changes";
+  editorDirtyIndicator.hidden = !(editorDirty || kitDirty);
+}
+
+function readCurrentKitId() {
+  try {
+    const storedId = localStorage.getItem(CURRENT_KIT_STORAGE_KEY);
+    return kitSlotNumber(storedId) ? storedId : "kit-1";
+  } catch {
+    return "kit-1";
+  }
+}
+
+function writeCurrentKitId() {
+  try {
+    localStorage.setItem(CURRENT_KIT_STORAGE_KEY, currentKitId);
+  } catch {
+    // The active kit remains usable in memory if the compatibility mirror is unavailable.
+  }
+}
+
+function readKitMirror() {
+  try {
+    const value = localStorage.getItem(KITS_MIRROR_STORAGE_KEY);
+    const parsed = value ? JSON.parse(value) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeKitMirror() {
+  try {
+    localStorage.setItem(KITS_MIRROR_STORAGE_KEY, JSON.stringify(getKitRecords()));
+  } catch {
+    // IndexedDB remains the canonical store when the small metadata mirror is unavailable.
+  }
 }
 
 function isQuotaError(error) {
@@ -252,9 +378,12 @@ function openDatabase() {
       const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
 
       request.addEventListener("upgradeneeded", () => {
-        if (storageMode === "persistent") setStorageState("upgrade", "Updating sample storage…");
+        if (storageMode === "persistent") setStorageState("upgrade", "Updating local storage…");
         if (!request.result.objectStoreNames.contains("samples")) {
           request.result.createObjectStore("samples", { keyPath: "id" });
+        }
+        if (!request.result.objectStoreNames.contains("kits")) {
+          request.result.createObjectStore("kits", { keyPath: "id" });
         }
       });
       request.addEventListener("success", () => {
@@ -287,11 +416,296 @@ function readSamples() {
 }
 
 function writeSample(sample) {
-  return requestFromStore("readwrite", (store) => store.put(sample));
+  return runStorageTransaction("readwrite", ["samples"], (transaction) => {
+    transaction.objectStore("samples").put(sample);
+  });
 }
 
 function deleteSample(sampleId) {
-  return requestFromStore("readwrite", (store) => store.delete(sampleId));
+  return runStorageTransaction("readwrite", ["samples"], (transaction) => {
+    transaction.objectStore("samples").delete(sampleId);
+  });
+}
+
+function requestFromKitStore(mode, operation) {
+  return openDatabase().then((database) => new Promise((resolve, reject) => {
+    const transaction = database.transaction("kits", mode);
+    const store = transaction.objectStore("kits");
+    const request = operation(store);
+    attachStorageRequest(request, transaction, resolve, reject);
+  }));
+}
+
+function readKits() {
+  return requestFromKitStore("readonly", (store) => store.getAll());
+}
+
+function writeKit(kit) {
+  return runStorageTransaction("readwrite", ["kits"], (transaction) => {
+    transaction.objectStore("kits").put(kit);
+  });
+}
+
+function runStorageTransaction(mode, storeNames, operation) {
+  return openDatabase().then((database) => new Promise((resolve, reject) => {
+    const transaction = database.transaction(storeNames, mode);
+    let result;
+    let settled = false;
+    const rejectTransaction = () => {
+      if (settled) return;
+      settled = true;
+      reject(transaction.error || new Error("Local storage transaction failed."));
+    };
+
+    transaction.addEventListener("complete", () => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    }, { once: true });
+    transaction.addEventListener("error", rejectTransaction, { once: true });
+    transaction.addEventListener("abort", rejectTransaction, { once: true });
+
+    try {
+      result = operation(transaction);
+    } catch (error) {
+      try {
+        transaction.abort();
+      } catch {
+        // The transaction may already be inactive.
+      }
+      if (!settled) {
+        settled = true;
+        reject(error);
+      }
+    }
+  }));
+}
+
+function writeKitsAndSamples(kitRecords, sampleRecords) {
+  return runStorageTransaction("readwrite", ["kits", "samples"], (transaction) => {
+    const kitStore = transaction.objectStore("kits");
+    const sampleStore = transaction.objectStore("samples");
+    for (const kit of kitRecords) kitStore.put(kit);
+    for (const sample of sampleRecords) sampleStore.put(sample);
+  });
+}
+
+function deleteSamples(sampleIds) {
+  if (!sampleIds.length) return Promise.resolve();
+  return runStorageTransaction("readwrite", ["samples"], (transaction) => {
+    const store = transaction.objectStore("samples");
+    for (const sampleId of sampleIds) store.delete(sampleId);
+  });
+}
+
+async function initializeKitLibrary(legacyPads) {
+  const storedKits = await readKits();
+  const mirrorKits = storedKits.length ? [] : readKitMirror();
+  const validKits = storedKits
+    .concat(mirrorKits)
+    .filter(isValidStoredKit)
+    .reduce((result, kit) => {
+      if (!result.some((candidate) => candidate.id === kit.id)) result.push(kit);
+      return result;
+    }, [])
+    .map((kit) => normalizeKit(kit, kitSlotNumber(kit.id)));
+
+  if (!validKits.length) {
+    kits = createDefaultKitMap(legacyPads);
+    await runStorageTransaction("readwrite", ["kits"], (transaction) => {
+      const store = transaction.objectStore("kits");
+      for (const kit of kits.values()) store.put(kit);
+    });
+  } else {
+    kits = new Map(validKits.map((kit) => [kit.id, kit]));
+    const missingKits = [];
+    for (let slot = 1; slot <= KIT_COUNT; slot += 1) {
+      if (!kits.has(`kit-${slot}`)) {
+        const kit = createKitRecord(slot, slot === 1 ? legacyPads : createDefaultPads(), {
+          name: slot === 1 ? "Kit 1 — Starter" : defaultKitName(slot),
+          empty: slot !== 1,
+        });
+        kits.set(kit.id, kit);
+        missingKits.push(kit);
+      }
+    }
+    if (missingKits.length) {
+      await runStorageTransaction("readwrite", ["kits"], (transaction) => {
+        const store = transaction.objectStore("kits");
+        for (const kit of missingKits) store.put(kit);
+      });
+    }
+  }
+
+  currentKitId = kits.has(readCurrentKitId()) ? readCurrentKitId() : "kit-1";
+  writeCurrentKitId();
+  writeKitMirror();
+}
+
+function getKitRecords() {
+  return Array.from({ length: KIT_COUNT }, (_, index) => kits.get(`kit-${index + 1}`) || createKitRecord(index + 1, createDefaultPads(), {
+    name: index === 0 ? "Kit 1 — Starter" : defaultKitName(index + 1),
+    empty: index !== 0,
+  }));
+}
+
+function renderKitControls() {
+  const records = getKitRecords();
+  kitSelect.replaceChildren();
+
+  for (const kit of records) {
+    const option = document.createElement("option");
+    option.value = kit.id;
+    option.textContent = kit.empty ? `${kit.name} · Empty` : kit.name;
+    kitSelect.append(option);
+  }
+
+  currentKitId = kits.has(currentKitId) ? currentKitId : "kit-1";
+  kitSelect.value = currentKitId;
+  const currentKit = kits.get(currentKitId) || records[0];
+  kitNameInput.value = currentKit.name;
+  kitCount.textContent = `${records.filter((kit) => !kit.empty).length}/${KIT_COUNT} used`;
+  const hasOtherEmptySlot = records.some((kit) => kit.id !== currentKitId && kit.empty);
+  duplicateKitButton.disabled = !hasOtherEmptySlot;
+  deleteKitButton.disabled = !currentKit || currentKit.empty;
+}
+
+function applyKit(kit) {
+  pads = kit?.empty ? createDefaultPads() : normalizePads(kit?.pads);
+  setKitDirty(false);
+  renderPads();
+  selectPad(0);
+}
+
+async function persistKitRecord(record) {
+  try {
+    if (storageMode !== "memory") {
+      await writeKit(record);
+    }
+    kits.set(record.id, record);
+    writeKitMirror();
+    return true;
+  } catch (error) {
+    markMemoryOnlyMode(
+      isQuotaError(error)
+        ? "Kit storage is full. Export a .launchpack backup and free browser storage."
+        : "Kit storage failed. This kit remains available in memory for this session.",
+      isQuotaError(error) ? "quota" : "unavailable",
+    );
+    return false;
+  }
+}
+
+async function saveActiveKit(message = "Kit saved locally.") {
+  const previousKit = kits.get(currentKitId);
+  const nextKit = {
+    ...(previousKit || createKitRecord(kitSlotNumber(currentKitId) || 1)),
+    id: currentKitId,
+    pads: clonePads(),
+    empty: false,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (!saveLayout(message)) return false;
+  if (!(await persistKitRecord(nextKit))) return false;
+  setKitDirty(false);
+  renderKitControls();
+  setStatus(storageMode === "memory" ? `${message} Memory-only mode: a reload may discard changes.` : message, storageMode === "memory" ? "error" : "success");
+  return true;
+}
+
+function hasUnsavedKitChanges() {
+  return editorDirty || kitDirty;
+}
+
+function confirmKitSwitch() {
+  return !hasUnsavedKitChanges() || window.confirm("This kit has unsaved edits. Switch kits and discard them?");
+}
+
+async function switchKit(nextKitId) {
+  if (nextKitId === currentKitId) return;
+  if (!confirmKitSwitch()) {
+    kitSelect.value = currentKitId;
+    return;
+  }
+
+  const nextKit = kits.get(nextKitId);
+  if (!nextKit) {
+    kitSelect.value = currentKitId;
+    setStatus("That kit is no longer available.", "error");
+    return;
+  }
+
+  stopAll({ announce: false });
+  currentKitId = nextKitId;
+  writeCurrentKitId();
+  applyKit(nextKit);
+  renderKitControls();
+  setStatus(`${nextKit.name} loaded.`, "success");
+}
+
+async function renameActiveKit() {
+  const nextName = kitNameInput.value.trim();
+  if (!nextName || nextName.length > MAX_KIT_NAME_LENGTH) {
+    setStatus(`Kit names must be 1–${MAX_KIT_NAME_LENGTH} characters.`, "error");
+    kitNameInput.value = kits.get(currentKitId)?.name || defaultKitName(kitSlotNumber(currentKitId));
+    return;
+  }
+
+  const previousKit = kits.get(currentKitId);
+  const nextKit = {
+    ...(previousKit || createKitRecord(kitSlotNumber(currentKitId) || 1)),
+    name: nextName,
+    updatedAt: new Date().toISOString(),
+  };
+  if (!(await persistKitRecord(nextKit))) {
+    kitNameInput.value = previousKit?.name || nextName;
+    return;
+  }
+  renderKitControls();
+  setStatus(`${nextName} renamed and saved.`, "success");
+}
+
+async function duplicateActiveKit() {
+  if (hasUnsavedKitChanges() && !confirmKitSwitch()) return;
+  const targetKit = getKitRecords().find((kit) => kit.id !== currentKitId && kit.empty);
+  if (!targetKit) {
+    setStatus("All five kit slots are in use. Delete a kit before duplicating.", "error");
+    return;
+  }
+
+  const sourceKit = kits.get(currentKitId) || createKitRecord(kitSlotNumber(currentKitId) || 1, pads);
+  const nextKit = {
+    ...targetKit,
+    name: `${sourceKit.name} Copy`.slice(0, MAX_KIT_NAME_LENGTH),
+    pads: clonePads(),
+    empty: false,
+    updatedAt: new Date().toISOString(),
+  };
+  if (!(await persistKitRecord(nextKit))) return;
+  stopAll({ announce: false });
+  currentKitId = nextKit.id;
+  writeCurrentKitId();
+  applyKit(nextKit);
+  renderKitControls();
+  setStatus(`${nextKit.name} duplicated and loaded.`, "success");
+}
+
+async function deleteActiveKit() {
+  const currentKit = kits.get(currentKitId);
+  if (!currentKit || currentKit.empty) {
+    setStatus("That kit slot is already empty.", "info");
+    return;
+  }
+  if (!window.confirm(`Delete ${currentKit.name}? Its pad arrangement will be removed, but shared audio stays in the library.`)) return;
+
+  const slot = kitSlotNumber(currentKitId);
+  const emptyKit = createKitRecord(slot, createDefaultPads(), { name: defaultKitName(slot), empty: true, createdAt: currentKit.createdAt });
+  stopAll({ announce: false });
+  if (!(await persistKitRecord(emptyKit))) return;
+  applyKit(emptyKit);
+  renderKitControls();
+  setStatus(`${currentKit.name} deleted. The ${emptyKit.name} slot is ready for a duplicate or new kit.`, "success");
 }
 
 function makeId() {
@@ -303,19 +717,45 @@ function isAudioFile(file) {
   return file?.type?.startsWith("audio/") || /\.(wav|mp3|ogg|m4a|aac|flac)$/i.test(file?.name || "");
 }
 
+async function hashBlob(blob) {
+  if (!globalThis.crypto?.subtle) throw new Error("This browser cannot hash local audio files safely.");
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function findSampleByHash(hash) {
+  for (const sample of samples.values()) {
+    if (sample.hash === hash) return sample;
+    if (!sample.hash && isValidStoredSample(sample)) {
+      try {
+        sample.hash = await hashBlob(sample.blob);
+        if (sample.hash === hash) return sample;
+      } catch {
+        // A legacy sample without a readable blob cannot participate in deduplication.
+      }
+    }
+  }
+  return null;
+}
+
 async function persistSample(file) {
   if (!file || !isAudioFile(file)) {
     throw new Error("Choose a supported audio file.");
   }
 
   if (!Number.isFinite(file.size) || file.size < 0 || file.size > MAX_SAMPLE_BYTES) {
-    throw new Error("Samples must be smaller than 50 MB.");
+    throw new Error("Samples must be smaller than 50 MB each.");
   }
+
+  const hash = await hashBlob(file);
+  const duplicate = await findSampleByHash(hash);
+  if (duplicate) return { sample: duplicate, created: false };
+
   if (samples.size + pendingSampleCount >= MAX_SAMPLE_COUNT) {
-    throw new Error("This browser already has the maximum number of saved samples.");
+    throw new Error("This browser already has the maximum number of saved samples (128).");
   }
   if (getStoredSampleBytes() + pendingSampleBytes + file.size > MAX_SAMPLE_STORAGE_BYTES) {
-    throw new Error("This browser has reached the total saved-sample limit.");
+    throw new Error("This browser has reached the 512 MB saved-sample limit.");
   }
 
   pendingSampleCount += 1;
@@ -327,6 +767,7 @@ async function persistSample(file) {
     mime: file.type || "audio/*",
     size: file.size,
     blob: file,
+    hash,
     createdAt: new Date().toISOString(),
   };
 
@@ -347,7 +788,7 @@ async function persistSample(file) {
   }
   samples.set(sample.id, sample);
   renderSampleLibrary();
-  return sample;
+  return { sample, created: true };
 }
 
 function isValidStoredSample(sample) {
@@ -360,6 +801,7 @@ function isValidStoredSample(sample) {
       && Number.isFinite(sample.size)
       && sample.size >= 0
       && sample.size <= MAX_SAMPLE_BYTES
+      && (sample.hash === undefined || /^[\da-f]{64}$/i.test(sample.hash))
       && typeof sample.createdAt === "string"
       && typeof sample.blob?.arrayBuffer === "function"
       && Number.isFinite(sample.blob.size)
@@ -457,12 +899,21 @@ async function resetSampleStorage() {
   setStorageState("saving", "Resetting sample storage…");
   try {
     await deleteSampleDatabase();
-    samples.clear();
+    samples = new Map();
     pads = pads.map((pad) => ({ ...pad, sampleId: null }));
+    currentKitId = "kit-1";
+    kits = new Map();
+    try {
+      localStorage.removeItem(KITS_MIRROR_STORAGE_KEY);
+    } catch {
+      // The reset still proceeds if the compatibility mirror cannot be cleared.
+    }
     storageMode = "persistent";
+    await initializeKitLibrary(createDefaultPads());
+    pads = createDefaultPads();
     setStorageState("saved");
     renderPads();
-    selectPad(selectedPadIndex);
+    selectPad(0);
     renderSampleLibrary();
     saveLayout("Sample storage reset. Layout saved without sample assignments.");
   } catch (error) {
@@ -491,7 +942,7 @@ function renderSampleLibrary() {
   if (!storedSamples.length) {
     const emptyItem = document.createElement("li");
     emptyItem.className = "empty-state";
-    emptyItem.textContent = query ? "No samples match this search." : "No local samples yet.";
+    emptyItem.textContent = query ? "No samples match this search." : "No local samples yet. Load audio on a pad or import a folder.";
     sampleList.append(emptyItem);
     return;
   }
@@ -499,14 +950,41 @@ function renderSampleLibrary() {
   for (const sample of storedSamples) {
     const item = document.createElement("li");
     item.className = "sample-item";
+    item.dataset.sampleId = sample.id;
+    const details = document.createElement("div");
+    details.className = "sample-item-details";
     const name = document.createElement("span");
     name.textContent = sample.name;
     const size = document.createElement("span");
     size.className = "muted";
     size.textContent = formatBytes(sample.size);
-    item.append(name, size);
+    details.append(name, size);
+    const assignButton = document.createElement("button");
+    assignButton.className = "button button-secondary sample-assign";
+    assignButton.type = "button";
+    assignButton.textContent = "Assign";
+    assignButton.setAttribute("aria-label", `Assign ${sample.name} to the selected pad`);
+    assignButton.addEventListener("click", () => assignSampleToSelectedPad(sample.id));
+    item.append(details, assignButton);
     sampleList.append(item);
   }
+}
+
+function assignSampleToSelectedPad(sampleId) {
+  const sample = samples.get(sampleId);
+  if (!sample) {
+    setStatus("That sample is no longer in the library.", "error");
+    renderSampleLibrary();
+    return;
+  }
+
+  stopPad(selectedPadIndex);
+  draftSampleId = sampleId;
+  draftSampleCleared = false;
+  sampleFileInput.value = "";
+  updateSampleName();
+  markEditorDirty();
+  setStatus(`${sample.name} selected for ${pads[selectedPadIndex].label}. Save the pad to apply it.`);
 }
 
 function formatBytes(bytes) {
@@ -866,6 +1344,8 @@ function updateSampleName() {
     sampleName.textContent = selectedFile.name;
   } else if (draftSampleCleared) {
     sampleName.textContent = "Preview tone (not saved)";
+  } else if (draftSampleId && samples.has(draftSampleId)) {
+    sampleName.textContent = samples.get(draftSampleId).name;
   } else if (pad.sampleId && samples.has(pad.sampleId)) {
     sampleName.textContent = samples.get(pad.sampleId).name;
   } else if (pad.sampleId) {
@@ -877,7 +1357,8 @@ function updateSampleName() {
 
 function setEditorDirty(value) {
   editorDirty = value;
-  editorDirtyIndicator.hidden = !value;
+  editorDirtyIndicator.textContent = value ? "Unsaved changes" : kitDirty ? "Unsaved kit changes" : "Unsaved changes";
+  editorDirtyIndicator.hidden = !(value || kitDirty);
   padEditor.classList.toggle("is-dirty", value);
 }
 
@@ -896,6 +1377,7 @@ function selectPad(index) {
   padVolumeValue.textContent = `${Math.round(pad.volume * 100)}%`;
   sampleFileInput.value = "";
   draftSampleCleared = false;
+  draftSampleId = null;
   setEditorDirty(false);
   updateSampleName();
 
@@ -934,11 +1416,17 @@ async function saveSelectedPad(event) {
 
   try {
     const selectedFile = sampleFileInput.files?.[0];
-    let sampleId = draftSampleCleared ? null : pads[selectedPadIndex].sampleId;
+    let sampleId = draftSampleCleared
+      ? null
+      : draftSampleId && samples.has(draftSampleId)
+        ? draftSampleId
+        : pads[selectedPadIndex].sampleId;
     let createdSample;
+    const previousPads = clonePads();
     if (selectedFile) {
-      createdSample = await persistSample(selectedFile);
-      sampleId = createdSample.id;
+      const persistedSample = await persistSample(selectedFile);
+      createdSample = persistedSample.created ? persistedSample.sample : undefined;
+      sampleId = persistedSample.sample.id;
     }
 
     const previousPad = pads[selectedPadIndex];
@@ -966,7 +1454,38 @@ async function saveSelectedPad(event) {
       renderPads();
       selectPad(selectedPadIndex);
       setStatus("Pad save failed; your existing layout was preserved.", "error");
+      return;
     }
+    const savedMessage = `${pads[selectedPadIndex].label} updated and saved.`;
+
+    const nextKit = {
+      ...(kits.get(currentKitId) || createKitRecord(kitSlotNumber(currentKitId) || 1)),
+      id: currentKitId,
+      pads: clonePads(),
+      empty: false,
+      updatedAt: new Date().toISOString(),
+    };
+    if (!(await persistKitRecord(nextKit))) {
+      pads = previousPads;
+      if (createdSample) {
+        samples.delete(createdSample.id);
+        try {
+          await deleteSample(createdSample.id);
+        } catch {
+          // A failed cleanup remains recoverable through sample-storage reset.
+        }
+        renderSampleLibrary();
+      }
+      renderPads();
+      selectPad(selectedPadIndex);
+      setKitDirty(true);
+      saveLayout("Kit save failed; your existing layout was preserved.");
+      setStatus("Kit save failed; your existing layout was preserved.", "error");
+      return;
+    }
+    setKitDirty(false);
+    renderKitControls();
+    setStatus(storageMode === "memory" ? `${savedMessage} Memory-only mode: a reload may discard changes.` : savedMessage, storageMode === "memory" ? "error" : "success");
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "The pad could not be saved.", "error");
   }
@@ -975,6 +1494,7 @@ async function saveSelectedPad(event) {
 function clearSelectedSample() {
   stopPad(selectedPadIndex);
   draftSampleCleared = true;
+  draftSampleId = null;
   sampleFileInput.value = "";
   updateSampleName();
   markEditorDirty();
@@ -991,6 +1511,296 @@ function exportLayout() {
     setStatus("Layout exported. Sample files remain local to this browser.", "success");
   } catch {
     setStatus("Layout export failed. Check browser download permissions and try again.", "error");
+  }
+}
+
+function textByteLength(value) {
+  return typeof TextEncoder === "function" ? new TextEncoder().encode(value).byteLength : new Blob([value]).size;
+}
+
+function toBase64(bytes) {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return globalThis.btoa(binary);
+}
+
+function fromBase64(value) {
+  if (typeof value !== "string" || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) {
+    throw new Error("The launchpack contains invalid encoded audio.");
+  }
+  const binary = globalThis.atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes;
+}
+
+function isSafePackPath(value) {
+  return typeof value === "string"
+    && value.length > 0
+    && value.length <= MAX_PACK_PATH_LENGTH
+    && !value.startsWith("/")
+    && !value.includes("\\")
+    && !/^[A-Za-z]:/.test(value)
+    && !value.split("/").some((part) => !part || part === "." || part === "..")
+    && !/[\u0000-\u001f]/.test(value);
+}
+
+function safePackFilename(name) {
+  const basename = String(name || "sample").split(/[\\/]/).pop() || "sample";
+  return basename.replace(/[\u0000-\u001f\\/]/g, "_").slice(0, 120) || "sample";
+}
+
+async function exportLaunchpack() {
+  if (hasUnsavedKitChanges()) {
+    setStatus("Save the current kit before exporting a .launchpack backup.", "error");
+    return;
+  }
+
+  exportPackButton.disabled = true;
+  try {
+    const kitRecords = getKitRecords();
+    const referencedIds = [...new Set(kitRecords.flatMap((kit) => kit.pads.map((pad) => pad.sampleId).filter(Boolean)))];
+    const packSamples = [];
+
+    for (const [index, sampleId] of referencedIds.entries()) {
+      const sample = samples.get(sampleId);
+      if (!isValidStoredSample(sample)) {
+        throw new Error(`Kit audio is missing or corrupt for sample ${sampleId}. Repair storage before exporting.`);
+      }
+      const bytes = new Uint8Array(await sample.blob.arrayBuffer());
+      const hash = sample.hash || await hashBlob(sample.blob);
+      const path = `samples/${String(index + 1).padStart(3, "0")}-${safePackFilename(sample.name)}`;
+      if (!isSafePackPath(path)) throw new Error("A sample filename is not safe to export.");
+      packSamples.push({
+        id: sample.id,
+        path,
+        name: safePackFilename(sample.name),
+        mime: sample.mime,
+        size: bytes.byteLength,
+        hash,
+        createdAt: sample.createdAt,
+        data: toBase64(bytes),
+      });
+    }
+
+    const pack = {
+      schema: "touchscreen-launchpad.launchpack",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      activeKitId: currentKitId,
+      kits: kitRecords.map((kit) => ({
+        id: kit.id,
+        name: kit.name,
+        empty: kit.empty,
+        createdAt: kit.createdAt,
+        updatedAt: kit.updatedAt,
+        pads: clonePads(kit.pads),
+      })),
+      samples: packSamples,
+    };
+    const content = `${JSON.stringify(pack)}\n`;
+    if (textByteLength(content) > MAX_LAUNCHPACK_BYTES) {
+      throw new Error("This .launchpack is too large to export safely.");
+    }
+    downloadText("launchpad-backup.launchpack", content, "application/vnd.touchscreen-launchpack+json");
+    setStatus(`.launchpack exported with ${kitRecords.filter((kit) => !kit.empty).length} kits and ${packSamples.length} shared samples.`, "success");
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : ".launchpack export failed. Check browser download permissions and try again.", "error");
+  } finally {
+    exportPackButton.disabled = false;
+  }
+}
+
+function validateLaunchpack(parsedPack) {
+  if (!parsedPack || typeof parsedPack !== "object" || parsedPack.schema !== "touchscreen-launchpad.launchpack" || parsedPack.version !== 1) {
+    throw new Error("This .launchpack schema version is not supported.");
+  }
+  if (!Array.isArray(parsedPack.kits) || parsedPack.kits.length !== KIT_COUNT || !Array.isArray(parsedPack.samples)) {
+    throw new Error("This .launchpack must contain five kits and a sample library.");
+  }
+  if (!kitSlotNumber(parsedPack.activeKitId)) throw new Error("This .launchpack has no valid active kit.");
+
+  const kitIds = new Set();
+  const importedKits = parsedPack.kits.map((candidate) => {
+    const slot = kitSlotNumber(candidate?.id);
+    if (!slot || kitIds.has(candidate.id)) throw new Error("This .launchpack contains duplicate or unsafe kit IDs.");
+    kitIds.add(candidate.id);
+    if (!Array.isArray(candidate.pads) || candidate.pads.length !== PAD_COUNT) throw new Error("This .launchpack contains an incomplete kit.");
+    if (typeof candidate.name !== "string" || !candidate.name.trim() || candidate.name.length > MAX_KIT_NAME_LENGTH) throw new Error("This .launchpack contains an invalid kit name.");
+    return normalizeKit(candidate, slot);
+  });
+  if (kitIds.size !== KIT_COUNT) throw new Error("This .launchpack must contain one record for each fixed kit slot.");
+
+  if (parsedPack.samples.length > MAX_SAMPLE_COUNT) throw new Error("This .launchpack contains too many samples.");
+  const sampleIds = new Set();
+  const samplePaths = new Set();
+  let totalBytes = 0;
+  const importedSamples = parsedPack.samples.map((candidate) => {
+    if (!candidate || typeof candidate !== "object" || typeof candidate.id !== "string" || candidate.id.length > MAX_SAMPLE_ID_LENGTH || sampleIds.has(candidate.id)) {
+      throw new Error("This .launchpack contains duplicate or unsafe sample IDs.");
+    }
+    if (!isSafePackPath(candidate.path) || !candidate.path.startsWith("samples/") || samplePaths.has(candidate.path)) {
+      throw new Error("This .launchpack contains an unsafe sample path.");
+    }
+    if (!isAudioFile({ name: candidate.name, type: candidate.mime }) || typeof candidate.name !== "string" || candidate.name.length > 120) {
+      throw new Error("This .launchpack contains an unsupported sample.");
+    }
+    if (!Number.isSafeInteger(candidate.size) || candidate.size < 0 || candidate.size > MAX_SAMPLE_BYTES) {
+      throw new Error("A sample in this .launchpack exceeds the per-file limit.");
+    }
+    if (typeof candidate.hash !== "string" || !/^[\da-f]{64}$/i.test(candidate.hash)) throw new Error("This .launchpack contains an invalid sample hash.");
+    totalBytes += candidate.size;
+    if (totalBytes > MAX_SAMPLE_STORAGE_BYTES) throw new Error("This .launchpack exceeds the 512 MB logical library limit.");
+    const bytes = fromBase64(candidate.data);
+    if (bytes.byteLength !== candidate.size) throw new Error("A sample in this .launchpack is truncated or has the wrong size.");
+    sampleIds.add(candidate.id);
+    samplePaths.add(candidate.path);
+    return {
+      id: candidate.id,
+      path: candidate.path,
+      name: safePackFilename(candidate.name),
+      mime: candidate.mime,
+      size: bytes.byteLength,
+      hash: candidate.hash.toLowerCase(),
+      blob: new Blob([bytes], { type: candidate.mime }),
+      createdAt: typeof candidate.createdAt === "string" ? candidate.createdAt : new Date().toISOString(),
+    };
+  });
+
+  const importedSampleIds = new Set(importedSamples.map((sample) => sample.id));
+  for (const kit of importedKits) {
+    for (const pad of kit.pads) {
+      if (pad.sampleId && !importedSampleIds.has(pad.sampleId)) throw new Error("This .launchpack references audio that it does not contain.");
+    }
+  }
+  return { importedKits, importedSamples, activeKitId: parsedPack.activeKitId };
+}
+
+async function importLaunchpack(file) {
+  if (!confirmKitSwitch()) return;
+  if (!Number.isFinite(file.size) || file.size > MAX_LAUNCHPACK_BYTES) throw new Error(".launchpack files must be smaller than 700 MB.");
+  const parsedPack = JSON.parse(await file.text());
+  const { importedKits, importedSamples, activeKitId } = validateLaunchpack(parsedPack);
+  const remappedSamples = [];
+  const sampleIdRemap = new Map();
+
+  for (const importedSample of importedSamples) {
+    const actualHash = await hashBlob(importedSample.blob);
+    if (actualHash !== importedSample.hash.toLowerCase()) throw new Error("A sample in this .launchpack failed its content-hash check.");
+    const existing = await findSampleByHash(importedSample.hash);
+    if (existing) {
+      sampleIdRemap.set(importedSample.id, existing.id);
+      continue;
+    }
+    const nextSample = { ...importedSample, id: makeId() };
+    delete nextSample.path;
+    remappedSamples.push(nextSample);
+    sampleIdRemap.set(importedSample.id, nextSample.id);
+  }
+
+  const newSampleBytes = remappedSamples.reduce((total, sample) => total + sample.size, 0);
+  if (samples.size + remappedSamples.length > MAX_SAMPLE_COUNT) throw new Error("This .launchpack would exceed the 128-sample library limit.");
+  if (getStoredSampleBytes() + newSampleBytes > MAX_SAMPLE_STORAGE_BYTES) throw new Error("This .launchpack would exceed the 512 MB logical library limit.");
+
+  const remappedKits = importedKits.map((kit) => ({
+    ...kit,
+    pads: kit.pads.map((pad) => ({ ...pad, sampleId: pad.sampleId ? sampleIdRemap.get(pad.sampleId) || null : null })),
+    updatedAt: new Date().toISOString(),
+  }));
+  await writeKitsAndSamples(remappedKits, remappedSamples);
+  for (const sample of remappedSamples) samples.set(sample.id, sample);
+  kits = new Map(remappedKits.map((kit) => [kit.id, kit]));
+  currentKitId = activeKitId;
+  writeCurrentKitId();
+  writeKitMirror();
+  stopAll({ announce: false });
+  applyKit(kits.get(currentKitId));
+  renderSampleLibrary();
+  renderKitControls();
+  if (!saveLayout(".launchpack imported and saved.")) {
+    setStatus(".launchpack imported into kit storage, but the legacy layout mirror could not be updated.", "error");
+  } else {
+    setStatus(`.launchpack imported: ${remappedKits.filter((kit) => !kit.empty).length} kits, ${remappedSamples.length} new samples.`, "success");
+  }
+}
+
+function naturalCompare(left, right) {
+  return new Intl.Collator(undefined, { numeric: true, sensitivity: "base" }).compare(left, right);
+}
+
+async function importSampleFiles(fileList) {
+  const files = [...fileList];
+  if (files.some((file) => !isSafePackPath(file.webkitRelativePath || file.name))) {
+    throw new Error("The selected folder contains an unsafe file path.");
+  }
+  const audioFiles = files
+    .filter(isAudioFile)
+    .sort((left, right) => naturalCompare(left.webkitRelativePath || left.name, right.webkitRelativePath || right.name));
+  if (!audioFiles.length) throw new Error("Choose one or more supported audio files.");
+  if (audioFiles.length > MAX_SAMPLE_COUNT) throw new Error("Import packs can contain at most 128 audio files.");
+  if (!confirmKitSwitch()) return;
+
+  const previousPads = clonePads();
+  const previousSamples = new Map(samples);
+  const previousKit = kits.get(currentKitId);
+  const createdSamples = [];
+  try {
+    const importedSamples = [];
+    for (const file of audioFiles) {
+      const persistedSample = await persistSample(file);
+      importedSamples.push(persistedSample.sample);
+      if (persistedSample.created) createdSamples.push(persistedSample.sample);
+    }
+    pads = pads.map((pad, index) => importedSamples[index] ? { ...pad, sampleId: importedSamples[index].id } : pad);
+    renderPads();
+    selectPad(0);
+    setKitDirty(true);
+    const message = `${importedSamples.length} audio files imported; first ${Math.min(PAD_COUNT, importedSamples.length)} mapped to pads.`;
+    if (!saveLayout(message) || !(await persistKitRecord({
+      ...(previousKit || createKitRecord(kitSlotNumber(currentKitId) || 1)),
+      id: currentKitId,
+      pads: clonePads(),
+      empty: false,
+      updatedAt: new Date().toISOString(),
+    }))) throw new Error("Import could not be saved; existing kit preserved.");
+    setKitDirty(false);
+    renderKitControls();
+    setStatus(`${message} Additional files remain in the shared library.`, "success");
+  } catch (error) {
+    try {
+      await deleteSamples(createdSamples.map((sample) => sample.id));
+    } catch {
+      // Failed cleanup is recoverable through sample-storage reset.
+    }
+    samples = previousSamples;
+    kits.set(currentKitId, previousKit);
+    pads = previousPads;
+    renderPads();
+    selectPad(0);
+    setKitDirty(false);
+    renderSampleLibrary();
+    setStatus(error instanceof Error ? error.message : "Audio import failed; existing kit preserved.", "error");
+  }
+}
+
+async function importPack(event) {
+  const files = [...(event.target.files || [])];
+  event.target.value = "";
+  if (!files.length) return;
+
+  try {
+    const launchpackFiles = files.filter((file) => /\.launchpack$/i.test(file.name));
+    if (launchpackFiles.length) {
+      if (files.length !== 1) throw new Error("Select either one .launchpack backup or a group of audio files.");
+      await importLaunchpack(launchpackFiles[0]);
+      return;
+    }
+    await importSampleFiles(files);
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "Pack import failed; existing kits were preserved.", "error");
   }
 }
 
@@ -1020,6 +1830,7 @@ async function importLayout(event) {
     const parsedLayout = JSON.parse(await file.text());
     const { importedPads, missingSampleIds } = validateImportedLayout(parsedLayout);
     const previousPads = pads;
+    const previousKit = kits.get(currentKitId);
     stopAll({ announce: false });
     pads = importedPads;
     renderPads();
@@ -1032,6 +1843,23 @@ async function importLayout(event) {
       return;
     }
 
+    if (!(await persistKitRecord({
+      ...(previousKit || createKitRecord(kitSlotNumber(currentKitId) || 1)),
+      id: currentKitId,
+      pads: clonePads(),
+      empty: false,
+      updatedAt: new Date().toISOString(),
+    }))) {
+      pads = previousPads;
+      renderPads();
+      selectPad(0);
+      saveLayout("Layout import failed; your existing layout was preserved.");
+      setStatus("Kit import failed; your existing layout was preserved.", "error");
+      return;
+    }
+    setKitDirty(false);
+    renderKitControls();
+
     if (missingSampleIds.length) {
       const sampleWord = missingSampleIds.length === 1 ? "sample is" : "samples are";
       setStatus(`Layout imported and saved. ${missingSampleIds.length} assigned ${sampleWord} missing in this browser.`, storageMode === "memory" ? "error" : "success");
@@ -1041,13 +1869,14 @@ async function importLayout(event) {
   }
 }
 
-function resetLayout() {
+async function resetLayout() {
   if (!window.confirm("Reset all pad names, shortcuts, and assignments? Saved audio files will remain in this browser; samples are never uploaded.")) return;
   stopAll();
   pads = createDefaultPads();
   renderPads();
   selectPad(0);
-  saveLayout("Pads reset to the starter layout.");
+  setKitDirty(true);
+  await saveActiveKit("Pads reset to the starter layout.");
 }
 
 function isEditableTarget(target) {
@@ -1069,6 +1898,7 @@ function bindEvents() {
   padEditor.addEventListener("change", markEditorDirty);
   sampleFileInput.addEventListener("change", () => {
     draftSampleCleared = false;
+    draftSampleId = null;
     updateSampleName();
     markEditorDirty();
   });
@@ -1082,10 +1912,17 @@ function bindEvents() {
   quantizeInput.addEventListener("change", () => {
     if (!quantizeInput.checked) clearBeatCountdown();
   });
-  saveLayoutButton.addEventListener("click", () => saveLayout());
+  saveLayoutButton.addEventListener("click", () => void saveActiveKit());
   exportLayoutButton.addEventListener("click", exportLayout);
   importLayoutInput.addEventListener("change", (event) => void importLayout(event));
-  resetLayoutButton.addEventListener("click", resetLayout);
+  resetLayoutButton.addEventListener("click", () => void resetLayout());
+  kitSelect.addEventListener("change", (event) => void switchKit(event.target.value));
+  renameKitButton.addEventListener("click", () => void renameActiveKit());
+  duplicateKitButton.addEventListener("click", () => void duplicateActiveKit());
+  deleteKitButton.addEventListener("click", () => void deleteActiveKit());
+  exportPackButton.addEventListener("click", () => void exportLaunchpack());
+  importPackInput.addEventListener("change", (event) => void importPack(event));
+  importLaunchpackInput.addEventListener("change", (event) => void importPack(event));
   repairStorageButton.addEventListener("click", () => void repairSampleStorage());
   resetStorageButton.addEventListener("click", () => void resetSampleStorage());
   sampleSearchInput.addEventListener("input", renderSampleLibrary);
@@ -1157,8 +1994,11 @@ async function registerServiceWorker() {
 }
 
 export async function initLaunchpad() {
+  currentKitId = readCurrentKitId();
   pads = readLayout();
   bindEvents();
+  kits = createDefaultKitMap(pads);
+  renderKitControls();
   renderPads();
   selectPad(0);
   updateMasterVolume();
@@ -1169,6 +2009,8 @@ export async function initLaunchpad() {
     const { valid, corrupt } = partitionStoredSamples(await readSamples());
     const { accepted, excess } = limitStoredSamples(valid);
     samples = new Map(accepted.map((sample) => [sample.id, sample]));
+    await initializeKitLibrary(pads);
+    applyKit(kits.get(currentKitId));
     renderSampleLibrary();
     updateSampleName();
     if (corrupt.length || excess.length) {
@@ -1180,6 +2022,8 @@ export async function initLaunchpad() {
       setStorageState("saved");
     }
   } catch {
+    kits = createDefaultKitMap(pads);
+    renderKitControls();
     markMemoryOnlyMode("Sample storage is unavailable. Audio works, but sample files will not survive a reload.", "unavailable");
     setStatus("Audio works, but this browser cannot persist sample files.", "error");
   }
