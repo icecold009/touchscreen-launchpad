@@ -4,6 +4,27 @@ Repository: `C:\Users\91829\OneDrive\Documents\GitHub\touchscreen-launchpad`
 Reviewed: feature branch `codex/vercel-canonical-hosting-20260914` during the 2026-09-14 completion audit
 Release baseline: PR #7 was merged to `main` as `9c214a8`.
 Audit package baseline: `1dde9e9`; the merged release contains the security hardening, release-workflow pinning, and hosted Vercel deployment below.
+
+## Package: Simplified pad labels, light palette, and sidebar navigation — `codex/launchpad-simplified-sidebar-20260915`
+
+- Goal: Remove generic pad-name clutter, simplify the light visual system, and make the editor sidebar easier to navigate.
+- Scope: Keep pad numbering and shortcuts while hiding untouched `Pad 01`-style labels, preserve custom labels, use the same 16-color pastel palette arranged along the top-left to bottom-right diagonal with dark contrast, and add Pad/Backup/Samples sidebar anchors with active navigation state.
+- Non-goals: Change sample storage, audio behavior, kit semantics, Loop behavior, hosted deployment, or physical-device behavior.
+- Files: `index.html`, `style.css`, `app.js`, `sw.js`, `src/bootstrap.js`, `test/site-dom.test.mjs`, `test/import-export.test.mjs`, and this backlog entry.
+- Tests: `npm.cmd run validate`, `git diff --check`, desktop rendered smoke at 1280×900, mobile rendered smoke at 390×844, custom-label save smoke, sidebar-anchor navigation, palette contrast inspection, console inspection, and viewport checks.
+- Acceptance: Untouched pads show numbers/shortcuts without generic `Pad 01` text; custom labels remain visible after save; the page uses one simple light gradient and readable dark pad text; the 16 existing pastel colors progress from the top-left pad toward the bottom-right pad; the sidebar exposes three clear navigation targets and jumps without errors; existing contracts remain green.
+- Evidence: Local contract passes all 41 tests; rendered localhost smoke returns 200 with 16 pads, the exact 16-color palette preserved in a top-left to bottom-right diagonal, explicit `to bottom right` gradients, no generic pad text, custom `Kick` label persistence, three working sidebar anchors, first-pad mobile visibility, no console errors, and no horizontal overflow. Hosted and physical-touchscreen evidence are not claimed.
+
+## Package: Performance legibility and loop access — `codex/launchpad-performance-controls-20260915`
+
+- Goal: Make the performance surface easier to scan and operate from a distance on desktop and touch-sized screens.
+- Scope: Separate pad numbers from editable labels, expose Loop as an immediate selected-pad action with a visible pad badge, move master volume to a vertical side rail, enlarge key performance text and values, remove low-value helper copy, and prioritize pads before secondary kit setup on mobile.
+- Non-goals: Change audio decoding, sample storage, kit data semantics, cloud behavior, hosted deployment, or physical-device behavior.
+- Files: `index.html`, `style.css`, `app.js`, `sw.js`, `src/bootstrap.js`, `test/site-dom.test.mjs`, and this backlog entry.
+- Tests: `npm.cmd run validate`, `git diff --check`, desktop rendered smoke at 1280×760, mobile rendered smoke at 390×844, Loop persistence smoke, vertical-volume geometry, console inspection, and overflow checks.
+- Acceptance: Pads expose clear number/label/key hierarchy; the selected pad can switch to Loop in one action and shows a `LOOP` badge; volume is visibly vertical beside the pads; core controls remain readable without overlap; secondary copy is removed; pads enter the mobile viewport before kit setup; existing contracts remain green.
+- Evidence: Local contract passes all 41 tests; rendered localhost smoke returns 200 with 16 pads, Loop on persisted without dirty state, `writing-mode: vertical-lr` volume geometry, no console errors, no horizontal overflow, no removed helper copy, and no mobile tempo-control overlap. Hosted, installed-PWA, and physical-touchscreen evidence are not claimed.
+
 ## Package: Five-kit sample library — `codex/kit-library-20260915`
 
 - Goal: Add five local-first reusable kit slots that share one IndexedDB sample library and support portable `.launchpack` backups.
