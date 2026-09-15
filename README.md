@@ -43,7 +43,7 @@ This checks application and service-worker syntax, required static assets and PW
 
 1. Select a pad.
 2. Edit its name, shortcut, playback mode, and volume.
-3. Choose an audio file and save the pad.
+3. Choose an audio file and save the pad. To reuse a file already in the shared library, select **Assign** beside it, then save the pad.
 4. Trigger it by touch, mouse, or the displayed keyboard shortcut.
 5. Use **Save kit** for an explicit local save, or switch among the five named kit slots.
 6. Use **Export .launchpack** for a portable backup of all kits and referenced audio. **Import Pack** accepts a folder or multiple audio files; the first 16 natural-sorted files map to pads and any remaining files stay in the shared library.

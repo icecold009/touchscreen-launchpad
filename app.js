@@ -1,8 +1,8 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createPointerState } from "./src/pointer-state.js?version=26";
-import { attachStorageRequest } from "./src/storage-request.js?version=26";
-import { downloadText as triggerTextDownload } from "./src/download.js?version=26";
+import { createPointerState } from "./src/pointer-state.js?version=27";
+import { attachStorageRequest } from "./src/storage-request.js?version=27";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=27";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -93,6 +93,7 @@ let pendingSampleCount = 0;
 let editorDirty = false;
 let kitDirty = false;
 let draftSampleCleared = false;
+let draftSampleId = null;
 let playbackGeneration = 0;
 let beatCountdownTimer;
 let lastPlaybackStatusAt = 0;
@@ -949,14 +950,41 @@ function renderSampleLibrary() {
   for (const sample of storedSamples) {
     const item = document.createElement("li");
     item.className = "sample-item";
+    item.dataset.sampleId = sample.id;
+    const details = document.createElement("div");
+    details.className = "sample-item-details";
     const name = document.createElement("span");
     name.textContent = sample.name;
     const size = document.createElement("span");
     size.className = "muted";
     size.textContent = formatBytes(sample.size);
-    item.append(name, size);
+    details.append(name, size);
+    const assignButton = document.createElement("button");
+    assignButton.className = "button button-secondary sample-assign";
+    assignButton.type = "button";
+    assignButton.textContent = "Assign";
+    assignButton.setAttribute("aria-label", `Assign ${sample.name} to the selected pad`);
+    assignButton.addEventListener("click", () => assignSampleToSelectedPad(sample.id));
+    item.append(details, assignButton);
     sampleList.append(item);
   }
+}
+
+function assignSampleToSelectedPad(sampleId) {
+  const sample = samples.get(sampleId);
+  if (!sample) {
+    setStatus("That sample is no longer in the library.", "error");
+    renderSampleLibrary();
+    return;
+  }
+
+  stopPad(selectedPadIndex);
+  draftSampleId = sampleId;
+  draftSampleCleared = false;
+  sampleFileInput.value = "";
+  updateSampleName();
+  markEditorDirty();
+  setStatus(`${sample.name} selected for ${pads[selectedPadIndex].label}. Save the pad to apply it.`);
 }
 
 function formatBytes(bytes) {
@@ -1316,6 +1344,8 @@ function updateSampleName() {
     sampleName.textContent = selectedFile.name;
   } else if (draftSampleCleared) {
     sampleName.textContent = "Preview tone (not saved)";
+  } else if (draftSampleId && samples.has(draftSampleId)) {
+    sampleName.textContent = samples.get(draftSampleId).name;
   } else if (pad.sampleId && samples.has(pad.sampleId)) {
     sampleName.textContent = samples.get(pad.sampleId).name;
   } else if (pad.sampleId) {
@@ -1347,6 +1377,7 @@ function selectPad(index) {
   padVolumeValue.textContent = `${Math.round(pad.volume * 100)}%`;
   sampleFileInput.value = "";
   draftSampleCleared = false;
+  draftSampleId = null;
   setEditorDirty(false);
   updateSampleName();
 
@@ -1385,7 +1416,11 @@ async function saveSelectedPad(event) {
 
   try {
     const selectedFile = sampleFileInput.files?.[0];
-    let sampleId = draftSampleCleared ? null : pads[selectedPadIndex].sampleId;
+    let sampleId = draftSampleCleared
+      ? null
+      : draftSampleId && samples.has(draftSampleId)
+        ? draftSampleId
+        : pads[selectedPadIndex].sampleId;
     let createdSample;
     const previousPads = clonePads();
     if (selectedFile) {
@@ -1459,6 +1494,7 @@ async function saveSelectedPad(event) {
 function clearSelectedSample() {
   stopPad(selectedPadIndex);
   draftSampleCleared = true;
+  draftSampleId = null;
   sampleFileInput.value = "";
   updateSampleName();
   markEditorDirty();
@@ -1862,6 +1898,7 @@ function bindEvents() {
   padEditor.addEventListener("change", markEditorDirty);
   sampleFileInput.addEventListener("change", () => {
     draftSampleCleared = false;
+    draftSampleId = null;
     updateSampleName();
     markEditorDirty();
   });

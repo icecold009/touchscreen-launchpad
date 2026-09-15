@@ -824,6 +824,24 @@ output {
   }
 }
 
+.sample-item {
+  align-items: center;
+}
+
+.sample-item-details {
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.sample-assign {
+  flex: 0 0 auto;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.65rem;
+  font-size: 0.7rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

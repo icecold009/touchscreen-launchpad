@@ -42,6 +42,15 @@ test("folder imports natural-sort audio, deduplicate by SHA-256, and retain extr
   assert.match(html, /id="import-pack"[^>]*multiple[^>]*webkitdirectory/);
 });
 
+test("shared-library samples can be staged on the selected pad before saving", () => {
+  assert.match(app, /function assignSampleToSelectedPad\(sampleId\)/);
+  assert.match(app, /draftSampleId = sampleId;/);
+  assert.match(app, /draftSampleId && samples\.has\(draftSampleId\)/);
+  assert.match(app, /className = "button button-secondary sample-assign"/);
+  assert.match(app, /assignButton\.addEventListener\("click", \(\) => assignSampleToSelectedPad\(sample\.id\)\)/);
+  assert.match(html, /Assign library files to this pad, then save/);
+});
+
 test("launchpack export/import validates safe paths, hashes, limits, remaps IDs, and writes transactionally", () => {
   assert.match(app, /const MAX_LAUNCHPACK_BYTES = 700 \* 1024 \* 1024;/);
   assert.match(app, /function isSafePackPath\(value\)/);
