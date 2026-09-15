@@ -15,6 +15,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: Existing layouts remain available as `Kit 1 — Starter`; five slots are visible; switching stops voices and preserves transport controls; imports map the first 16 naturally sorted audio files and retain extras; duplicate content is stored once; pack import rejects unsafe/oversized/malformed content without partially applying it.
 - Evidence: Local contract is authoritative for this branch. Hosted Vercel QA, GitHub checks, independent review, deployment, and PR publication remain pending until explicitly performed.
 
+## Package: Performance-surface UI/UX revamp — `codex/kit-library-20260915`
+
+- Goal: Make the local performance workflow easier to understand and quicker to operate on desktop and touch-sized screens.
+- Scope: Surface kit switching above the pad grid, clarify single-file versus folder audio import, strengthen visual hierarchy and active states, improve compact transport controls, and refresh the PWA cache version for the new shell.
+- Non-goals: Change audio behavior, add cloud storage, add accounts, introduce a build system, or alter the five-kit data model.
+- Files: `index.html`, `style.css`, `app.js`, `sw.js`, `src/bootstrap.js`, and the UI package evidence in this backlog.
+- Tests: `npm.cmd run validate`, `git diff --check`, desktop rendered smoke, 390px rendered smoke, console inspection, kit-switch smoke, and pad playback/Stop all smoke.
+- Acceptance: The primary viewport exposes performance controls, kit switching, and pads as one coherent surface; the mobile layout has no horizontal overflow; import labels explain the next step; the existing kit and playback workflows remain functional.
+- Evidence: Local contract passes 40/40; rendered localhost smoke passes at 1103×613 and 390×844 with no console errors or horizontal overflow. Hosted deployment and independent review remain pending.
+
 ## Current verified baseline
 
 - `npm.cmd ci --ignore-scripts` and `npm.cmd run validate` pass; the aggregate contract now covers 35 tests including service-worker runtime behavior, storage transaction aborts, import/sample bounds, and release-artifact staging.

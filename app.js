@@ -1,8 +1,8 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createPointerState } from "./src/pointer-state.js?version=21";
-import { attachStorageRequest } from "./src/storage-request.js?version=21";
-import { downloadText as triggerTextDownload } from "./src/download.js?version=21";
+import { createPointerState } from "./src/pointer-state.js?version=24";
+import { attachStorageRequest } from "./src/storage-request.js?version=24";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=24";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -941,7 +941,7 @@ function renderSampleLibrary() {
   if (!storedSamples.length) {
     const emptyItem = document.createElement("li");
     emptyItem.className = "empty-state";
-    emptyItem.textContent = query ? "No samples match this search." : "No local samples yet.";
+    emptyItem.textContent = query ? "No samples match this search." : "No local samples yet. Load audio on a pad or import a folder.";
     sampleList.append(emptyItem);
     return;
   }

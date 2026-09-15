@@ -840,3 +840,423 @@ output {
     transform: none;
   }
 }
+
+/* UI refresh: make the performance path feel like the product's home screen. */
+:root {
+  --page: #070b16;
+  --surface: #0d1525;
+  --surface-raised: #15223b;
+  --surface-soft: rgba(24, 36, 61, 0.72);
+  --line: rgba(146, 164, 207, 0.2);
+  --line-strong: rgba(158, 177, 226, 0.42);
+  --text: #f6f8ff;
+  --muted: #a9b6d2;
+  --quiet: #7383a3;
+  --accent: #9eaeff;
+  --success: #71e5b7;
+  --danger: #ff8298;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+body {
+  background:
+    radial-gradient(circle at 8% -10%, rgba(92, 113, 239, 0.3), transparent 31rem),
+    radial-gradient(circle at 105% 15%, rgba(202, 96, 229, 0.17), transparent 27rem),
+    linear-gradient(rgba(156, 175, 229, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(156, 175, 229, 0.035) 1px, transparent 1px),
+    var(--page);
+  background-size: auto, auto, 4rem 4rem, 4rem 4rem, auto;
+}
+
+.app-shell {
+  padding: clamp(1rem, 3.5vw, 3.5rem);
+}
+
+.app-header {
+  align-items: center;
+  margin-bottom: clamp(1.1rem, 3vw, 2rem);
+}
+
+.app-header h1 {
+  max-width: 13ch;
+  font-size: clamp(2.25rem, 5vw, 4rem);
+  line-height: 0.91;
+}
+
+.subtitle {
+  max-width: 35rem;
+  margin-top: 0.85rem;
+  line-height: 1.5;
+}
+
+.status-badge {
+  gap: 0.45rem;
+  border-color: rgba(113, 229, 183, 0.35);
+  background: rgba(68, 174, 138, 0.08);
+  box-shadow: 0 0 1.5rem rgba(113, 229, 183, 0.08);
+}
+
+.status-badge::before {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 0.2rem rgba(113, 229, 183, 0.1);
+  content: "";
+}
+
+.workspace {
+  gap: clamp(0.9rem, 2.2vw, 1.5rem);
+}
+
+.stage,
+.editor-panel {
+  border-color: rgba(151, 170, 219, 0.2);
+  background: linear-gradient(145deg, rgba(19, 30, 53, 0.92), rgba(10, 16, 29, 0.9));
+  box-shadow: 0 1.8rem 5rem rgba(0, 0, 0, 0.26), inset 0 1px rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(18px);
+}
+
+.stage {
+  padding: clamp(0.85rem, 2.2vw, 1.35rem);
+}
+
+.stage-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.25rem 0.2rem 0.1rem;
+}
+
+.stage-heading h2 {
+  margin: 0;
+  font-size: clamp(1.2rem, 2.5vw, 1.55rem);
+  letter-spacing: -0.035em;
+}
+
+.stage-hint {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--quiet);
+  font-size: 0.68rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.controls {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgba(7, 12, 25, 0.46);
+}
+
+.control-row {
+  gap: 0.5rem;
+}
+
+.control-row > .button,
+.compact-control,
+.check-control,
+.range-control {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: rgba(22, 34, 58, 0.72);
+}
+
+.control-row > .button {
+  box-shadow: 0 0.45rem 1rem rgba(0, 0, 0, 0.16);
+}
+
+.compact-control,
+.check-control,
+.range-control {
+  padding: 0 0.65rem;
+}
+
+.compact-control input {
+  border: 0;
+  background: transparent;
+  font-weight: 800;
+}
+
+.range-control {
+  min-width: 12rem;
+}
+
+.status-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0.15rem 0;
+  padding: 0.25rem 0;
+}
+
+.status-message::before {
+  width: 0.38rem;
+  height: 0.38rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0.22rem rgba(158, 174, 255, 0.1);
+  content: "";
+}
+
+.status-message[data-type="success"]::before {
+  background: var(--success);
+  box-shadow: 0 0 0 0.22rem rgba(113, 229, 183, 0.1);
+}
+
+.status-message[data-type="error"]::before {
+  background: var(--danger);
+  box-shadow: 0 0 0 0.22rem rgba(255, 130, 152, 0.1);
+}
+
+.kit-dock {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(158, 174, 255, 0.32);
+  border-radius: 1.1rem;
+  background: linear-gradient(135deg, rgba(82, 99, 192, 0.2), rgba(21, 34, 60, 0.68));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.05), 0 0.8rem 2rem rgba(0, 0, 0, 0.13);
+}
+
+.kit-dock .section-heading {
+  align-items: flex-start;
+}
+
+.section-subtitle {
+  margin: 0.28rem 0 0;
+  color: var(--quiet);
+  font-size: 0.7rem;
+  font-weight: 550;
+  line-height: 1.35;
+}
+
+.kit-dock-controls {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.9fr) minmax(12rem, 1.25fr);
+  gap: 0.7rem;
+  margin-top: 0.85rem;
+}
+
+.kit-dock .kit-name-row {
+  margin: 0;
+}
+
+.kit-dock .kit-action-row {
+  grid-template-columns: auto auto;
+  justify-content: start;
+  margin-top: 0.7rem;
+}
+
+.kit-dock .field select,
+.kit-dock .field input[type="text"] {
+  min-height: 2.85rem;
+  border-color: rgba(177, 190, 239, 0.42);
+  background: rgba(7, 13, 27, 0.58);
+}
+
+.kit-dock .field select {
+  color: #fff;
+  font-weight: 800;
+}
+
+.pad-grid {
+  width: 100%;
+  max-width: 60rem;
+  margin: clamp(1rem, 2.2vw, 1.45rem) auto;
+  gap: clamp(0.5rem, 1.1vw, 0.8rem);
+}
+
+.pad {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), transparent 45%), var(--pad-color);
+  box-shadow: inset 0 -0.42rem 0 rgba(0, 0, 0, 0.22), 0 0.95rem 1.8rem rgba(0, 0, 0, 0.2);
+  transition: transform 110ms var(--ease-out), opacity 110ms ease, filter 110ms ease, box-shadow 110ms ease, border-color 110ms ease;
+}
+
+.pad-label {
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+}
+
+.pad.is-selected {
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 3px rgba(158, 174, 255, 0.82), 0 0.95rem 1.8rem rgba(0, 0, 0, 0.2), inset 0 -0.42rem 0 rgba(0, 0, 0, 0.22);
+}
+
+.app-footer {
+  padding-top: 0.2rem;
+  border-top: 1px solid rgba(146, 164, 207, 0.12);
+}
+
+.editor-panel {
+  padding: 1rem;
+}
+
+.panel-heading {
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgba(7, 13, 27, 0.35);
+}
+
+.pad-editor {
+  padding: 1rem 0;
+}
+
+.sample-picker {
+  border-color: rgba(158, 174, 255, 0.24);
+  background: linear-gradient(145deg, rgba(50, 64, 110, 0.28), rgba(11, 18, 34, 0.58));
+}
+
+.pad-editor > .button-primary {
+  min-height: 3rem;
+  box-shadow: 0 0.7rem 1.5rem rgba(96, 116, 225, 0.2);
+}
+
+.layout-tools,
+.sample-library {
+  padding-top: 1.25rem;
+}
+
+.tool-grid {
+  gap: 0.6rem;
+}
+
+.tool-grid .button {
+  min-height: 2.7rem;
+  border-radius: 0.78rem;
+}
+
+.button {
+  min-height: 2.85rem;
+  border-radius: 0.82rem;
+  transition: transform 150ms var(--ease-out), border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.button:active {
+  transform: scale(0.97);
+}
+
+.button-primary {
+  border-color: rgba(198, 207, 255, 0.72);
+  background: linear-gradient(145deg, #a3b2ff, #8197ee);
+  box-shadow: 0 0.5rem 1.1rem rgba(91, 111, 221, 0.18);
+}
+
+.button-secondary {
+  background: linear-gradient(145deg, rgba(36, 53, 87, 0.94), rgba(21, 33, 57, 0.94));
+}
+
+.button-danger {
+  background: linear-gradient(145deg, rgba(149, 46, 76, 0.48), rgba(92, 28, 54, 0.42));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.7rem 1.25rem rgba(0, 0, 0, 0.18);
+  }
+
+  .pad:hover,
+  .pad:focus-visible {
+    transform: translateY(-2px);
+  }
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="search"]:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(158, 174, 255, 0.12);
+  outline: 0;
+}
+
+@media (max-width: 940px) {
+  .kit-dock-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-header h1 {
+    max-width: 11ch;
+    font-size: clamp(2.15rem, 13vw, 3.2rem);
+  }
+
+  .stage-heading {
+    align-items: flex-start;
+  }
+
+  .stage-hint {
+    max-width: 7rem;
+    text-align: right;
+    white-space: normal;
+  }
+
+  .controls {
+    padding: 0.6rem;
+  }
+
+  .control-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .compact-control {
+    min-width: 0;
+    gap: 0.25rem;
+    padding-inline: 0.45rem;
+    white-space: nowrap;
+  }
+
+  .compact-control input {
+    width: 3.2rem;
+    flex: 0 0 3.2rem;
+  }
+
+  .compact-control output {
+    font-size: 0.68rem;
+    white-space: nowrap;
+  }
+
+  .check-control {
+    gap: 0.3rem;
+    padding-inline: 0.45rem;
+    white-space: nowrap;
+  }
+
+  .control-row > .button,
+  .range-control {
+    grid-column: 1 / -1;
+  }
+
+  .compact-control,
+  .check-control {
+    min-width: 0;
+  }
+
+  .range-control {
+    min-width: 0;
+  }
+
+  .kit-dock {
+    padding: 0.8rem;
+  }
+
+  .kit-dock-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .kit-dock .kit-action-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .kit-dock .kit-action-row .button {
+    width: 100%;
+  }
+}

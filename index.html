@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0b1020" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?version=24" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -15,7 +15,7 @@
         <div>
           <p class="eyebrow">Local performance tool</p>
           <h1>Touchscreen Launchpad</h1>
-          <p class="subtitle">Load your own sounds, shape a pad bank, and play it from any touch surface.</p>
+          <p class="subtitle">Load sounds, arrange a kit, and perform from any touch surface.</p>
         </div>
 
         <div class="header-actions">
@@ -26,6 +26,14 @@
 
       <section class="workspace" aria-label="Launchpad workspace">
         <div class="stage">
+          <div class="stage-heading">
+            <div>
+              <p class="eyebrow">Performance surface</p>
+              <h2>Play your kit</h2>
+            </div>
+            <span class="stage-hint">Tap a pad · use Q–4</span>
+          </div>
+
           <section class="controls" aria-label="Launchpad controls">
             <div class="control-row">
               <button id="stop-all" class="button button-danger" type="button">Stop all</button>
@@ -59,6 +67,40 @@
             </div>
           </section>
 
+          <section class="kit-tools kit-dock" aria-labelledby="kit-tools-title">
+            <div class="section-heading">
+              <div>
+                <h3 id="kit-tools-title">Kit library</h3>
+                <p class="section-subtitle">Switch sound worlds or build a new one.</p>
+              </div>
+              <span id="kit-count" class="muted">1/5 used</span>
+            </div>
+            <div class="kit-dock-controls">
+              <label class="field kit-select-field" for="kit-select">
+                <span>Active kit</span>
+                <select id="kit-select">
+                  <option value="kit-1">Kit 1 — Starter</option>
+                  <option value="kit-2">Kit 2 · Empty</option>
+                  <option value="kit-3">Kit 3 · Empty</option>
+                  <option value="kit-4">Kit 4 · Empty</option>
+                  <option value="kit-5">Kit 5 · Empty</option>
+                </select>
+              </label>
+              <div class="kit-name-row">
+                <label class="field" for="kit-name">
+                  <span>Kit name</span>
+                  <input id="kit-name" name="kit-name" type="text" maxlength="40" required />
+                </label>
+                <button id="rename-kit" class="button button-secondary" type="button">Rename</button>
+              </div>
+            </div>
+            <div class="kit-action-row">
+              <button id="duplicate-kit" class="button button-secondary" type="button">Duplicate</button>
+              <button id="delete-kit" class="button button-danger" type="button">Delete</button>
+            </div>
+            <p class="field-help">Switching stops active voices. Save edits before switching.</p>
+          </section>
+
           <section id="pad-grid" class="pad-grid" aria-label="Launchpad pads"></section>
 
           <footer class="app-footer">
@@ -71,7 +113,7 @@
           <div class="panel-heading">
             <div>
               <p class="eyebrow">Pad setup</p>
-              <h2 id="editor-title">Edit selected pad</h2>
+              <h2 id="editor-title">Shape the selected pad</h2>
             </div>
             <div class="panel-status">
               <span id="selected-pad-indicator" class="selected-indicator">Pad 01</span>
@@ -115,77 +157,54 @@
 
             <div class="sample-picker">
               <div class="field-line">
-                <span>Audio sample</span>
+                <span>Sample source</span>
                 <span id="sample-name" class="sample-name">Preview tone</span>
               </div>
               <label class="file-button button button-secondary" for="sample-file">
-                Choose audio
+                Load audio
                 <input id="sample-file" type="file" accept="audio/*" />
               </label>
               <button id="clear-sample" class="text-button" type="button">Use preview tone</button>
-              <p class="field-help">Audio files stay in this browser and are not uploaded.</p>
+              <p class="field-help">Load one file here, or use Import audio below for a full folder. Files stay in this browser.</p>
             </div>
 
             <button class="button button-primary" type="submit">Save pad</button>
             </form>
 
-            <section class="kit-tools" aria-labelledby="kit-tools-title">
-              <div class="section-heading">
-                <h3 id="kit-tools-title">Kit library</h3>
-                <span id="kit-count" class="muted">1/5 used</span>
-              </div>
-              <label class="field kit-select-field" for="kit-select">
-                <span>Active kit</span>
-                <select id="kit-select">
-                  <option value="kit-1">Kit 1 — Starter</option>
-                  <option value="kit-2">Kit 2 · Empty</option>
-                  <option value="kit-3">Kit 3 · Empty</option>
-                  <option value="kit-4">Kit 4 · Empty</option>
-                  <option value="kit-5">Kit 5 · Empty</option>
-                </select>
-              </label>
-              <div class="kit-name-row">
-                <label class="field" for="kit-name">
-                  <span>Kit name</span>
-                  <input id="kit-name" name="kit-name" type="text" maxlength="40" required />
-                </label>
-                <button id="rename-kit" class="button button-secondary" type="button">Rename</button>
-              </div>
-              <div class="kit-action-row">
-                <button id="duplicate-kit" class="button button-secondary" type="button">Duplicate</button>
-                <button id="delete-kit" class="button button-danger" type="button">Delete</button>
-              </div>
-              <p class="field-help">Switching stops active voices. Save before switching to keep pad edits.</p>
-            </section>
-
             <section class="layout-tools" aria-labelledby="layout-tools-title">
               <div class="section-heading">
-                <h3 id="layout-tools-title">Kit backup</h3>
+                <div>
+                  <h3 id="layout-tools-title">Backup &amp; transfer</h3>
+                  <p class="section-subtitle">Keep your sounds on this device.</p>
+                </div>
                 <span class="muted">local only</span>
               </div>
               <div class="tool-grid">
                 <button id="save-layout" class="button button-secondary" type="button">Save kit</button>
-                <button id="export-pack" class="button button-primary" type="button">Export .launchpack</button>
+                <button id="export-pack" class="button button-primary" type="button">Export backup</button>
                 <label class="file-button button button-primary" for="import-pack">
-                  Import Pack
+                  Import audio
                   <input id="import-pack" type="file" accept="audio/*" multiple webkitdirectory />
                 </label>
                 <label class="file-button button button-primary" for="import-launchpack">
-                  Restore .launchpack
+                  Restore backup
                   <input id="import-launchpack" type="file" accept=".launchpack,application/vnd.touchscreen-launchpack+json" />
                 </label>
-                <button id="export-layout" class="button button-secondary" type="button">Export JSON</button>
+                <button id="export-layout" class="button button-secondary" type="button">Export layout</button>
                 <label class="file-button button button-secondary" for="import-layout">
-                  Import JSON
+                  Import layout
                   <input id="import-layout" type="file" accept="application/json,.json" />
                 </label>
-                <button id="reset-layout" class="button button-quiet" type="button">Reset pads</button>
+                <button id="reset-layout" class="button button-quiet" type="button">Reset current kit</button>
               </div>
             </section>
 
             <section class="sample-library" aria-labelledby="sample-library-title">
               <div class="section-heading">
-                <h3 id="sample-library-title">Sample library</h3>
+                <div>
+                  <h3 id="sample-library-title">Sample library</h3>
+                  <p class="section-subtitle">Shared across every kit.</p>
+                </div>
                 <span id="sample-count" class="muted">0 files</span>
               </div>
               <div class="sample-tools">
@@ -207,6 +226,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/bootstrap.js?version=21"></script>
+    <script type="module" src="src/bootstrap.js?version=24"></script>
   </body>
 </html>
