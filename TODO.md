@@ -25,6 +25,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: The primary viewport exposes performance controls, kit switching, and pads as one coherent surface; the mobile layout has no horizontal overflow; import labels explain the next step; the existing kit and playback workflows remain functional.
 - Evidence: Local contract passes 40/40; rendered localhost smoke passes at 1103×613 and 390×844 with no console errors or horizontal overflow. Hosted deployment and independent review remain pending.
 
+## Package: Control and storage card visual separation — `codex/apple-inspired-ui-20260915`
+
+- Goal: Make the selected-pad controls scannable and clearly separate backup actions from pad setup.
+- Scope: Distinct Shortcut and Playback field treatments, a framed Backup & transfer card, responsive/accessibility visual QA, and cache-version updates.
+- Non-goals: Change audio semantics, kit storage, sample import/export behavior, or the five-kit data model.
+- Files: `index.html`, `style.css`, `app.js`, `src/bootstrap.js`, `sw.js`, and this backlog entry.
+- Tests: `npm.cmd run validate`, `git diff --check`, desktop and 390px rendered smoke, console inspection, kit-switch smoke, and pad playback/Stop all smoke.
+- Acceptance: Shortcut and Playback are visually distinct at both target viewports; Backup & transfer reads as its own card; no horizontal overflow; existing kit, pad, and transport interactions remain functional.
+- Evidence: Local contract and rendered localhost evidence are required; hosted deployment, independent review, and PR publication remain pending.
+
 ## Current verified baseline
 
 - `npm.cmd ci --ignore-scripts` and `npm.cmd run validate` pass; the aggregate contract now covers 35 tests including service-worker runtime behavior, storage transaction aborts, import/sample bounds, and release-artifact staging.

@@ -1580,3 +1580,125 @@ output {
     box-shadow: none;
   }
 }
+
+/* Focused editor treatments: the shortcut is a keycap, while playback is a mode. */
+.control-field {
+  min-width: 0;
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.95rem;
+  background: var(--surface-soft);
+}
+
+.control-field > span {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shortcut-field {
+  border-color: rgba(0, 113, 227, 0.24);
+  background: #eff6ff;
+}
+
+.shortcut-field > span {
+  color: #0071e3;
+}
+
+.shortcut-field input {
+  min-height: 2.8rem;
+  border-color: rgba(0, 113, 227, 0.32);
+  background: #ffffff;
+  color: #1d1d1f;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  box-shadow: inset 0 -2px rgba(0, 113, 227, 0.08);
+}
+
+.playback-field {
+  border-color: rgba(88, 86, 214, 0.22);
+  background: #f6f3ff;
+}
+
+.playback-field > span {
+  color: #5856d6;
+}
+
+.playback-field select {
+  min-height: 2.8rem;
+  border-color: rgba(88, 86, 214, 0.3);
+  background: #ffffff;
+  color: #3f3c8f;
+  font-weight: 750;
+}
+
+.backup-card {
+  margin-top: 1.35rem;
+  padding: 1rem;
+  border: 1px solid rgba(29, 29, 31, 0.14);
+  border-radius: 1.15rem;
+  background: linear-gradient(145deg, #fbfbfd, #f1f1f4);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.95), 0 0.7rem 1.5rem rgba(29, 29, 31, 0.05);
+}
+
+.backup-card .section-heading {
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.backup-card .section-heading h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.backup-card .section-heading h3::before {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--accent);
+  content: "";
+}
+
+.backup-card .tool-grid {
+  margin-top: 0.85rem;
+}
+
+.backup-card .button-primary {
+  border-color: #1d1d1f;
+  background: #1d1d1f;
+  box-shadow: 0 0.35rem 0.8rem rgba(29, 29, 31, 0.12);
+}
+
+.backup-card .button-primary:hover {
+  border-color: #000000;
+  background: #000000;
+}
+
+.backup-card .button-secondary {
+  background: #ffffff;
+}
+
+@media (max-width: 560px) {
+  .field-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .control-field {
+    padding: 0.55rem;
+  }
+
+  .control-field input,
+  .control-field select {
+    min-height: 2.65rem;
+  }
+
+  .backup-card {
+    margin-top: 1rem;
+    padding: 0.8rem;
+  }
+}

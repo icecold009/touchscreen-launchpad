@@ -1,8 +1,8 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createPointerState } from "./src/pointer-state.js?version=25";
-import { attachStorageRequest } from "./src/storage-request.js?version=25";
-import { downloadText as triggerTextDownload } from "./src/download.js?version=25";
+import { createPointerState } from "./src/pointer-state.js?version=26";
+import { attachStorageRequest } from "./src/storage-request.js?version=26";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=26";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
