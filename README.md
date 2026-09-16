@@ -79,4 +79,4 @@ Only load audio you created or have permission to use. Do not commit or redistri
 
 ## Deliberate limits
 
-Cloud accounts, sync, MIDI hardware, time-stretching, slicing, effects, timeline sequencing, DAW export, and native mobile packaging remain deferred. Local microphone-plus-app-mix recording is available as saved performance takes; capture stays permission-gated and browser-local.
+Cloud accounts, sync, complex time-stretching, automatic slicing, timeline sequencing, DAW export, and native mobile packaging remain deferred. Local recording, sample shaping, live delay/reverb, scenes, and optional Web MIDI are available; capture and device access stay permission-gated and browser-local.

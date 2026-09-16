@@ -55,6 +55,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: A supported browser can connect, select input/output, learn a note for the selected pad, trigger pads with velocity, release gate/hold notes, and continue working normally when Web MIDI is absent.
 - Evidence: `npm.cmd run validate` passes 60 tests; fresh local render exposes the MIDI bridge, and the browser fallback reports denied/unavailable MIDI without breaking local pads; physical controller input/output remains environment dependent; `main` remains untouched.
 
+## Package: Effects bus and audio diagnostics — `codex/launchpad-effects-master-bus-20260916`
+
+- Goal: Add live sound transformation and make audio readiness/failure legible before a performance.
+- Scope: Per-pad delay/reverb sends, bounded master delay feedback/time, generated local reverb impulse, FX inclusion in app-mix recording, audio-context diagnostics, sample-rate/base-latency reporting, and unsupported-context fallback.
+- Non-goals: Third-party effect plugins, server DSP, multichannel hardware routing, or destructive sample processing.
+- Files: `index.html`, `style.css`, `app.js`, `src/effects.js`, `sw.js`, `src/bootstrap.js`, `scripts/validate-site.mjs`, `package.json`, and effect contract tests.
+- Tests: `npm.cmd run validate`, send/master bounds, impulse-response bounds, rendered FX/diagnostics smoke, suspended/unsupported audio review, and recording-bus routing review.
+- Acceptance: A pad can send to local delay/reverb, master settings stay bounded, captured app mix includes return audio, and “Check audio” reports state/latency or an actionable fallback.
+- Evidence: `npm.cmd run validate` passes 62 tests; fresh local browser render exposes the FX controls and diagnostics card, and “Check audio” reports `running · 48000 Hz · 10 ms latency` in the current browser; real output/latency varies by browser and device; `main` remains untouched.
+
 ## Package: Professional audio foundation — `codex/launchpad-professional-foundation-20260916`
 
 - Goal: Establish versioned audio, transport, input, voice, migration, and bounded-history contracts for professional performance features.

@@ -847,6 +847,39 @@ body.is-performance-mode .midi-panel {
   display: none;
 }
 
+.effects-panel {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: var(--surface-raised);
+}
+
+.effects-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.effects-controls .range-control {
+  min-width: min(100%, 11rem);
+}
+
+.effects-controls output {
+  min-width: 3.5rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  text-align: right;
+}
+
+body.is-performance-mode .effects-panel {
+  display: none;
+}
+
 .performance-capture {
   margin-top: 1rem;
   padding: 0.9rem;

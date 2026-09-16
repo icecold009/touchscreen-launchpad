@@ -16,6 +16,7 @@ const requiredFiles = [
   "src/pointer-state.js",
   "src/storage-request.js",
   "src/download.js",
+  "src/effects.js",
   "src/performance-engine.js",
   "src/recording.js",
   "src/sample-editor.js",

@@ -1,18 +1,19 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=36";
-import { createInputAdapter } from "./src/input-adapter.js?version=36";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=36";
-import { createPointerState } from "./src/pointer-state.js?version=36";
-import { attachStorageRequest } from "./src/storage-request.js?version=36";
-import { downloadText as triggerTextDownload } from "./src/download.js?version=36";
-import { getNextQuantizedTime } from "./src/transport.js?version=36";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=36";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=36";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=36";
-import { createPattern, createSequencerRunner, getStepEvents, normalizePattern, toggleStep } from "./src/sequencer.js?version=36";
-import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=36";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=36";
+import { createHistory } from "./src/history.js?version=37";
+import { createInputAdapter } from "./src/input-adapter.js?version=37";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=37";
+import { createPointerState } from "./src/pointer-state.js?version=37";
+import { attachStorageRequest } from "./src/storage-request.js?version=37";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=37";
+import { getNextQuantizedTime } from "./src/transport.js?version=37";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=37";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=37";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=37";
+import { createPattern, createSequencerRunner, getStepEvents, normalizePattern, toggleStep } from "./src/sequencer.js?version=37";
+import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=37";
+import { createImpulseResponse, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=37";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=37";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -53,6 +54,11 @@ const midiLearnButton = document.querySelector("#midi-learn");
 const midiStatus = document.querySelector("#midi-status");
 const midiInputSelect = document.querySelector("#midi-input");
 const midiOutputSelect = document.querySelector("#midi-output");
+const delayTimeInput = document.querySelector("#delay-time");
+const delayFeedbackInput = document.querySelector("#delay-feedback");
+const reverbDecayInput = document.querySelector("#reverb-decay");
+const audioDiagnosticsButton = document.querySelector("#audio-diagnostics");
+const audioDiagnostics = document.querySelector("#audio-diagnostics-status");
 const sampleWaveform = document.querySelector("#sample-waveform");
 const sampleEditStatus = document.querySelector("#sample-edit-status");
 const sampleStartInput = document.querySelector("#sample-start");
@@ -73,6 +79,10 @@ const attackInput = document.querySelector("#pad-attack");
 const attackValue = document.querySelector("#pad-attack-value");
 const releaseInput = document.querySelector("#pad-release");
 const releaseValue = document.querySelector("#pad-release-value");
+const padDelaySendInput = document.querySelector("#pad-delay-send");
+const padReverbSendInput = document.querySelector("#pad-reverb-send");
+const padDelaySendValue = document.querySelector("#pad-delay-send-value");
+const padReverbSendValue = document.querySelector("#pad-reverb-send-value");
 const persistenceNote = document.querySelector("#persistence-note");
 const connectionStatus = document.querySelector("#connection-status");
 const stopAllButton = document.querySelector("#stop-all");
@@ -146,6 +156,11 @@ let currentKitId = "kit-1";
 let selectedPadIndex = 0;
 let audioContext;
 let masterGain;
+let delayNode;
+let delayFeedbackGain;
+let delayReturnGain;
+let reverbNode;
+let reverbReturnGain;
 let recordingDestination;
 let recordingMicStream;
 let recordingMicSource;
@@ -153,6 +168,7 @@ let recordingMicGain;
 let recordingTicker;
 let lastTakeId;
 let waveformRenderToken = 0;
+let masterEffects = normalizeMasterEffects();
 let metronomeTimer;
 let countInPromise;
 let repeatTimers = new Map();
@@ -1496,6 +1512,19 @@ function getAudioContext() {
     masterGain.gain.value = Number(masterVolumeInput.value);
     masterGain.connect(audioContext.destination);
     if (recordingDestination) masterGain.connect(recordingDestination);
+    delayNode = audioContext.createDelay(1);
+    delayFeedbackGain = audioContext.createGain();
+    delayReturnGain = audioContext.createGain();
+    delayNode.connect(delayFeedbackGain);
+    delayFeedbackGain.connect(delayNode);
+    delayNode.connect(delayReturnGain);
+    delayReturnGain.connect(masterGain);
+    reverbNode = audioContext.createConvolver();
+    reverbReturnGain = audioContext.createGain();
+    reverbNode.buffer = createImpulseResponse(audioContext, masterEffects.reverbDecay);
+    reverbNode.connect(reverbReturnGain);
+    reverbReturnGain.connect(masterGain);
+    configureMasterEffects();
   }
 
   return audioContext;
@@ -1514,6 +1543,40 @@ async function prepareAudio() {
   if (context.state !== "running") throw new Error("Audio is unavailable in the current browser state.");
   syncMetronome();
   return context;
+}
+
+function configureMasterEffects() {
+  if (!audioContext) return;
+  masterEffects = normalizeMasterEffects({
+    delayTime: delayTimeInput.value,
+    delayFeedback: delayFeedbackInput.value,
+    reverbDecay: reverbDecayInput.value,
+  });
+  if (delayNode) delayNode.delayTime.setTargetAtTime(masterEffects.delayTime, audioContext.currentTime, 0.01);
+  if (delayFeedbackGain) delayFeedbackGain.gain.setTargetAtTime(masterEffects.delayFeedback, audioContext.currentTime, 0.01);
+  if (reverbNode) reverbNode.buffer = createImpulseResponse(audioContext, masterEffects.reverbDecay);
+  updateMasterEffectLabels();
+}
+
+function updateMasterEffectLabels() {
+  const delayOutput = document.querySelector("output[for=delay-time]");
+  const feedbackOutput = document.querySelector("output[for=delay-feedback]");
+  const reverbOutput = document.querySelector("output[for=reverb-decay]");
+  if (delayOutput) delayOutput.textContent = `${Math.round(Number(delayTimeInput.value) * 1000)} ms`;
+  if (feedbackOutput) feedbackOutput.textContent = `${Math.round(Number(delayFeedbackInput.value) * 100)}%`;
+  if (reverbOutput) reverbOutput.textContent = `${Number(reverbDecayInput.value).toFixed(1)} s`;
+}
+
+async function showAudioDiagnostics() {
+  try {
+    const context = await prepareAudio();
+    const latency = Number.isFinite(context.baseLatency) ? ` · ${Math.round(context.baseLatency * 1000)} ms latency` : "";
+    audioDiagnostics.textContent = `${context.state} · ${context.sampleRate} Hz${latency}`;
+    setStatus("Audio is ready for local playback and capture.", "success");
+  } catch (error) {
+    audioDiagnostics.textContent = "Audio unavailable";
+    setStatus(error instanceof Error ? error.message : "Audio diagnostics failed.", "error");
+  }
 }
 
 function getNextBeatTime(context) {
@@ -1769,13 +1832,26 @@ function createVoiceGain(context, pad, velocity = 1) {
   filter.frequency.value = clamp(Number(pad.filter?.frequency) || 20000, 20, 20000);
   filter.Q.value = clamp(Number(pad.filter?.q) || 0.0001, 0.0001, 18);
   gain.connect(filter);
+  let output = filter;
   if (typeof context.createStereoPanner === "function") {
     const panner = context.createStereoPanner();
     panner.pan.value = clamp(Number(pad.pan) || 0, -1, 1);
     filter.connect(panner);
-    panner.connect(masterGain);
-  } else {
-    filter.connect(masterGain);
+    output = panner;
+  }
+  output.connect(masterGain);
+  const sends = normalizeEffectSends(pad.effectSends);
+  if (delayNode && sends.delay > 0) {
+    const delaySend = context.createGain();
+    delaySend.gain.value = sends.delay;
+    output.connect(delaySend);
+    delaySend.connect(delayNode);
+  }
+  if (reverbNode && sends.reverb > 0) {
+    const reverbSend = context.createGain();
+    reverbSend.gain.value = sends.reverb;
+    output.connect(reverbSend);
+    reverbSend.connect(reverbNode);
   }
   return gain;
 }
@@ -2057,6 +2133,8 @@ function updateSampleEditorLabels() {
   filterFrequencyValue.textContent = `${Math.round(Number(filterFrequencyInput.value))} Hz`;
   attackValue.textContent = `${Math.round(Number(attackInput.value) * 1000)} ms`;
   releaseValue.textContent = `${Math.round(Number(releaseInput.value) * 1000)} ms`;
+  padDelaySendValue.textContent = `${Math.round(Number(padDelaySendInput.value) * 100)}%`;
+  padReverbSendValue.textContent = `${Math.round(Number(padReverbSendInput.value) * 100)}%`;
   const region = getSampleRegionFromEditor();
   sampleEditStatus.textContent = `Region ${Math.round(region.start * 100)}–${Math.round(region.end * 100)}% · loop ${Math.round(region.loopStart * 100)}–${Math.round(region.loopEnd * 100)}%`;
   if (waveformBuffer) drawWaveform(sampleWaveform, waveformBuffer, region);
@@ -2075,6 +2153,10 @@ function getSampleEditorValues() {
     },
     attack: Number(attackInput.value),
     release: Number(releaseInput.value),
+    effectSends: {
+      delay: Number(padDelaySendInput.value),
+      reverb: Number(padReverbSendInput.value),
+    },
   };
 }
 
@@ -2093,6 +2175,8 @@ async function renderSampleEditor() {
   filterFrequencyInput.value = String(pad.filter?.frequency || 20000);
   attackInput.value = String(pad.attack);
   releaseInput.value = String(pad.release);
+  padDelaySendInput.value = String(pad.effectSends?.delay || 0);
+  padReverbSendInput.value = String(pad.effectSends?.reverb || 0);
   updateSampleEditorLabels();
   waveformBuffer = undefined;
   const sample = pad.sampleId ? samples.get(pad.sampleId) : null;
@@ -2709,7 +2793,7 @@ function bindEvents() {
     updateSampleName();
     markEditorDirty();
   });
-  [sampleStartInput, sampleEndInput, sampleLoopStartInput, sampleLoopEndInput, sampleReverseInput, pitchInput, stretchInput, panInput, filterTypeInput, filterFrequencyInput, attackInput, releaseInput]
+  [sampleStartInput, sampleEndInput, sampleLoopStartInput, sampleLoopEndInput, sampleReverseInput, pitchInput, stretchInput, panInput, filterTypeInput, filterFrequencyInput, padDelaySendInput, padReverbSendInput, attackInput, releaseInput]
     .forEach((input) => input.addEventListener("input", updateSampleEditorLabels));
   padVolumeInput.addEventListener("input", updatePadVolumeLabel);
   masterVolumeInput.addEventListener("input", updateMasterVolume);
@@ -2746,6 +2830,11 @@ function bindEvents() {
   midiLearnButton.addEventListener("click", learnMidiForSelectedPad);
   midiInputSelect.addEventListener("change", (event) => selectMidiInput(event.target.value));
   midiOutputSelect.addEventListener("change", (event) => selectMidiOutput(event.target.value));
+  [delayTimeInput, delayFeedbackInput, reverbDecayInput].forEach((input) => input.addEventListener("input", () => {
+    updateMasterEffectLabels();
+    if (audioContext) configureMasterEffects();
+  }));
+  audioDiagnosticsButton.addEventListener("click", () => void showAudioDiagnostics());
   document.addEventListener("fullscreenchange", () => {
     const isActive = document.body.classList.contains("is-performance-mode");
     if (!document.fullscreenElement && isActive) {
