@@ -21,11 +21,21 @@ export function createHistory({ limit = 20, clone = cloneValue } = {}) {
     return { changed: true, state: clone(previous) };
   }
 
+  function peekUndo(currentState) {
+    if (!past.length) return { changed: false, state: clone(currentState) };
+    return { changed: true, state: clone(past[past.length - 1]) };
+  }
+
   function redo(currentState) {
     if (!future.length) return { changed: false, state: clone(currentState) };
     const next = future.pop();
     past.push(clone(currentState));
     return { changed: true, state: clone(next) };
+  }
+
+  function peekRedo(currentState) {
+    if (!future.length) return { changed: false, state: clone(currentState) };
+    return { changed: true, state: clone(future[future.length - 1]) };
   }
 
   return {
@@ -43,6 +53,8 @@ export function createHistory({ limit = 20, clone = cloneValue } = {}) {
       return past.length;
     },
     push,
+    peekRedo,
+    peekUndo,
     redo,
     undo,
   };

@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=38" />
+    <link rel="stylesheet" href="style.css?version=39" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -114,6 +114,9 @@
               <button id="sequencer-play" class="button button-primary" type="button">Play sequence</button>
               <button id="sequencer-clear" class="button button-quiet" type="button">Clear scene</button>
               <button id="export-midi" class="button button-secondary" type="button">Export MIDI</button>
+              <button id="sequencer-duplicate" class="button button-secondary" type="button">Duplicate to Scene B</button>
+              <button id="sequencer-undo" class="button button-quiet" type="button">Undo scene</button>
+              <button id="sequencer-redo" class="button button-quiet" type="button">Redo scene</button>
               <label class="compact-control" for="sequencer-swing">
                 <span>Swing</span>
                 <input id="sequencer-swing" type="range" min="0" max="0.5" step="0.01" value="0" />
@@ -121,6 +124,42 @@
               </label>
             </div>
             <div id="sequencer-grid" class="sequencer-grid" aria-label="Four-track 16-step sequencer"></div>
+            <div class="sequencer-step-editor" aria-labelledby="sequencer-step-title">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Step detail</p>
+                  <h4 id="sequencer-step-title">Shape the selected step</h4>
+                </div>
+                <span id="sequencer-step-status" class="muted" role="status" aria-live="polite">Track 1, step 1 · Off</span>
+              </div>
+              <div class="sequencer-step-controls">
+                <label class="compact-control" for="sequencer-step-track">
+                  <span>Track</span>
+                  <select id="sequencer-step-track">
+                    <option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option>
+                  </select>
+                </label>
+                <label class="compact-control" for="sequencer-step-index">
+                  <span>Step</span>
+                  <select id="sequencer-step-index">
+                    <option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option>
+                    <option value="4">5</option><option value="5">6</option><option value="6">7</option><option value="7">8</option>
+                    <option value="8">9</option><option value="9">10</option><option value="10">11</option><option value="11">12</option>
+                    <option value="12">13</option><option value="13">14</option><option value="14">15</option><option value="15">16</option>
+                  </select>
+                </label>
+                <label class="range-control" for="sequencer-step-probability">
+                  <span>Probability</span>
+                  <input id="sequencer-step-probability" type="range" min="0" max="1" step="0.01" value="1" />
+                  <output id="sequencer-step-probability-value" for="sequencer-step-probability">100%</output>
+                </label>
+                <label class="range-control" for="sequencer-step-micro">
+                  <span>Micro timing</span>
+                  <input id="sequencer-step-micro" type="range" min="-0.5" max="0.5" step="0.01" value="0" />
+                  <output id="sequencer-step-micro-value" for="sequencer-step-micro">0%</output>
+                </label>
+              </div>
+            </div>
           </section>
 
           <section class="midi-panel" aria-labelledby="midi-title">
@@ -415,7 +454,11 @@
               <p class="field-help">Load one file here, or use Import audio below for a full folder. Assign library files to this pad, then save. Files stay in this browser.</p>
             </div>
 
-            <button class="button button-primary" type="submit">Save pad</button>
+            <div class="pad-save-row">
+              <button class="button button-primary" type="submit">Save pad</button>
+              <button id="undo-pad" class="button button-quiet" type="button">Undo pad</button>
+              <button id="redo-pad" class="button button-quiet" type="button">Redo pad</button>
+            </div>
             </form>
 
             <section id="layout-tools" class="layout-tools backup-card" aria-labelledby="layout-tools-title">
@@ -473,6 +516,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/bootstrap.js?version=38"></script>
+    <script type="module" src="src/bootstrap.js?version=39"></script>
   </body>
 </html>

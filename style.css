@@ -808,6 +808,59 @@ body.is-performance-mode .pad-grid {
   color: #091126;
 }
 
+.sequencer-step.is-selected {
+  outline: 2px solid var(--success);
+  outline-offset: 2px;
+}
+
+.sequencer-step-editor {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+
+.sequencer-step-editor h4 {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.sequencer-step-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.sequencer-step-controls select {
+  min-height: 2.2rem;
+  padding: 0.35rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.55rem;
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.sequencer-step-controls .range-control {
+  min-width: min(100%, 13rem);
+}
+
+.sequencer-step-controls output {
+  min-width: 3.2rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  text-align: right;
+}
+
+.pad-save-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
 body.is-performance-mode .sequencer-panel {
   display: none;
 }

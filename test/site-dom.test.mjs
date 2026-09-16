@@ -42,6 +42,16 @@ test("the launchpad DOM exposes its primary interaction surface", () => {
     "persistence-message",
     "repair-storage",
     "reset-storage",
+    "sequencer-grid",
+    "sequencer-step-track",
+    "sequencer-step-index",
+    "sequencer-step-probability",
+    "sequencer-step-micro",
+    "sequencer-duplicate",
+    "sequencer-undo",
+    "sequencer-redo",
+    "undo-pad",
+    "redo-pad",
   ];
 
   for (const id of requiredIds) {

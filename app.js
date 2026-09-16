@@ -1,20 +1,20 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=38";
-import { createInputAdapter } from "./src/input-adapter.js?version=38";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=38";
-import { createPointerState } from "./src/pointer-state.js?version=38";
-import { attachStorageRequest } from "./src/storage-request.js?version=38";
-import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=38";
-import { getNextQuantizedTime } from "./src/transport.js?version=38";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=38";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=38";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=38";
-import { createPattern, createSequencerRunner, getStepEvents, normalizePattern, toggleStep } from "./src/sequencer.js?version=38";
-import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=38";
-import { createMidiFile } from "./src/midi-file.js?version=38";
-import { createImpulseResponse, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=38";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=38";
+import { createHistory } from "./src/history.js?version=39";
+import { createInputAdapter } from "./src/input-adapter.js?version=39";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=39";
+import { createPointerState } from "./src/pointer-state.js?version=39";
+import { attachStorageRequest } from "./src/storage-request.js?version=39";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=39";
+import { getNextQuantizedTime } from "./src/transport.js?version=39";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=39";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=39";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=39";
+import { createPattern, createSequencerRunner, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=39";
+import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=39";
+import { createMidiFile } from "./src/midi-file.js?version=39";
+import { createImpulseResponse, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=39";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=39";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -47,6 +47,16 @@ const sequencerGrid = document.querySelector("#sequencer-grid");
 const sequencerStatus = document.querySelector("#sequencer-status");
 const sequencerPlayButton = document.querySelector("#sequencer-play");
 const exportMidiButton = document.querySelector("#export-midi");
+const duplicateSceneButton = document.querySelector("#sequencer-duplicate");
+const undoSceneButton = document.querySelector("#sequencer-undo");
+const redoSceneButton = document.querySelector("#sequencer-redo");
+const sequencerStepTrackInput = document.querySelector("#sequencer-step-track");
+const sequencerStepIndexInput = document.querySelector("#sequencer-step-index");
+const sequencerStepProbabilityInput = document.querySelector("#sequencer-step-probability");
+const sequencerStepProbabilityValue = document.querySelector("#sequencer-step-probability-value");
+const sequencerStepMicroInput = document.querySelector("#sequencer-step-micro");
+const sequencerStepMicroValue = document.querySelector("#sequencer-step-micro-value");
+const sequencerStepStatus = document.querySelector("#sequencer-step-status");
 const sceneAButton = document.querySelector("#scene-a");
 const sceneBButton = document.querySelector("#scene-b");
 const sequencerSwingInput = document.querySelector("#sequencer-swing");
@@ -114,6 +124,8 @@ const sampleName = document.querySelector("#sample-name");
 const clearSampleButton = document.querySelector("#clear-sample");
 const selectedPadIndicator = document.querySelector("#selected-pad-indicator");
 const editorDirtyIndicator = document.querySelector("#editor-dirty");
+const undoPadButton = document.querySelector("#undo-pad");
+const redoPadButton = document.querySelector("#redo-pad");
 const editorPanel = document.querySelector(".editor-panel");
 const editorToggle = document.querySelector("#editor-toggle");
 const editorNavLinks = [...document.querySelectorAll(".editor-nav-link")];
@@ -175,6 +187,7 @@ let metronomeTimer;
 let countInPromise;
 let repeatTimers = new Map();
 let activeSceneId = "scene-a";
+let selectedSequencerStep = { trackIndex: 0, stepIndex: 0 };
 let midiAccess;
 let midiInputs = new Map();
 let midiOutputs = new Map();
@@ -217,6 +230,10 @@ const layoutHistory = createHistory({
   limit: 20,
   clone: (value) => value.map((pad) => ({ ...pad })),
 });
+const sequencerHistories = new Map([
+  ["scene-a", createHistory({ limit: 32 })],
+  ["scene-b", createHistory({ limit: 32 })],
+]);
 const inputAdapter = createInputAdapter({
   padCount: PAD_COUNT,
   onInput: ({ action, padIndex, velocity }) => {
@@ -719,16 +736,58 @@ function getActiveSequencerPattern() {
   return getSequencerPattern(activeSceneId);
 }
 
-async function persistSequencerPattern(pattern, message = "Pattern saved locally.") {
+function getSequencerHistory(sceneId = activeSceneId) {
+  if (!sequencerHistories.has(sceneId)) sequencerHistories.set(sceneId, createHistory({ limit: 32 }));
+  return sequencerHistories.get(sceneId);
+}
+
+function updateHistoryControls() {
+  undoPadButton.disabled = !layoutHistory.canUndo;
+  redoPadButton.disabled = !layoutHistory.canRedo;
+  undoSceneButton.disabled = !getSequencerHistory(activeSceneId).canUndo;
+  redoSceneButton.disabled = !getSequencerHistory(activeSceneId).canRedo;
+  duplicateSceneButton.textContent = `Duplicate to ${activeSceneId === "scene-a" ? "Scene B" : "Scene A"}`;
+}
+
+async function persistSequencerPattern(pattern, message = "Pattern saved locally.", sceneId = activeSceneId, { recordHistory = true } = {}) {
   const kit = kits.get(currentKitId);
   if (!kit) return false;
-  const nextPatterns = Array.isArray(kit.patterns) ? kit.patterns.filter((candidate) => candidate?.id !== activeSceneId) : [];
-  nextPatterns.push({ id: activeSceneId, name: activeSceneId === "scene-a" ? "Scene A" : "Scene B", ...normalizePattern(pattern) });
+  const previousPattern = getSequencerPattern(sceneId);
+  const nextPattern = normalizePattern(pattern);
+  const changed = JSON.stringify(previousPattern) !== JSON.stringify(nextPattern);
+  const nextPatterns = Array.isArray(kit.patterns) ? kit.patterns.filter((candidate) => candidate?.id !== sceneId) : [];
+  nextPatterns.push({ id: sceneId, name: sceneId === "scene-a" ? "Scene A" : "Scene B", ...nextPattern });
   const nextKit = { ...kit, patterns: nextPatterns, updatedAt: new Date().toISOString() };
   if (!(await persistKitRecord(nextKit))) return false;
+  if (recordHistory && changed) getSequencerHistory(sceneId).push(previousPattern);
   renderSequencer();
   setStatus(message, "success");
   return true;
+}
+
+function formatMicroTiming(value) {
+  const percent = Math.round(Number(value || 0) * 100);
+  return percent === 0 ? "0%" : `${percent > 0 ? "+" : ""}${percent}%`;
+}
+
+function renderSequencerStepEditor() {
+  const pattern = getActiveSequencerPattern();
+  const trackIndex = clamp(Number(selectedSequencerStep.trackIndex) || 0, 0, pattern.tracks.length - 1);
+  const stepIndex = clamp(Number(selectedSequencerStep.stepIndex) || 0, 0, pattern.tracks[trackIndex].steps.length - 1);
+  selectedSequencerStep = { trackIndex, stepIndex };
+  const step = pattern.tracks[trackIndex].steps[stepIndex];
+  sequencerStepTrackInput.value = String(trackIndex);
+  sequencerStepIndexInput.value = String(stepIndex);
+  sequencerStepProbabilityInput.value = String(step.probability);
+  sequencerStepProbabilityValue.textContent = `${Math.round(step.probability * 100)}%`;
+  sequencerStepMicroInput.value = String(step.microTiming);
+  sequencerStepMicroValue.textContent = formatMicroTiming(step.microTiming);
+  sequencerStepStatus.textContent = `Track ${trackIndex + 1}, step ${stepIndex + 1} · ${step.on ? "On" : "Off"}`;
+}
+
+async function updateSelectedSequencerStep(changes) {
+  const next = updateStep(getActiveSequencerPattern(), selectedSequencerStep.trackIndex, selectedSequencerStep.stepIndex, changes);
+  await persistSequencerPattern(next, "Step detail saved locally.");
 }
 
 function renderSequencer() {
@@ -764,10 +823,12 @@ function renderSequencer() {
       button.className = "sequencer-step";
       button.type = "button";
       button.textContent = String(stepIndex + 1);
-      button.setAttribute("aria-label", `Track ${trackIndex + 1}, step ${stepIndex + 1}`);
+      button.setAttribute("aria-label", `Track ${trackIndex + 1}, step ${stepIndex + 1}, ${step.on ? "on" : "off"}, probability ${Math.round(step.probability * 100)} percent, micro timing ${formatMicroTiming(step.microTiming)}`);
       button.setAttribute("aria-pressed", String(step.on));
       button.classList.toggle("is-on", step.on);
+      button.classList.toggle("is-selected", selectedSequencerStep.trackIndex === trackIndex && selectedSequencerStep.stepIndex === stepIndex);
       button.addEventListener("click", () => {
+        selectedSequencerStep = { trackIndex, stepIndex };
         const next = toggleStep(getActiveSequencerPattern(), trackIndex, stepIndex);
         void persistSequencerPattern(next, "Step saved locally.");
       });
@@ -781,6 +842,8 @@ function renderSequencer() {
   sceneAButton.classList.toggle("is-active", activeSceneId === "scene-a");
   sceneBButton.classList.toggle("is-active", activeSceneId === "scene-b");
   sequencerStatus.textContent = `${activeSceneId === "scene-a" ? "Scene A" : "Scene B"} · ${sequencerRunner.running ? "Playing" : "Ready"}`;
+  renderSequencerStepEditor();
+  updateHistoryControls();
 }
 
 function setSequencerScene(sceneId) {
@@ -808,6 +871,27 @@ async function toggleSequencer() {
 async function clearSequencer() {
   if (!window.confirm(`Clear ${activeSceneId === "scene-a" ? "Scene A" : "Scene B"}?`)) return;
   await persistSequencerPattern(createPattern(), "Scene cleared and saved locally.");
+}
+
+async function duplicateSequencerScene() {
+  const destination = activeSceneId === "scene-a" ? "scene-b" : "scene-a";
+  await persistSequencerPattern(
+    getActiveSequencerPattern(),
+    `${activeSceneId === "scene-a" ? "Scene A" : "Scene B"} duplicated to ${destination === "scene-a" ? "Scene A" : "Scene B"}.`,
+    destination,
+  );
+}
+
+async function restoreSequencerHistory(direction) {
+  const history = getSequencerHistory(activeSceneId);
+  const current = getActiveSequencerPattern();
+  const result = direction === "undo" ? history.peekUndo(current) : history.peekRedo(current);
+  if (!result.changed) return;
+  const message = direction === "undo" ? "Scene edit undone." : "Scene edit redone.";
+  if (!(await persistSequencerPattern(result.state, message, activeSceneId, { recordHistory: false }))) return;
+  if (direction === "undo") history.undo(current);
+  else history.redo(current);
+  renderSequencer();
 }
 
 function exportSceneMidi() {
@@ -934,6 +1018,8 @@ function sendMidiForPad(index, command, velocity = 1) {
 
 function applyKit(kit) {
   pads = kit?.empty ? createDefaultPads() : normalizePads(kit?.pads);
+  layoutHistory.clear();
+  for (const history of sequencerHistories.values()) history.clear();
   setKitDirty(false);
   renderPads();
   selectPad(0);
@@ -2248,6 +2334,7 @@ function setEditorDirty(value) {
   editorDirtyIndicator.textContent = value ? "Unsaved changes" : kitDirty ? "Unsaved kit changes" : "Unsaved changes";
   editorDirtyIndicator.hidden = !(value || kitDirty);
   padEditor.classList.toggle("is-dirty", value);
+  updateHistoryControls();
 }
 
 function markEditorDirty() {
@@ -2407,12 +2494,45 @@ async function saveSelectedPad(event) {
       return;
     }
     layoutHistory.push(previousPads);
+    updateHistoryControls();
     setKitDirty(false);
     renderKitControls();
     setStatus(storageMode === "memory" ? `${savedMessage} Memory-only mode: a reload may discard changes.` : savedMessage, storageMode === "memory" ? "error" : "success");
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "The pad could not be saved.", "error");
   }
+}
+
+async function restorePadHistory(direction) {
+  const currentPads = clonePads();
+  const result = direction === "undo" ? layoutHistory.peekUndo(currentPads) : layoutHistory.peekRedo(currentPads);
+  if (!result.changed) return;
+  const previousPads = pads;
+  pads = result.state;
+  renderPads();
+  selectPad(selectedPadIndex);
+  const previousKit = kits.get(currentKitId) || createKitRecord(kitSlotNumber(currentKitId) || 1);
+  const nextKit = {
+    ...previousKit,
+    id: currentKitId,
+    pads: clonePads(),
+    empty: false,
+    updatedAt: new Date().toISOString(),
+  };
+  if (!saveLayout(direction === "undo" ? "Pad edit undone." : "Pad edit redone.") || !(await persistKitRecord(nextKit))) {
+    pads = previousPads;
+    renderPads();
+    selectPad(selectedPadIndex);
+    saveLayout("Pad history change failed; the previous layout was preserved.");
+    setStatus("Pad history change failed; the previous layout was preserved.", "error");
+    return;
+  }
+  if (direction === "undo") layoutHistory.undo(currentPads);
+  else layoutHistory.redo(currentPads);
+  setKitDirty(false);
+  renderKitControls();
+  updateHistoryControls();
+  setStatus(direction === "undo" ? "Pad edit undone and saved." : "Pad edit redone and saved.", "success");
 }
 
 function clearSelectedSample() {
@@ -2865,6 +2985,25 @@ function bindEvents() {
   sceneBButton.addEventListener("click", () => setSequencerScene("scene-b"));
   sequencerPlayButton.addEventListener("click", () => void toggleSequencer());
   exportMidiButton.addEventListener("click", exportSceneMidi);
+  duplicateSceneButton.addEventListener("click", () => void duplicateSequencerScene());
+  undoSceneButton.addEventListener("click", () => void restoreSequencerHistory("undo"));
+  redoSceneButton.addEventListener("click", () => void restoreSequencerHistory("redo"));
+  sequencerStepTrackInput.addEventListener("change", () => {
+    selectedSequencerStep.trackIndex = clamp(Number(sequencerStepTrackInput.value) || 0, 0, 3);
+    renderSequencer();
+  });
+  sequencerStepIndexInput.addEventListener("change", () => {
+    selectedSequencerStep.stepIndex = clamp(Number(sequencerStepIndexInput.value) || 0, 0, 15);
+    renderSequencer();
+  });
+  sequencerStepProbabilityInput.addEventListener("input", () => {
+    sequencerStepProbabilityValue.textContent = `${Math.round(Number(sequencerStepProbabilityInput.value) * 100)}%`;
+  });
+  sequencerStepProbabilityInput.addEventListener("change", () => void updateSelectedSequencerStep({ probability: sequencerStepProbabilityInput.value }));
+  sequencerStepMicroInput.addEventListener("input", () => {
+    sequencerStepMicroValue.textContent = formatMicroTiming(sequencerStepMicroInput.value);
+  });
+  sequencerStepMicroInput.addEventListener("change", () => void updateSelectedSequencerStep({ microTiming: sequencerStepMicroInput.value }));
   document.querySelector("#sequencer-clear").addEventListener("click", () => void clearSequencer());
   sequencerSwingInput.addEventListener("input", () => {
     sequencerSwingValue.textContent = `${Math.round(Number(sequencerSwingInput.value) * 100)}%`;
@@ -2892,6 +3031,8 @@ function bindEvents() {
     }
   });
   saveLayoutButton.addEventListener("click", () => void saveActiveKit());
+  undoPadButton.addEventListener("click", () => void restorePadHistory("undo"));
+  redoPadButton.addEventListener("click", () => void restorePadHistory("redo"));
   exportLayoutButton.addEventListener("click", exportLayout);
   importLayoutInput.addEventListener("change", (event) => void importLayout(event));
   resetLayoutButton.addEventListener("click", () => void resetLayout());

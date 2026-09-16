@@ -15,6 +15,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: Each remaining gap has an owner package shape, dependencies/risks are visible, and rendered/hosted/device/DAW evidence are not conflated.
 - Evidence: Roadmap added on this feature branch; implementation status is anchored to the completed local branches and their recorded test/browser evidence; `main` remains untouched.
 
+## Package: Sequencer authoring and reversible edits — `codex/launchpad-sequencer-authoring-20260916`
+
+- Goal: Make the sequencer's existing probability and micro-timing data editable and make performance experimentation reversible.
+- Scope: Selected-step editor, keyboard-accessible track/step selection, probability/micro-timing persistence, scene duplication, per-scene undo/redo, pad undo/redo, and history reset on kit changes.
+- Non-goals: Timeline clips, piano roll, cloud collaboration, or automatic audio slicing.
+- Files: `index.html`, `style.css`, `app.js`, `src/history.js`, `src/sequencer.js`, `src/bootstrap.js`, `sw.js`, `test/site-dom.test.mjs`, `test/foundation.test.mjs`, `test/sequencer.test.mjs`, and this backlog/README.
+- Tests: `npm.cmd run validate`, bounded step/history contract tests, DOM contract, cache/module contract, fresh desktop browser smoke, and pad/scene undo interaction.
+- Acceptance: Every stored step field is reachable from labeled controls; scene duplicate and undo/redo are visible; pad undo/redo persists safely; kit changes clear stale histories; invalid values remain bounded.
+- Evidence: `npm.cmd run validate` passes 65 tests; fresh local browser render at `http://localhost:4181/` changed a step to 35% probability and −20% micro timing, confirmed scene undo, scene duplication, and pad undo; `main` remains untouched.
+
 ## Package: Record to perform — `codex/launchpad-record-perform-20260916`
 
 - Goal: Turn a live sound or voice idea into a reusable performance sample without leaving the local-first app.

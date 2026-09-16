@@ -48,6 +48,17 @@ export function toggleStep(pattern, trackIndex, stepIndex) {
   return next;
 }
 
+export function updateStep(pattern, trackIndex, stepIndex, changes = {}) {
+  const next = normalizePattern(pattern);
+  const track = next.tracks[trackIndex];
+  const step = track?.steps[stepIndex];
+  if (!step) return next;
+  if (typeof changes.on === "boolean") step.on = changes.on;
+  if (changes.probability !== undefined) step.probability = clamp(Number(changes.probability) || 0, 0, 1);
+  if (changes.microTiming !== undefined) step.microTiming = clamp(Number(changes.microTiming) || 0, -0.5, 0.5);
+  return next;
+}
+
 export function getStepEvents(pattern, stepIndex, random = Math.random) {
   const normalized = normalizePattern(pattern);
   return normalized.tracks

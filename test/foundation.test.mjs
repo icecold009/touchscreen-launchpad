@@ -89,8 +89,10 @@ test("history keeps bounded undo/redo state and clears redo after a new edit", (
   history.push({ value: 2 });
   history.push({ value: 3 });
   assert.equal(history.length, 2);
+  assert.deepEqual(history.peekUndo({ value: 4 }).state, { value: 3 });
   const undone = history.undo({ value: 4 });
   assert.deepEqual(undone.state, { value: 3 });
+  assert.deepEqual(history.peekRedo({ value: 3 }).state, { value: 4 });
   const redone = history.redo({ value: 5 });
   assert.deepEqual(redone.state, { value: 4 });
   history.push({ value: 6 });

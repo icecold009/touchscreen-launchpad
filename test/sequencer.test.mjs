@@ -8,6 +8,7 @@ import {
   getSwingOffset,
   normalizePattern,
   toggleStep,
+  updateStep,
 } from "../src/sequencer.js";
 
 test("patterns keep four tracks, bounded steps, swing, and probability", () => {
@@ -22,6 +23,10 @@ test("patterns keep four tracks, bounded steps, swing, and probability", () => {
   assert.equal(normalized.tracks[0].steps[0].probability, 1);
   assert.equal(normalized.tracks[0].steps[0].microTiming, 0.5);
   assert.equal(getSwingOffset(1, 0.5, 0.1), 0.05);
+  const edited = updateStep(toggled, 0, 0, { probability: 0.35, microTiming: -0.25 });
+  assert.equal(edited.tracks[0].steps[0].probability, 0.35);
+  assert.equal(edited.tracks[0].steps[0].microTiming, -0.25);
+  assert.equal(updateStep(edited, 99, 99, { probability: 0 }).tracks[0].steps[0].probability, 0.35);
 });
 
 test("sequencer runner starts on step zero and stops its timer", () => {

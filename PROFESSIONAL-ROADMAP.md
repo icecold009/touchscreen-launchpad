@@ -19,12 +19,12 @@ The current product already covers most of the performance loop. The remaining w
 | Recording | Permission-gated microphone plus app mix, bounded local takes, IndexedDB storage, assign-to-pad | Pause/overdub/markers, take rename, waveform review, PCM/WAV fallback and recording-device recovery | P1 |
 | Sample lab | Waveform, trim, loop region, reverse, cents pitch, live-speed fallback, pan, filter, attack/release, delay/reverb send | Manual/automatic slicing to pads, fades, normalization, zoom, batch edits, true time-stretch | P0/P1 |
 | Sample library | Shared local library, search, sort, folder import, natural ordering, deduplication, storage bounds | Drag/drop, tags/favorites, orphan cleanup, batch assignment, richer repair/preview tools | P1 |
-| Arrangement | Two persistent A/B scenes, four tracks, 16 steps, swing, probability/micro-timing data, scene playback | Authoring controls for probability/micro-timing, scene launch quantization, scene chaining, pattern copy/duplicate | P0/P1 |
+| Arrangement | Two persistent A/B scenes, four tracks, 16 steps, swing, editable probability/micro-timing, scene duplication, reversible edits, scene playback | Scene launch quantization, scene chaining, pattern copy/duplicate beyond whole-scene duplication | P1 |
 | Live effects | Per-pad delay/reverb sends, bounded master delay/reverb, filter/pan, local diagnostics, effects included in capture | Master EQ, compressor/limiter, safer feedback protection, effect snapshots/macros, output/cue routing | P1 |
 | MIDI | Optional Web MIDI input/output, learn mapping, velocity-aware input, gate/hold note-off, outbound note feedback | CC/aftertouch mapping, clock sync, LED color/state feedback, multi-device profiles, robust reconnect/fallback | P1 |
 | Export | JSON layout, `.launchpack` audio backup, local take download, deterministic two-scene MIDI | Offline rendered WAV, master/stem export, event/performance export, import verification in a DAW | P1/P2 |
-| Persistence | Local storage + IndexedDB v3, versioned pad migration, five kits, bounded history foundation, offline PWA | User-visible undo/redo, autosave checkpoints, launchpack v2 migration, conflict/repair UX | P0/P1 |
-| Accessibility | Semantic controls, keyboard/focus path, live status messages, reduced-motion styling, fallback when MIDI/mic are unavailable | Keyboard step editing, high-contrast/focus audit at performance distance, rate-limited announcements, screen-reader export feedback | P0/P1 |
+| Persistence | Local storage + IndexedDB v3, versioned pad migration, five kits, user-visible pad/scene undo-redo, offline PWA | Autosave checkpoints, launchpack v2 migration, conflict/repair UX | P1 |
+| Accessibility | Semantic controls, keyboard/focus path, labeled step editor, live status messages, reduced-motion styling, fallback when MIDI/mic are unavailable | High-contrast/focus audit at performance distance, rate-limited announcements, screen-reader export feedback | P1 |
 | Delivery | Static no-build app, Vercel canonical deployment, secondary Pages workflow, service-worker cache contract | Release smoke matrix, hosted offline/update proof after each release, device matrix, optional observability | P0 |
 | Content and licensing | Local-only samples with repository licensing guidance; cleared sample preparation boundary | Starter kits with source/license manifest and no copyrighted artist recordings/stems | P1 |
 
@@ -40,6 +40,7 @@ These are complete on local feature branches and are intentionally stacked rathe
 6. Optional Web MIDI bridge: discovery, learn mapping, velocity, release handling, output feedback, and unsupported-browser fallback.
 7. Effects/master bus: delay/reverb sends and returns, recording-bus inclusion, and audio diagnostics.
 8. Performance export: local take download and deterministic `.mid` export for both scenes with default/learned pad notes.
+9. Sequencer authoring and reversible edits: selected-step probability/micro-timing controls, scene duplication, scene undo/redo, pad undo/redo, and kit-scoped history reset.
 
 Evidence boundary: local contract and rendered browser evidence are current for these packages. Physical hardware, microphone capture, DAW import, hosted production behavior, and installed-PWA behavior remain environment-specific until separately verified.
 
@@ -47,13 +48,14 @@ Evidence boundary: local contract and rendered browser evidence are current for 
 
 ### P0 — Make the existing features genuinely stage-safe
 
-#### Package A: Sequencer authoring and reversible edits
+#### Package A: Sequencer authoring and reversible edits — complete
 
 - Goal: expose the probability and micro-timing fields that already exist in the data model and make experimentation reversible.
 - Scope: selected-step editor, keyboard-accessible step navigation, probability/micro-timing persistence, pattern copy/duplicate, user-visible undo/redo for pad and pattern edits, dirty-state reconciliation.
 - Non-goals: timeline clips, piano roll, cloud collaboration.
 - Acceptance: every stored sequencing field is editable without hidden gestures; undo/redo never loses samples; A/B scenes survive reload; invalid values normalize deterministically.
 - Verification: contract tests, reload smoke, keyboard/focus smoke, interrupted-save rollback, mobile overflow check.
+- Evidence: `npm.cmd run validate` passes 65 tests; fresh browser interaction at `http://localhost:4181/` exposed the selected-step editor, persisted 35% probability and −20% micro timing, confirmed scene undo and duplication, and restored a saved pad label with Undo pad. The browser/DAW/physical-device boundary remains unchanged.
 
 #### Package B: Audio clock and device resilience
 
