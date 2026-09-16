@@ -10,6 +10,7 @@ import {
   toggleStep,
   updateStep,
 } from "../src/sequencer.js";
+import { createClockedSequencerRunner } from "../src/clocked-sequencer.js";
 
 test("patterns keep four tracks, bounded steps, swing, and probability", () => {
   const pattern = createPattern();
@@ -49,6 +50,34 @@ test("sequencer runner starts on step zero and stops its timer", () => {
   timers[0].callback();
   assert.equal(events[1].stepIndex, 1);
   assert.equal(events[1].swingOffset, 0.03125);
+  runner.stop();
+  assert.equal(runner.running, false);
+  assert.equal(runner.stepIndex, 0);
+});
+
+test("clocked sequencer schedules from an audio clock and stops cleanly", () => {
+  let now = 10;
+  const timers = [];
+  const events = [];
+  const runner = createClockedSequencerRunner({
+    clock: () => now,
+    getBpm: () => 120,
+    scheduleAhead: 0.3,
+    setTimeoutFn: (callback, delay) => {
+      timers.push({ callback, delay });
+      return timers.length - 1;
+    },
+    clearTimeoutFn: () => {},
+    onStep: (event) => events.push(event),
+  });
+  runner.start();
+  assert.equal(runner.running, true);
+  assert.equal(timers[0].delay, 0);
+  timers[0].callback();
+  assert.equal(events[0].stepIndex, 0);
+  assert.equal(events[0].at, 10);
+  assert.equal(events[1].stepIndex, 1);
+  assert.equal(events[1].at, 10.125);
   runner.stop();
   assert.equal(runner.running, false);
   assert.equal(runner.stepIndex, 0);

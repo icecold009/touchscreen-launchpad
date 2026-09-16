@@ -1,20 +1,22 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=39";
-import { createInputAdapter } from "./src/input-adapter.js?version=39";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=39";
-import { createPointerState } from "./src/pointer-state.js?version=39";
-import { attachStorageRequest } from "./src/storage-request.js?version=39";
-import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=39";
-import { getNextQuantizedTime } from "./src/transport.js?version=39";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=39";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=39";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=39";
-import { createPattern, createSequencerRunner, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=39";
-import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=39";
-import { createMidiFile } from "./src/midi-file.js?version=39";
-import { createImpulseResponse, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=39";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=39";
+import { createHistory } from "./src/history.js?version=40";
+import { createInputAdapter } from "./src/input-adapter.js?version=40";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=40";
+import { createPointerState } from "./src/pointer-state.js?version=40";
+import { attachStorageRequest } from "./src/storage-request.js?version=40";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=40";
+import { getNextQuantizedTime } from "./src/transport.js?version=40";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=40";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=40";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=40";
+import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=40";
+import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=40";
+import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=40";
+import { createMidiFile } from "./src/midi-file.js?version=40";
+import { createImpulseResponse, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=40";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=40";
+import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=40";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -186,6 +188,7 @@ let masterEffects = normalizeMasterEffects();
 let metronomeTimer;
 let countInPromise;
 let repeatTimers = new Map();
+const sequencerTimers = new Set();
 let activeSceneId = "scene-a";
 let selectedSequencerStep = { trackIndex: 0, stepIndex: 0 };
 let midiAccess;
@@ -196,14 +199,24 @@ let activeMidiOutput;
 const midiLearnState = createMidiLearnState({
   onLearned: ({ note, channel }) => void saveMidiMapping({ note, channel }),
 });
-const sequencerRunner = createSequencerRunner({
+const sequencerRunner = createClockedSequencerRunner({
+  clock: () => audioContext?.currentTime || 0,
   getBpm: () => Number(tempoInput.value) || 120,
   getSwing: () => Number(sequencerSwingInput.value) || 0,
-  onStep: ({ stepIndex, swingOffset }) => {
+  onStep: ({ stepIndex, swingOffset, stepDuration, at }) => {
     const pattern = getActiveSequencerPattern();
     sequencerStatus.textContent = `${activeSceneId === "scene-a" ? "Scene A" : "Scene B"} · Step ${stepIndex + 1}/16`;
     for (const event of getStepEvents(pattern, stepIndex)) {
-      window.setTimeout(() => void triggerPad(event.padIndex, { linked: true, bypassCountIn: true, fromRepeat: true }), Math.max(0, (swingOffset + event.microTiming * (60 / (Number(tempoInput.value) || 120) / 4)) * 1000));
+      const targetTime = at + swingOffset + event.microTiming * stepDuration;
+      const delay = Math.max(0, (targetTime - (audioContext?.currentTime || targetTime)) * 1000);
+      const generation = playbackGeneration;
+      const timer = window.setTimeout(() => {
+        sequencerTimers.delete(timer);
+        if (sequencerRunner.running && generation === playbackGeneration) {
+          void triggerPad(event.padIndex, { linked: true, bypassCountIn: true, fromRepeat: true });
+        }
+      }, delay);
+      sequencerTimers.add(timer);
     }
     renderSequencer();
   },
@@ -1632,12 +1645,57 @@ function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function updateAudioDiagnostics() {
+  if (!audioContext || !audioDiagnostics) return;
+  audioDiagnostics.textContent = describeAudioState(audioContext.state, {
+    sampleRate: audioContext.sampleRate,
+    baseLatency: audioContext.baseLatency,
+  });
+}
+
+function handleAudioContextStateChange() {
+  if (!audioContext) return;
+  const state = normalizeAudioContextState(audioContext.state);
+  updateAudioDiagnostics();
+  if (state === "running") return;
+  clearSequencerTimers();
+  if (sequencerRunner.running) {
+    sequencerRunner.stop();
+    sequencerPlayButton.textContent = "Play sequence";
+    renderSequencer();
+  }
+  stopAll({ announce: false });
+  setStatus(
+    state === "suspended"
+      ? "Audio was suspended. Press Check audio or interact with the page to resume."
+      : state === "closed"
+        ? "Audio closed. Reload the page before performing again."
+        : "Audio is unavailable in this browser.",
+    "error",
+  );
+}
+
+function handleAudioDeviceChange() {
+  if (recordingMicStream && !hasLiveMediaTracks(recordingMicStream)) {
+    recordingSession.cancel();
+    stopRecordingTracks();
+    updateRecordingState({ state: "idle" });
+    setStatus("The microphone device disconnected. The take was discarded safely.", "error");
+    return;
+  }
+  if (audioContext) {
+    audioDiagnostics.textContent = "Device list changed · check audio";
+    setStatus("Audio devices changed. Check audio before the next performance.", "info");
+  }
+}
+
 function getAudioContext() {
   if (!audioContext) {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) throw new Error("Web Audio is not supported in this browser.");
 
     audioContext = new AudioContextClass();
+    audioContext.addEventListener?.("statechange", handleAudioContextStateChange);
     masterGain = audioContext.createGain();
     recordingDestination = typeof audioContext.createMediaStreamDestination === "function"
       ? audioContext.createMediaStreamDestination()
@@ -1703,8 +1761,10 @@ function updateMasterEffectLabels() {
 async function showAudioDiagnostics() {
   try {
     const context = await prepareAudio();
-    const latency = Number.isFinite(context.baseLatency) ? ` · ${Math.round(context.baseLatency * 1000)} ms latency` : "";
-    audioDiagnostics.textContent = `${context.state} · ${context.sampleRate} Hz${latency}`;
+    audioDiagnostics.textContent = describeAudioState(context.state, {
+      sampleRate: context.sampleRate,
+      baseLatency: context.baseLatency,
+    });
     setStatus("Audio is ready for local playback and capture.", "success");
   } catch (error) {
     audioDiagnostics.textContent = "Audio unavailable";
@@ -1866,6 +1926,11 @@ function stopRepeat(index) {
   repeatTimers.delete(index);
 }
 
+function clearSequencerTimers() {
+  for (const timer of sequencerTimers) window.clearTimeout(timer);
+  sequencerTimers.clear();
+}
+
 function stopGroupPeers(index, groupKey) {
   for (const peerIndex of getGroupPeers(pads, index, groupKey)) stopPad(peerIndex, { quantized: false });
 }
@@ -1904,6 +1969,7 @@ function stopPad(index, { quantized = false, announce = false } = {}) {
 function stopAll({ announce = true } = {}) {
   playbackGeneration += 1;
   clearBeatCountdown();
+  clearSequencerTimers();
   if (sequencerRunner.running) {
     sequencerRunner.stop();
     sequencerPlayButton.textContent = "Play sequence";
@@ -2949,6 +3015,7 @@ function bindEvents() {
     if (recordingSession.state === "recording") recordingSession.cancel();
     stopRecordingTracks();
   });
+  navigator.mediaDevices?.addEventListener?.("devicechange", handleAudioDeviceChange);
   window.addEventListener("orientationchange", clearPointerState);
   padEditor.addEventListener("submit", (event) => void saveSelectedPad(event));
   clearSampleButton.addEventListener("click", clearSelectedSample);

@@ -14,6 +14,8 @@ const requiredFiles = [
   "src/migrations.js",
   "src/midi.js",
   "src/midi-file.js",
+  "src/audio-lifecycle.js",
+  "src/clocked-sequencer.js",
   "src/pointer-state.js",
   "src/storage-request.js",
   "src/download.js",

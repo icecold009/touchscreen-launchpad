@@ -35,6 +35,8 @@ test("module URLs share one cache version and remain in the offline shell", () =
   const sequencerVersion = app.match(/sequencer\.js\?version=(\d+)/)?.[1];
   const midiVersion = app.match(/midi\.js\?version=(\d+)/)?.[1];
   const midiFileVersion = app.match(/midi-file\.js\?version=(\d+)/)?.[1];
+  const audioLifecycleVersion = app.match(/audio-lifecycle\.js\?version=(\d+)/)?.[1];
+  const clockedSequencerVersion = app.match(/clocked-sequencer\.js\?version=(\d+)/)?.[1];
   const effectsVersion = app.match(/effects\.js\?version=(\d+)/)?.[1];
   const cacheVersion = serviceWorker.match(/touchscreen-launchpad-v(\d+)/)?.[1];
 
@@ -49,6 +51,8 @@ test("module URLs share one cache version and remain in the offline shell", () =
   assert.equal(sequencerVersion, htmlVersion);
   assert.equal(midiVersion, htmlVersion);
   assert.equal(midiFileVersion, htmlVersion);
+  assert.equal(audioLifecycleVersion, htmlVersion);
+  assert.equal(clockedSequencerVersion, htmlVersion);
   assert.equal(effectsVersion, htmlVersion);
   assert.equal(cacheVersion, htmlVersion);
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/bootstrap\\.js\\?version=${htmlVersion}"`));
@@ -62,6 +66,8 @@ test("module URLs share one cache version and remain in the offline shell", () =
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/sequencer\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/midi\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/midi-file\\.js\\?version=${htmlVersion}"`));
+  assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/audio-lifecycle\\.js\\?version=${htmlVersion}"`));
+  assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/clocked-sequencer\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/effects\\.js\\?version=${htmlVersion}"`));
   for (const moduleName of ["history", "input-adapter", "migrations", "transport", "voice-registry"]) {
     assert.match(app, new RegExp(`${moduleName}\\.js\\?version=${htmlVersion}`));

@@ -21,6 +21,7 @@ The feature-by-feature delivery plan, acceptance criteria, and explicit deferred
 - Waveform/sample shaping with trim, loop regions, reverse, pitch, live-speed fallback, pan, filter, envelope, and per-pad delay/reverb sends.
 - Four-track A/B scenes with swing, probability, micro-timing, repeat scheduling, fullscreen performance mode, and deterministic MIDI export.
 - Selected-step probability/micro-timing editing, scene duplication, and user-visible pad/scene undo-redo.
+- Audio-clock lookahead sequencing with explicit suspended/closed diagnostics, stale-timer cleanup, and microphone device-loss handling.
 - Optional Web MIDI input/output with learned pad mappings and velocity-aware triggering.
 - Offline application shell through a service worker.
 - Preview tones for pads without an assigned sample.

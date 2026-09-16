@@ -25,6 +25,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: Every stored step field is reachable from labeled controls; scene duplicate and undo/redo are visible; pad undo/redo persists safely; kit changes clear stale histories; invalid values remain bounded.
 - Evidence: `npm.cmd run validate` passes 65 tests; fresh local browser render at `http://localhost:4181/` changed a step to 35% probability and −20% micro timing, confirmed scene undo, scene duplication, and pad undo; `main` remains untouched.
 
+## Package: Audio clock and device resilience — `codex/launchpad-audio-clock-resilience-20260916`
+
+- Goal: Keep sequenced performance timing anchored to the audio clock and make context/device failure recoverable without leaving false playing state.
+- Scope: Bounded audio-clock lookahead runner with main-thread fallback, context state diagnostics, stale sequencer-timer cleanup, microphone device-loss handling, service-worker/cache contracts, and lifecycle tests.
+- Non-goals: AudioWorklet/worker timing, multichannel routing, long-session profiling, physical output-device switching, hosted installed-PWA proof, or a DAW timeline.
+- Files: `app.js`, `src/audio-lifecycle.js`, `src/clocked-sequencer.js`, `src/transport.js`, `index.html`, `sw.js`, `src/bootstrap.js`, `scripts/validate-site.mjs`, `package.json`, and lifecycle/sequencer/module/PWA tests.
+- Tests: `npm.cmd run validate`, lifecycle state/track tests, bounded clock-runner tests, module/cache contracts, `git diff --check`, and fresh browser diagnostics plus scene play/stop smoke.
+- Acceptance: Audio diagnostics expose running/suspended/closed/unavailable states; sequencer playback enters and exits cleanly; scheduled timers are bounded and cleared on stop/interruption; live microphone loss is reported without corrupting the kit.
+- Evidence: `npm.cmd run validate` passes 63 tests; fresh local browser render at `http://localhost:4181/` reports `running · 48000 Hz · 10 ms latency`, enters `Scene A · Playing`, returns to `Scene A · Ready` after Stop sequence, and reports no console errors or warnings. Real device switching, long-session stress, AudioWorklet/worker timing, hosted behavior, and physical hardware remain unclaimed; `main` remains untouched.
+
 ## Package: Record to perform — `codex/launchpad-record-perform-20260916`
 
 - Goal: Turn a live sound or voice idea into a reusable performance sample without leaving the local-first app.

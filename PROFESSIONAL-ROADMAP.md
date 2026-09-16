@@ -15,7 +15,7 @@ The current product already covers most of the performance loop. The remaining w
 | --- | --- | --- | --- |
 | Pad surface | 4×4 touch, mouse, keyboard, focus, 16-color diagonal palette, fullscreen perform mode | Pressure/aftertouch gestures, optional pad velocity curves, long-session latency profiling | P1 |
 | Pad playback | One-shot, loop, trigger, gate, hold, retrigger, repeat, echo, quantized launch/stop, attack/release, pitch, live-speed fallback, pan, filter | Complex high-quality time-stretch, layered/chromatic pad modes, per-pad modulation/macros | P1 |
-| Voice safety | Per-pad/global voice caps, oldest-first stealing, de-click fades, choke/mute/link groups, stop-all cleanup | AudioWorklet/worker clock and device-loss recovery under long sessions | P0 |
+| Voice safety | Per-pad/global voice caps, oldest-first stealing, de-click fades, choke/mute/link groups, stop-all cleanup, audio-clock lookahead, stale-timer cleanup, explicit context/device-loss handling | AudioWorklet/worker clock and long-session latency/stress profiling | P0 |
 | Recording | Permission-gated microphone plus app mix, bounded local takes, IndexedDB storage, assign-to-pad | Pause/overdub/markers, take rename, waveform review, PCM/WAV fallback and recording-device recovery | P1 |
 | Sample lab | Waveform, trim, loop region, reverse, cents pitch, live-speed fallback, pan, filter, attack/release, delay/reverb send | Manual/automatic slicing to pads, fades, normalization, zoom, batch edits, true time-stretch | P0/P1 |
 | Sample library | Shared local library, search, sort, folder import, natural ordering, deduplication, storage bounds | Drag/drop, tags/favorites, orphan cleanup, batch assignment, richer repair/preview tools | P1 |
@@ -41,6 +41,7 @@ These are complete on local feature branches and are intentionally stacked rathe
 7. Effects/master bus: delay/reverb sends and returns, recording-bus inclusion, and audio diagnostics.
 8. Performance export: local take download and deterministic `.mid` export for both scenes with default/learned pad notes.
 9. Sequencer authoring and reversible edits: selected-step probability/micro-timing controls, scene duplication, scene undo/redo, pad undo/redo, and kit-scoped history reset.
+10. Audio clock and device resilience: audio-clock lookahead scheduling, explicit suspended/closed/unavailable diagnostics, stale sequencer-timer cleanup, and microphone device-loss handling.
 
 Evidence boundary: local contract and rendered browser evidence are current for these packages. Physical hardware, microphone capture, DAW import, hosted production behavior, and installed-PWA behavior remain environment-specific until separately verified.
 
@@ -57,13 +58,13 @@ Evidence boundary: local contract and rendered browser evidence are current for 
 - Verification: contract tests, reload smoke, keyboard/focus smoke, interrupted-save rollback, mobile overflow check.
 - Evidence: `npm.cmd run validate` passes 65 tests; fresh browser interaction at `http://localhost:4181/` exposed the selected-step editor, persisted 35% probability and −20% micro timing, confirmed scene undo and duplication, and restored a saved pad label with Undo pad. The browser/DAW/physical-device boundary remains unchanged.
 
-#### Package B: Audio clock and device resilience
+#### Package B: Audio clock and device resilience — complete for the current browser boundary
 
 - Goal: remove timer drift and make context/device failure recoverable during a performance.
-- Scope: AudioWorklet or worker-backed lookahead clock where supported, main-thread fallback, suspend/resume recovery, output-device loss messaging, stale timer cleanup, long-run voice/FX stress tests.
+- Scope: Audio-clock lookahead scheduling with a bounded main-thread fallback, suspend/close/unavailable recovery, input-device loss messaging, stale timer cleanup, and bounded runner tests.
 - Non-goals: multichannel routing or a DAW timeline.
 - Acceptance: a suspended/closed context never leaves pads or scenes falsely playing; scheduled events remain bounded; fallback is explicit and the local surface stays usable.
-- Verification: mocked context/device-loss tests, 10-minute stress session, browser suspend/resume smoke, hosted installed-PWA smoke.
+- Verification: audio lifecycle and clocked-runner contract tests, browser audio diagnostics smoke, scene play/stop smoke, and browser console inspection. A real 10-minute stress session, output-device switching, hosted installed-PWA behavior, and AudioWorklet/worker timing remain separate evidence or follow-up work.
 
 #### Package C: Slice-to-pads foundation
 
