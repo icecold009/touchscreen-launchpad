@@ -41,7 +41,7 @@ test("manifest and app shell use relative installable-PWA metadata", () => {
   assert.equal(manifest.display, "standalone");
   assert.ok(manifest.icons.length > 0);
   assert.match(html, /<link rel="manifest" href="manifest\.webmanifest" \/>/);
-  assert.match(html, /<meta name="theme-color" content="#f5f5f7" \/>/);
+  assert.match(html, /<meta name="theme-color" content="#070b16" \/>/);
 });
 
 test("Pages validates and stages the same module graph that local checks exercise", () => {

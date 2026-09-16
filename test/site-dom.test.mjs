@@ -110,6 +110,19 @@ test("the launchpad DOM exposes its primary interaction surface", () => {
   assert.match(html, /class=["'][^"']*volume-rail[^"']*["']/i);
   assert.match(html, /id=["']master-volume["'][^>]+aria-orientation=["']vertical["']/i);
   assert.match(html, /class=["'][^"']*editor-nav[^"']*["']/i);
+  assert.match(html, /class=["'][^"']*feature-nav[^"']*["']/i);
+  for (const target of [
+    "performance-surface",
+    "performance-capture",
+    "sequencer-panel",
+    "midi-panel",
+    "effects-panel",
+    "kit-tools",
+    "pad-setup",
+    "sample-library",
+  ]) {
+    assert.match(html, new RegExp(`href=["']#${target}["']`), `quick access is missing #${target}`);
+  }
   assert.match(html, /href=["']#pad-editor["']/i);
   assert.match(html, /href=["']#layout-tools["']/i);
   assert.match(html, /href=["']#sample-library["']/i);

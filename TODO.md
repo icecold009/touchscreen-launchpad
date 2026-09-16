@@ -5,6 +5,16 @@ Reviewed: feature branch `codex/vercel-canonical-hosting-20260914` during the 20
 Release baseline: PR #7 was merged to `main` as `9c214a8`.
 Audit package baseline: `1dde9e9`; the merged release contains the security hardening, release-workflow pinning, and hosted Vercel deployment below.
 
+## Package: UI information architecture and dark-only surface — `codex-ui-dark-access-20260916`
+
+- Goal: Make the existing professional feature set easy to discover and keep the entire product surface dark-only.
+- Scope: Persistent workspace quick-access rail for play, record, arrange, MIDI, effects, kits, pad shaping, and samples; anchor targets for every major feature; editor collapse access at every viewport; dark-only runtime palette; theme metadata and service-worker cache version; active quick-link feedback.
+- Non-goals: New audio capabilities, a timeline DAW, theme switching, cloud sync, or changes to local sample behavior.
+- Files: `index.html`, `style.css`, `app.js`, `manifest.webmanifest`, `sw.js`, `test/site-dom.test.mjs`, `test/pwa.test.mjs`, and this backlog entry.
+- Tests: `npm.cmd run validate`, `git diff --check`, fresh localhost desktop render, quick-link navigation, editor collapse/expand smoke, and computed dark-palette inspection.
+- Acceptance: Every major feature has a visible keyboard/touch-accessible jump target; the first viewport is dark and readable; the editor can be collapsed and restored; stale PWA assets are invalidated; no existing feature control disappears.
+- Evidence: Local browser at `http://localhost:4181/?cachebust=52` renders the dark workspace map and feature cards; Samples navigation reaches `#sample-library`; editor collapse reports `aria-expanded=false` and restores to `true`; computed `color-scheme` is `dark` with zero light surface matches; `npm.cmd run validate` passes 79 tests.
+
 ## Package: Professional roadmap — `codex/launchpad-professional-roadmap-20260916`
 
 - Goal: Make the research actionable without hiding unfinished capabilities behind a generic “professional features” label.

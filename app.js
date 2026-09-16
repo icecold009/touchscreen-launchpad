@@ -1,27 +1,27 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=50";
-import { createInputAdapter } from "./src/input-adapter.js?version=50";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=50";
-import { createPointerState } from "./src/pointer-state.js?version=50";
-import { attachStorageRequest } from "./src/storage-request.js?version=50";
-import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=50";
-import { getNextQuantizedTime } from "./src/transport.js?version=50";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=50";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=50";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=50";
-import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=50";
-import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=50";
-import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=50";
-import { createMidiFile } from "./src/midi-file.js?version=50";
-import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=50";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=50";
-import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=50";
-import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=50";
-import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=50";
-import { createPerformanceEvents, createPerformanceLog, checksumBytes, estimateRenderBytes, isRenderWithinGuardrails, normalizeRenderOptions } from "./src/performance-export.js?version=50";
-import { createArrangement, formatSceneChain, getNextChainPosition, getSceneName, normalizeArrangement, normalizeSceneId, parseSceneChain, shouldLaunchAtStep } from "./src/arrangement.js?version=50";
-import { encodePcmWav } from "./src/wav.js?version=50";
+import { createHistory } from "./src/history.js?version=52";
+import { createInputAdapter } from "./src/input-adapter.js?version=52";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=52";
+import { createPointerState } from "./src/pointer-state.js?version=52";
+import { attachStorageRequest } from "./src/storage-request.js?version=52";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=52";
+import { getNextQuantizedTime } from "./src/transport.js?version=52";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=52";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=52";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=52";
+import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=52";
+import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=52";
+import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=52";
+import { createMidiFile } from "./src/midi-file.js?version=52";
+import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=52";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=52";
+import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=52";
+import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=52";
+import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=52";
+import { createPerformanceEvents, createPerformanceLog, checksumBytes, estimateRenderBytes, isRenderWithinGuardrails, normalizeRenderOptions } from "./src/performance-export.js?version=52";
+import { createArrangement, formatSceneChain, getNextChainPosition, getSceneName, normalizeArrangement, normalizeSceneId, parseSceneChain, shouldLaunchAtStep } from "./src/arrangement.js?version=52";
+import { encodePcmWav } from "./src/wav.js?version=52";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -183,6 +183,7 @@ const redoPadButton = document.querySelector("#redo-pad");
 const editorPanel = document.querySelector(".editor-panel");
 const editorToggle = document.querySelector("#editor-toggle");
 const editorNavLinks = [...document.querySelectorAll(".editor-nav-link")];
+const featureNavLinks = [...document.querySelectorAll(".feature-nav-link")];
 const saveLayoutButton = document.querySelector("#save-layout");
 const exportLayoutButton = document.querySelector("#export-layout");
 const importLayoutInput = document.querySelector("#import-layout");
@@ -4501,6 +4502,11 @@ function bindEvents() {
   editorNavLinks.forEach((link) => {
     link.addEventListener("click", () => {
       editorNavLinks.forEach((navLink) => navLink.classList.toggle("is-current", navLink === link));
+    });
+  });
+  featureNavLinks.forEach((link) => {
+    link.addEventListener("click", () => {
+      featureNavLinks.forEach((navLink) => navLink.classList.toggle("is-current", navLink === link));
     });
   });
 
