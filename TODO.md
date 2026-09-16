@@ -5,6 +5,16 @@ Reviewed: feature branch `codex/vercel-canonical-hosting-20260914` during the 20
 Release baseline: PR #7 was merged to `main` as `9c214a8`.
 Audit package baseline: `1dde9e9`; the merged release contains the security hardening, release-workflow pinning, and hosted Vercel deployment below.
 
+## Package: Simpler workspace sections and subdued pad gradient — `codex-simplify-navigation-pad-gradient-20260916`
+
+- Goal: Make the launchpad's first navigation layer understandable at a glance and give pads a subdued vertical gradient.
+- Scope: Grouped Perform/Build/Mix/Library navigation, retained direct deep links for existing tools, visible Backup destination, top-to-bottom pad gradient, grayscale/dim presentation without mutating stored pad colors, and service-worker/module cache version.
+- Non-goals: Audio behavior, kit persistence schema, slider behavior, theme switching, or hosted deployment.
+- Files: `index.html`, `style.css`, `app.js`, `src/bootstrap.js`, `sw.js`, and this backlog entry.
+- Tests: `npm.cmd run validate`, `git diff --check`, fresh localhost desktop render, grouped-navigation screenshot/AX check, deep-link interaction, pad gradient/computed-style inspection, and console health.
+- Acceptance: The first viewport communicates four simple sections; existing deep links remain reachable; pads visibly transition vertically from lighter top to darker bottom and are less bright; no runtime errors or regressions.
+- Evidence: Local browser at `http://localhost:4181/?cachebust=58` renders four grouped navigation cards and the pad grid; AX state exposes Perform, Build, Mix, and Library groups; Samples navigation reaches `#sample-library`; computed pad style reports a 180-degree linear gradient, `grayscale(1)`, and 16 pads; browser warnings/errors are empty; `npm.cmd run validate` passes 79 tests.
+
 ## Package: UI information architecture and dark-only surface — `codex-ui-dark-access-20260916`
 
 - Goal: Make the existing professional feature set easy to discover and keep the entire product surface dark-only.

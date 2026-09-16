@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#070b16" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=57" />
+    <link rel="stylesheet" href="style.css?version=58" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -24,45 +24,54 @@
         </div>
       </header>
 
-      <nav class="feature-nav" aria-label="Workspace shortcuts">
+      <nav class="feature-nav" aria-label="Workspace sections">
         <div class="feature-nav-heading">
           <span class="eyebrow">Workspace map</span>
-          <strong>Quick access</strong>
-          <span class="feature-nav-hint">Jump straight to any performance tool</span>
+          <strong>Start here</strong>
+          <span class="feature-nav-hint">Choose a section, then open a focused tool.</span>
         </div>
-        <div class="feature-nav-links">
-          <a class="feature-nav-link is-current" href="#performance-surface">
-            <span class="feature-nav-number">01</span>
-            <span><strong>Play</strong><small>16 pads</small></span>
-          </a>
-          <a class="feature-nav-link" href="#performance-capture">
-            <span class="feature-nav-number">02</span>
-            <span><strong>Record</strong><small>Capture a take</small></span>
-          </a>
-          <a class="feature-nav-link" href="#sequencer-panel">
-            <span class="feature-nav-number">03</span>
-            <span><strong>Arrange</strong><small>Scenes &amp; steps</small></span>
-          </a>
-          <a class="feature-nav-link" href="#midi-panel">
-            <span class="feature-nav-number">04</span>
-            <span><strong>MIDI</strong><small>Hardware bridge</small></span>
-          </a>
-          <a class="feature-nav-link" href="#effects-panel">
-            <span class="feature-nav-number">05</span>
-            <span><strong>Effects</strong><small>Master bus</small></span>
-          </a>
-          <a class="feature-nav-link" href="#kit-tools">
-            <span class="feature-nav-number">06</span>
-            <span><strong>Kits</strong><small>Switch &amp; save</small></span>
-          </a>
-          <a class="feature-nav-link" href="#pad-setup">
-            <span class="feature-nav-number">07</span>
-            <span><strong>Shape</strong><small>Pad editor</small></span>
-          </a>
-          <a class="feature-nav-link" href="#sample-library">
-            <span class="feature-nav-number">08</span>
-            <span><strong>Samples</strong><small>Library &amp; backup</small></span>
-          </a>
+        <div class="feature-nav-groups">
+          <section class="feature-nav-group" aria-labelledby="feature-nav-perform">
+            <div class="feature-nav-group-heading" id="feature-nav-perform">
+              <span class="feature-nav-number">01</span>
+              <span><strong>Perform</strong><small>Make sound</small></span>
+            </div>
+            <div class="feature-nav-group-links">
+              <a class="feature-nav-link is-current" href="#performance-surface"><span><strong>Play</strong><small>16 pads</small></span></a>
+              <a class="feature-nav-link" href="#performance-capture"><span><strong>Record</strong><small>Capture a take</small></span></a>
+              <a class="feature-nav-link" href="#kit-tools"><span><strong>Kits</strong><small>Switch sounds</small></span></a>
+            </div>
+          </section>
+          <section class="feature-nav-group" aria-labelledby="feature-nav-build">
+            <div class="feature-nav-group-heading" id="feature-nav-build">
+              <span class="feature-nav-number">02</span>
+              <span><strong>Build</strong><small>Shape the set</small></span>
+            </div>
+            <div class="feature-nav-group-links">
+              <a class="feature-nav-link" href="#sequencer-panel"><span><strong>Arrange</strong><small>Scenes &amp; steps</small></span></a>
+              <a class="feature-nav-link" href="#pad-setup"><span><strong>Shape</strong><small>Pad editor</small></span></a>
+            </div>
+          </section>
+          <section class="feature-nav-group" aria-labelledby="feature-nav-mix">
+            <div class="feature-nav-group-heading" id="feature-nav-mix">
+              <span class="feature-nav-number">03</span>
+              <span><strong>Mix</strong><small>Control the sound</small></span>
+            </div>
+            <div class="feature-nav-group-links">
+              <a class="feature-nav-link" href="#effects-panel"><span><strong>Effects</strong><small>Master bus</small></span></a>
+              <a class="feature-nav-link" href="#midi-panel"><span><strong>MIDI</strong><small>Hardware bridge</small></span></a>
+            </div>
+          </section>
+          <section class="feature-nav-group" aria-labelledby="feature-nav-library">
+            <div class="feature-nav-group-heading" id="feature-nav-library">
+              <span class="feature-nav-number">04</span>
+              <span><strong>Library</strong><small>Manage sounds</small></span>
+            </div>
+            <div class="feature-nav-group-links">
+              <a class="feature-nav-link" href="#sample-library"><span><strong>Samples</strong><small>Browse audio</small></span></a>
+              <a class="feature-nav-link" href="#layout-tools"><span><strong>Backup</strong><small>Transfer kits</small></span></a>
+            </div>
+          </section>
         </div>
       </nav>
 
@@ -729,6 +738,6 @@
       </section>
     </main>
 
-            <script type="module" src="src/bootstrap.js?version=57"></script>
+            <script type="module" src="src/bootstrap.js?version=58"></script>
   </body>
 </html>
