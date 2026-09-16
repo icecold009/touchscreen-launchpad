@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=32" />
+    <link rel="stylesheet" href="style.css?version=33" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -178,6 +178,75 @@
               <input id="pad-volume" name="volume" type="range" min="0" max="1" step="0.01" value="0.8" />
             </label>
 
+            <section class="sample-lab" aria-labelledby="sample-lab-title">
+              <div class="section-heading">
+                <div>
+                  <h3 id="sample-lab-title">Sample lab</h3>
+                  <p class="section-subtitle">Trim and shape the selected sound.</p>
+                </div>
+                <span id="sample-edit-status" class="muted">No sample loaded</span>
+              </div>
+              <canvas id="sample-waveform" class="sample-waveform" width="640" height="128" aria-label="Sample waveform preview"></canvas>
+              <div class="field-grid sample-region-grid">
+                <label class="field" for="sample-start">
+                  <span>Start</span>
+                  <input id="sample-start" type="range" min="0" max="1" step="0.01" value="0" />
+                </label>
+                <label class="field" for="sample-end">
+                  <span>End</span>
+                  <input id="sample-end" type="range" min="0" max="1" step="0.01" value="1" />
+                </label>
+                <label class="field" for="sample-loop-start">
+                  <span>Loop in</span>
+                  <input id="sample-loop-start" type="range" min="0" max="1" step="0.01" value="0" />
+                </label>
+                <label class="field" for="sample-loop-end">
+                  <span>Loop out</span>
+                  <input id="sample-loop-end" type="range" min="0" max="1" step="0.01" value="1" />
+                </label>
+              </div>
+              <label class="check-control sample-reverse-control" for="sample-reverse">
+                <input id="sample-reverse" type="checkbox" />
+                <span>Reverse playback</span>
+              </label>
+              <div class="field-grid sample-shape-grid">
+                <label class="field" for="pad-pitch">
+                  <span>Pitch <output id="pad-pitch-value" for="pad-pitch">0¢</output></span>
+                  <input id="pad-pitch" type="range" min="-2400" max="2400" step="1" value="0" />
+                </label>
+                <label class="field" for="pad-stretch">
+                  <span>Live speed <output id="pad-stretch-value" for="pad-stretch">1.00× live</output></span>
+                  <input id="pad-stretch" type="range" min="0.25" max="4" step="0.01" value="1" />
+                </label>
+                <label class="field" for="pad-pan">
+                  <span>Pan <output id="pad-pan-value" for="pad-pan">Center</output></span>
+                  <input id="pad-pan" type="range" min="-1" max="1" step="0.01" value="0" />
+                </label>
+                <label class="field" for="pad-filter-type">
+                  <span>Filter</span>
+                  <select id="pad-filter-type">
+                    <option value="lowpass">Low-pass</option>
+                    <option value="highpass">High-pass</option>
+                    <option value="bandpass">Band-pass</option>
+                  </select>
+                </label>
+              </div>
+              <label class="field" for="pad-filter-frequency">
+                <span>Filter cutoff <output id="pad-filter-frequency-value" for="pad-filter-frequency">20000 Hz</output></span>
+                <input id="pad-filter-frequency" type="range" min="20" max="20000" step="10" value="20000" />
+              </label>
+              <div class="field-grid sample-shape-grid">
+                <label class="field" for="pad-attack">
+                  <span>Attack <output id="pad-attack-value" for="pad-attack">5 ms</output></span>
+                  <input id="pad-attack" type="range" min="0" max="1" step="0.001" value="0.005" />
+                </label>
+                <label class="field" for="pad-release">
+                  <span>Release <output id="pad-release-value" for="pad-release">15 ms</output></span>
+                  <input id="pad-release" type="range" min="0.002" max="2" step="0.001" value="0.015" />
+                </label>
+              </div>
+            </section>
+
             <div class="sample-picker">
               <div class="field-line">
                 <span>Sample source</span>
@@ -249,6 +318,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/bootstrap.js?version=32"></script>
+    <script type="module" src="src/bootstrap.js?version=33"></script>
   </body>
 </html>

@@ -657,6 +657,41 @@ output {
   margin-top: 1.1rem;
 }
 
+.sample-lab {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0.2rem 0 0.35rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface-raised);
+}
+
+.sample-waveform {
+  display: block;
+  width: 100%;
+  height: 6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.5rem;
+  background: #f3f4f8;
+}
+
+.sample-region-grid,
+.sample-shape-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.sample-reverse-control {
+  min-height: 2rem;
+}
+
+.sample-lab output {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
 .performance-capture {
   margin-top: 1rem;
   padding: 0.9rem;

@@ -15,6 +15,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: A supported browser can ask for microphone permission, record mic plus app output, stop safely, save a bounded take locally, list it after reload, and stage it onto the selected pad without exposing audio to a server.
 - Evidence: `npm.cmd run validate` passes 52 tests; fresh local browser render confirms the capture card and clear no-mix fallback; `main` remains untouched. Microphone capture itself remains permission/device dependent and is not claimed from this environment.
 
+## Package: Sample lab and sound shaping — `codex/launchpad-sample-lab-20260916`
+
+- Goal: Make every captured or imported sound immediately playable as a shaped instrument.
+- Scope: Waveform preview, bounded start/end and loop-region controls, reverse playback, cents tuning, live-speed fallback, pan, filter, attack, release, reverse-buffer caching, and versioned pad edit persistence.
+- Non-goals: Transient detection, destructive source-file replacement, complex offline time-stretch, automatic slice detection, piano roll, or cloud processing.
+- Files: `index.html`, `style.css`, `app.js`, `src/sample-editor.js`, `sw.js`, `src/bootstrap.js`, `scripts/validate-site.mjs`, `package.json`, and sample-editor contract tests.
+- Tests: `npm.cmd run validate`, region/playback-plan tests, waveform/reverse-buffer tests, fresh rendered waveform-card smoke, pad save/reload contract, and no-sample fallback review.
+- Acceptance: A selected pad exposes a visible waveform and shape controls; invalid regions normalize safely; playback honors the saved region/reverse/pitch/pan/filter/envelope values; no sample remains a valid empty-state experience.
+- Evidence: `npm.cmd run validate` passes 54 tests; fresh local browser render exposes the waveform/sample-shaping controls, a pitch adjustment marks the pad unsaved, and Pad 01 still triggers; `main` remains untouched. Audio-file waveform decoding and persistence are not claimed without a user-provided sample in this environment.
+
 ## Package: Professional audio foundation — `codex/launchpad-professional-foundation-20260916`
 
 - Goal: Establish versioned audio, transport, input, voice, migration, and bounded-history contracts for professional performance features.

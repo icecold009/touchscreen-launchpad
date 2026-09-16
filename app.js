@@ -1,14 +1,15 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=32";
-import { createInputAdapter } from "./src/input-adapter.js?version=32";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=32";
-import { createPointerState } from "./src/pointer-state.js?version=32";
-import { attachStorageRequest } from "./src/storage-request.js?version=32";
-import { downloadText as triggerTextDownload } from "./src/download.js?version=32";
-import { getNextQuantizedTime } from "./src/transport.js?version=32";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=32";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=32";
+import { createHistory } from "./src/history.js?version=33";
+import { createInputAdapter } from "./src/input-adapter.js?version=33";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=33";
+import { createPointerState } from "./src/pointer-state.js?version=33";
+import { attachStorageRequest } from "./src/storage-request.js?version=33";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=33";
+import { getNextQuantizedTime } from "./src/transport.js?version=33";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=33";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=33";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=33";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -36,6 +37,26 @@ const recordingTimer = document.querySelector("#recording-timer");
 const recordingState = document.querySelector("#recording-state");
 const takeList = document.querySelector("#take-list");
 const takeCount = document.querySelector("#take-count");
+const sampleWaveform = document.querySelector("#sample-waveform");
+const sampleEditStatus = document.querySelector("#sample-edit-status");
+const sampleStartInput = document.querySelector("#sample-start");
+const sampleEndInput = document.querySelector("#sample-end");
+const sampleLoopStartInput = document.querySelector("#sample-loop-start");
+const sampleLoopEndInput = document.querySelector("#sample-loop-end");
+const sampleReverseInput = document.querySelector("#sample-reverse");
+const pitchInput = document.querySelector("#pad-pitch");
+const pitchValue = document.querySelector("#pad-pitch-value");
+const stretchInput = document.querySelector("#pad-stretch");
+const stretchValue = document.querySelector("#pad-stretch-value");
+const panInput = document.querySelector("#pad-pan");
+const panValue = document.querySelector("#pad-pan-value");
+const filterTypeInput = document.querySelector("#pad-filter-type");
+const filterFrequencyInput = document.querySelector("#pad-filter-frequency");
+const filterFrequencyValue = document.querySelector("#pad-filter-frequency-value");
+const attackInput = document.querySelector("#pad-attack");
+const attackValue = document.querySelector("#pad-attack-value");
+const releaseInput = document.querySelector("#pad-release");
+const releaseValue = document.querySelector("#pad-release-value");
 const persistenceNote = document.querySelector("#persistence-note");
 const connectionStatus = document.querySelector("#connection-status");
 const stopAllButton = document.querySelector("#stop-all");
@@ -106,6 +127,7 @@ let recordingMicSource;
 let recordingMicGain;
 let recordingTicker;
 let lastTakeId;
+let waveformRenderToken = 0;
 let databasePromise;
 let sampleDatabase;
 let deferredInstallPrompt;
@@ -1407,7 +1429,23 @@ async function getSampleBuffer(sample, context) {
 function createVoiceGain(context, pad) {
   const gain = context.createGain();
   gain.gain.value = clamp(Number(pad.volume) || 0, 0, 1);
-  gain.connect(masterGain);
+  if (typeof context.createBiquadFilter !== "function") {
+    gain.connect(masterGain);
+    return gain;
+  }
+  const filter = context.createBiquadFilter();
+  filter.type = pad.filter?.type || "lowpass";
+  filter.frequency.value = clamp(Number(pad.filter?.frequency) || 20000, 20, 20000);
+  filter.Q.value = clamp(Number(pad.filter?.q) || 0.0001, 0.0001, 18);
+  gain.connect(filter);
+  if (typeof context.createStereoPanner === "function") {
+    const panner = context.createStereoPanner();
+    panner.pan.value = clamp(Number(pad.pan) || 0, -1, 1);
+    filter.connect(panner);
+    panner.connect(masterGain);
+  } else {
+    filter.connect(masterGain);
+  }
   return gain;
 }
 
@@ -1436,12 +1474,27 @@ async function playSample(index, pad, sample, context, generation) {
   const gain = createVoiceGain(context, pad);
   const isLoop = pad.mode === "loop";
   const startAt = isLoop && quantizeInput.checked ? getNextBeatTime(context) : context.currentTime;
+  const plan = createPlaybackPlan({
+    duration: buffer.duration,
+    region: pad.sampleRegion,
+    timeStretch: pad.timeStretch,
+    pitchCents: pad.pitchCents,
+  });
+  const playbackBuffer = plan.reverse ? (sample.reverseBuffer || (sample.reverseBuffer = createReversedBuffer(context, buffer))) : buffer;
 
-  source.buffer = buffer;
+  source.buffer = playbackBuffer || buffer;
   source.loop = isLoop;
+  source.loopStart = plan.loopStart;
+  source.loopEnd = plan.loopEnd;
+  source.playbackRate.setValueAtTime(plan.playbackRate, startAt);
+  source.detune.setValueAtTime(plan.detune, startAt);
   source.connect(gain);
   const voice = registerVoice(index, source, startAt, { isLoop, gainNode: gain });
-  startRegisteredVoice(index, voice, startAt);
+  const attack = clamp(Number(pad.attack) || 0, 0, 1);
+  gain.gain.cancelScheduledValues(startAt);
+  gain.gain.setValueAtTime(0.0001, startAt);
+  gain.gain.linearRampToValueAtTime(Math.max(0.0001, Number(pad.volume) || 0.8), startAt + attack);
+  startRegisteredVoice(index, voice, startAt, isLoop ? undefined : startAt + plan.duration);
 
   if (isLoop && startAt > context.currentTime + 0.02) {
     setPlaybackStatus(`${getPadName(pad, index)} loop queued for the next beat.`, "info", { force: true });
@@ -1601,6 +1654,92 @@ function updateSampleName() {
   }
 }
 
+let waveformBuffer;
+
+function getSampleRegionFromEditor() {
+  return normalizeSampleRegion({
+    start: Number(sampleStartInput.value),
+    end: Number(sampleEndInput.value),
+    loopStart: Number(sampleLoopStartInput.value),
+    loopEnd: Number(sampleLoopEndInput.value),
+    reverse: sampleReverseInput.checked,
+  });
+}
+
+function drawEmptyWaveform(message = "Load audio to see its waveform") {
+  if (!sampleWaveform?.getContext) return;
+  const context = sampleWaveform.getContext("2d");
+  context.clearRect(0, 0, sampleWaveform.width, sampleWaveform.height);
+  context.fillStyle = "#f3f4f8";
+  context.fillRect(0, 0, sampleWaveform.width, sampleWaveform.height);
+  context.fillStyle = "#7d8494";
+  context.font = "12px system-ui";
+  context.textAlign = "center";
+  context.fillText(message, sampleWaveform.width / 2, sampleWaveform.height / 2 + 4);
+}
+
+function updateSampleEditorLabels() {
+  pitchValue.textContent = `${Number(pitchInput.value) > 0 ? "+" : ""}${pitchInput.value}¢`;
+  stretchValue.textContent = `${Number(stretchInput.value).toFixed(2)}× live`;
+  panValue.textContent = Number(panInput.value) === 0 ? "Center" : Number(panInput.value) < 0 ? `${Math.abs(Number(panInput.value) * 100)}% L` : `${Number(panInput.value) * 100}% R`;
+  filterFrequencyValue.textContent = `${Math.round(Number(filterFrequencyInput.value))} Hz`;
+  attackValue.textContent = `${Math.round(Number(attackInput.value) * 1000)} ms`;
+  releaseValue.textContent = `${Math.round(Number(releaseInput.value) * 1000)} ms`;
+  const region = getSampleRegionFromEditor();
+  sampleEditStatus.textContent = `Region ${Math.round(region.start * 100)}–${Math.round(region.end * 100)}% · loop ${Math.round(region.loopStart * 100)}–${Math.round(region.loopEnd * 100)}%`;
+  if (waveformBuffer) drawWaveform(sampleWaveform, waveformBuffer, region);
+}
+
+function getSampleEditorValues() {
+  return {
+    sampleRegion: getSampleRegionFromEditor(),
+    pitchCents: Number(pitchInput.value),
+    timeStretch: Number(stretchInput.value),
+    pan: Number(panInput.value),
+    filter: {
+      type: filterTypeInput.value,
+      frequency: Number(filterFrequencyInput.value),
+      q: 0.0001,
+    },
+    attack: Number(attackInput.value),
+    release: Number(releaseInput.value),
+  };
+}
+
+async function renderSampleEditor() {
+  const pad = pads[selectedPadIndex];
+  const region = normalizeSampleRegion(pad.sampleRegion);
+  sampleStartInput.value = String(region.start);
+  sampleEndInput.value = String(region.end);
+  sampleLoopStartInput.value = String(region.loopStart);
+  sampleLoopEndInput.value = String(region.loopEnd);
+  sampleReverseInput.checked = region.reverse;
+  pitchInput.value = String(pad.pitchCents);
+  stretchInput.value = String(pad.timeStretch);
+  panInput.value = String(pad.pan);
+  filterTypeInput.value = pad.filter?.type || "lowpass";
+  filterFrequencyInput.value = String(pad.filter?.frequency || 20000);
+  attackInput.value = String(pad.attack);
+  releaseInput.value = String(pad.release);
+  updateSampleEditorLabels();
+  waveformBuffer = undefined;
+  const sample = pad.sampleId ? samples.get(pad.sampleId) : null;
+  if (!sample) {
+    drawEmptyWaveform();
+    return;
+  }
+  const renderToken = ++waveformRenderToken;
+  try {
+    const buffer = await getSampleBuffer(sample, getAudioContext());
+    if (renderToken !== waveformRenderToken) return;
+    waveformBuffer = buffer;
+    drawWaveform(sampleWaveform, buffer, getSampleRegionFromEditor());
+    sampleEditStatus.textContent = `${buffer.duration.toFixed(2)}s source · edit is saved with this pad`;
+  } catch {
+    if (renderToken === waveformRenderToken) drawEmptyWaveform("Waveform preview unavailable");
+  }
+}
+
 function setEditorDirty(value) {
   editorDirty = value;
   editorDirtyIndicator.textContent = value ? "Unsaved changes" : kitDirty ? "Unsaved kit changes" : "Unsaved changes";
@@ -1627,6 +1766,7 @@ function selectPad(index) {
   draftSampleId = null;
   setEditorDirty(false);
   updateSampleName();
+  void renderSampleEditor();
 
   for (let padIndex = 0; padIndex < PAD_COUNT; padIndex += 1) updatePadState(padIndex);
 }
@@ -1703,6 +1843,7 @@ async function saveSelectedPad(event) {
       mode: padModeInput.value === "loop" ? "loop" : "oneshot",
       volume: clamp(Number(padVolumeInput.value), 0, 1),
       sampleId,
+      ...getSampleEditorValues(),
     };
     renderPads();
     selectPad(selectedPadIndex);
@@ -2171,6 +2312,8 @@ function bindEvents() {
     updateSampleName();
     markEditorDirty();
   });
+  [sampleStartInput, sampleEndInput, sampleLoopStartInput, sampleLoopEndInput, sampleReverseInput, pitchInput, stretchInput, panInput, filterTypeInput, filterFrequencyInput, attackInput, releaseInput]
+    .forEach((input) => input.addEventListener("input", updateSampleEditorLabels));
   padVolumeInput.addEventListener("input", updatePadVolumeLabel);
   masterVolumeInput.addEventListener("input", updateMasterVolume);
   loopToggleButton.addEventListener("click", () => void toggleSelectedPadLoop());

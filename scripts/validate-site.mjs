@@ -16,6 +16,7 @@ const requiredFiles = [
   "src/storage-request.js",
   "src/download.js",
   "src/recording.js",
+  "src/sample-editor.js",
   "src/transport.js",
   "src/voice-registry.js",
   "manifest.webmanifest",
