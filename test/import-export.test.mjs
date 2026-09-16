@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { downloadText } from "../src/download.js";
+import { downloadBlob, downloadText } from "../src/download.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
@@ -56,6 +56,22 @@ test("downloads keep object URLs alive through delayed browser start and clean u
   cleanup();
   assert.equal(link.removed, true);
   assert.equal(revokedUrl, "blob:test");
+});
+
+test("binary downloads use the same delayed cleanup lifecycle", () => {
+  const revoked = [];
+  const timers = [];
+  const body = { append(link) { this.link = link; }, link: null };
+  const documentRef = { body, createElement() { return { click() {}, remove() { this.removed = true; } }; } };
+  const windowRef = { setTimeout(callback, delay) { timers.push({ callback, delay }); } };
+  const urlApi = { createObjectURL(blob) { assert.equal(blob.type, "audio/midi"); return "blob:midi"; }, revokeObjectURL(url) { revoked.push(url); } };
+
+  downloadBlob({ documentRef, windowRef, urlApi }, "scene.mid", new Blob([new Uint8Array([0x4d, 0x54])], { type: "audio/midi" }));
+  assert.equal(body.link.download, "scene.mid");
+  assert.equal(timers.length, 1);
+  assert.equal(timers[0].delay, 1000);
+  timers[0].callback();
+  assert.deepEqual(revoked, ["blob:midi"]);
 });
 
 test("export and import surface file failures without discarding layout state", () => {

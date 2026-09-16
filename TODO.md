@@ -65,6 +65,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: A pad can send to local delay/reverb, master settings stay bounded, captured app mix includes return audio, and “Check audio” reports state/latency or an actionable fallback.
 - Evidence: `npm.cmd run validate` passes 62 tests; fresh local browser render exposes the FX controls and diagnostics card, and “Check audio” reports `running · 48000 Hz · 10 ms latency` in the current browser; real output/latency varies by browser and device; `main` remains untouched.
 
+## Package: Performance export — `codex/launchpad-performance-export-20260916`
+
+- Goal: Move a finished local arrangement into the next tool without requiring a server or account.
+- Scope: Deterministic Standard MIDI File export for both saved scenes, tempo and pad-note mapping, local take download with browser-native MIME/extension handling, bounded binary-download cleanup, and explicit DAW/hardware handoff messaging.
+- Non-goals: Rendered audio stems, offline mixdown, timeline arrangement, cloud publishing, or automatic DAW project generation.
+- Files: `index.html`, `style.css`, `app.js`, `src/download.js`, `src/midi-file.js`, `sw.js`, `src/bootstrap.js`, `scripts/validate-site.mjs`, `package.json`, README, and export contract tests.
+- Tests: `npm.cmd run validate`, deterministic MIDI header/tempo/note tests, binary download lifecycle tests, module/cache contracts, and fresh rendered Export MIDI smoke.
+- Acceptance: A user can export both local scenes as a valid `.mid`, learned/default pad notes are bounded, saved takes expose a direct download action, failed browser downloads preserve the app, and the offline shell includes the new module.
+- Evidence: `npm.cmd run validate` passes 65 tests; fresh local browser render exposes Export MIDI and reports `Scene MIDI exported. Open it in a DAW or hardware sequencer.` after activation; exported bytes are contract-verified locally; actual DAW/hardware import remains environment dependent; `main` remains untouched.
+
 ## Package: Professional audio foundation — `codex/launchpad-professional-foundation-20260916`
 
 - Goal: Establish versioned audio, transport, input, voice, migration, and bounded-history contracts for professional performance features.

@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=37" />
+    <link rel="stylesheet" href="style.css?version=38" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -113,6 +113,7 @@
               </div>
               <button id="sequencer-play" class="button button-primary" type="button">Play sequence</button>
               <button id="sequencer-clear" class="button button-quiet" type="button">Clear scene</button>
+              <button id="export-midi" class="button button-secondary" type="button">Export MIDI</button>
               <label class="compact-control" for="sequencer-swing">
                 <span>Swing</span>
                 <input id="sequencer-swing" type="range" min="0" max="0.5" step="0.01" value="0" />
@@ -472,6 +473,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/bootstrap.js?version=37"></script>
+    <script type="module" src="src/bootstrap.js?version=38"></script>
   </body>
 </html>

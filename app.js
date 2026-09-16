@@ -1,19 +1,20 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=37";
-import { createInputAdapter } from "./src/input-adapter.js?version=37";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=37";
-import { createPointerState } from "./src/pointer-state.js?version=37";
-import { attachStorageRequest } from "./src/storage-request.js?version=37";
-import { downloadText as triggerTextDownload } from "./src/download.js?version=37";
-import { getNextQuantizedTime } from "./src/transport.js?version=37";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=37";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=37";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=37";
-import { createPattern, createSequencerRunner, getStepEvents, normalizePattern, toggleStep } from "./src/sequencer.js?version=37";
-import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=37";
-import { createImpulseResponse, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=37";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=37";
+import { createHistory } from "./src/history.js?version=38";
+import { createInputAdapter } from "./src/input-adapter.js?version=38";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=38";
+import { createPointerState } from "./src/pointer-state.js?version=38";
+import { attachStorageRequest } from "./src/storage-request.js?version=38";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=38";
+import { getNextQuantizedTime } from "./src/transport.js?version=38";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=38";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=38";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=38";
+import { createPattern, createSequencerRunner, getStepEvents, normalizePattern, toggleStep } from "./src/sequencer.js?version=38";
+import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=38";
+import { createMidiFile } from "./src/midi-file.js?version=38";
+import { createImpulseResponse, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=38";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=38";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -45,6 +46,7 @@ const sequencerPanel = document.querySelector("#sequencer-panel");
 const sequencerGrid = document.querySelector("#sequencer-grid");
 const sequencerStatus = document.querySelector("#sequencer-status");
 const sequencerPlayButton = document.querySelector("#sequencer-play");
+const exportMidiButton = document.querySelector("#export-midi");
 const sceneAButton = document.querySelector("#scene-a");
 const sceneBButton = document.querySelector("#scene-b");
 const sequencerSwingInput = document.querySelector("#sequencer-swing");
@@ -706,11 +708,15 @@ function renderKitControls() {
   deleteKitButton.disabled = !currentKit || currentKit.empty;
 }
 
-function getActiveSequencerPattern() {
+function getSequencerPattern(sceneId = activeSceneId) {
   const kit = kits.get(currentKitId);
   if (!kit) return createPattern();
-  const existing = Array.isArray(kit.patterns) ? kit.patterns.find((pattern) => pattern?.id === activeSceneId) : null;
+  const existing = Array.isArray(kit.patterns) ? kit.patterns.find((pattern) => pattern?.id === sceneId) : null;
   return normalizePattern(existing || createPattern());
+}
+
+function getActiveSequencerPattern() {
+  return getSequencerPattern(activeSceneId);
 }
 
 async function persistSequencerPattern(pattern, message = "Pattern saved locally.") {
@@ -802,6 +808,25 @@ async function toggleSequencer() {
 async function clearSequencer() {
   if (!window.confirm(`Clear ${activeSceneId === "scene-a" ? "Scene A" : "Scene B"}?`)) return;
   await persistSequencerPattern(createPattern(), "Scene cleared and saved locally.");
+}
+
+function exportSceneMidi() {
+  try {
+    const scenes = ["scene-a", "scene-b"].map((sceneId) => ({
+      name: sceneId === "scene-a" ? "Scene A" : "Scene B",
+      pattern: getSequencerPattern(sceneId),
+    }));
+    const padNotes = pads.map((pad, index) => normalizeMidiMapping(pad.midi, 36 + index).note ?? 36 + index);
+    const bytes = createMidiFile({ scenes, padNotes, bpm: Number(tempoInput.value) || 120 });
+    triggerBlobDownload(
+      { documentRef: document, windowRef: window },
+      "touchscreen-launchpad-scenes.mid",
+      new Blob([bytes], { type: "audio/midi" }),
+    );
+    setStatus("Scene MIDI exported. Open it in a DAW or hardware sequencer.", "success");
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "Scene MIDI export failed. Check browser download permissions and try again.", "error");
+  }
 }
 
 function renderMidiDevices() {
@@ -1359,14 +1384,36 @@ function renderTakeLibrary() {
     assignButton.textContent = "Use on pad";
     assignButton.setAttribute("aria-label", `Use ${take.name} on the selected pad`);
     assignButton.addEventListener("click", () => void assignTakeToSelectedPad(take.id));
+    const downloadButton = document.createElement("button");
+    downloadButton.className = "text-button";
+    downloadButton.type = "button";
+    downloadButton.textContent = "Download";
+    downloadButton.setAttribute("aria-label", `Download ${take.name}`);
+    downloadButton.addEventListener("click", () => downloadTake(take.id));
     const deleteButton = document.createElement("button");
     deleteButton.className = "text-button";
     deleteButton.type = "button";
     deleteButton.textContent = "Delete";
     deleteButton.addEventListener("click", () => void removeTake(take.id));
-    actions.append(assignButton, deleteButton);
+    actions.append(assignButton, downloadButton, deleteButton);
     item.append(details, actions);
     takeList.append(item);
+  }
+}
+
+function downloadTake(takeId) {
+  const take = takes.get(takeId);
+  if (!take) return;
+  const extension = take.mime.includes("ogg") ? "ogg" : take.mime.includes("mp4") ? "m4a" : "webm";
+  try {
+    triggerBlobDownload(
+      { documentRef: document, windowRef: window },
+      `${safePackFilename(take.name)}.${extension}`,
+      take.blob,
+    );
+    setStatus(`${take.name} downloaded from local storage.`, "success");
+  } catch {
+    setStatus("The take download failed. Check browser download permissions and try again.", "error");
   }
 }
 
@@ -2817,6 +2864,7 @@ function bindEvents() {
   sceneAButton.addEventListener("click", () => setSequencerScene("scene-a"));
   sceneBButton.addEventListener("click", () => setSequencerScene("scene-b"));
   sequencerPlayButton.addEventListener("click", () => void toggleSequencer());
+  exportMidiButton.addEventListener("click", exportSceneMidi);
   document.querySelector("#sequencer-clear").addEventListener("click", () => void clearSequencer());
   sequencerSwingInput.addEventListener("input", () => {
     sequencerSwingValue.textContent = `${Math.round(Number(sequencerSwingInput.value) * 100)}%`;
