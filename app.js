@@ -1,14 +1,19 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createPointerState } from "./src/pointer-state.js?version=30";
-import { attachStorageRequest } from "./src/storage-request.js?version=30";
-import { downloadText as triggerTextDownload } from "./src/download.js?version=30";
+import { createHistory } from "./src/history.js?version=31";
+import { createInputAdapter } from "./src/input-adapter.js?version=31";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=31";
+import { createPointerState } from "./src/pointer-state.js?version=31";
+import { attachStorageRequest } from "./src/storage-request.js?version=31";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=31";
+import { getNextQuantizedTime } from "./src/transport.js?version=31";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=31";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
 const KITS_MIRROR_STORAGE_KEY = "touchscreen-launchpad.kits-mirror.v1";
 const DATABASE_NAME = "touchscreen-launchpad";
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 const MAX_LAYOUT_BYTES = 256 * 1024;
 const MAX_SAMPLE_BYTES = 50 * 1024 * 1024;
 const MAX_SAMPLE_COUNT = 128;
@@ -76,7 +81,8 @@ const padColors = [
 ];
 
 const keyboardKeys = ["Q", "W", "E", "R", "A", "S", "D", "F", "Z", "X", "C", "V", "1", "2", "3", "4"];
-const activeVoices = new Map();
+const voiceRegistry = createVoiceRegistry({ maxVoices: 32, maxVoicesPerPad: 4 });
+const activeVoices = voiceRegistry.byPad;
 const pendingPads = new Set();
 let pads = [];
 let samples = new Map();
@@ -100,6 +106,18 @@ let playbackGeneration = 0;
 let beatCountdownTimer;
 let lastPlaybackStatusAt = 0;
 const pointerState = createPointerState();
+const layoutHistory = createHistory({
+  limit: 20,
+  clone: (value) => value.map((pad) => ({ ...pad })),
+});
+const inputAdapter = createInputAdapter({
+  padCount: PAD_COUNT,
+  onInput: ({ action, padIndex }) => {
+    if (action !== "trigger") return;
+    selectPad(padIndex);
+    void triggerPad(padIndex);
+  },
+});
 
 function clearPointerState() {
   for (const { pointerId, index } of pointerState.activeEntries()) {
@@ -129,14 +147,9 @@ function clamp(value, minimum, maximum) {
 }
 
 function createDefaultPads() {
-  return Array.from({ length: PAD_COUNT }, (_, index) => ({
-    id: index + 1,
-    label: "",
-    key: keyboardKeys[index],
-    color: padColors[index],
-    mode: "oneshot",
-    volume: 0.8,
-    sampleId: null,
+  return Array.from({ length: PAD_COUNT }, (_, index) => createDefaultPad(index, {
+    padColors,
+    keyboardKeys,
   }));
 }
 
@@ -154,25 +167,7 @@ function getVisiblePadLabel(pad, index) {
 }
 
 function normalizePad(candidate, index) {
-  const fallback = createDefaultPads()[index];
-  const candidateKey = typeof candidate?.key === "string" ? candidate.key.trim().slice(0, 1).toUpperCase() : "";
-  const candidateColor = typeof candidate?.color === "string" && /^#[\da-f]{6}$/i.test(candidate.color)
-    ? candidate.color
-    : fallback.color;
-  const candidateVolume = Number(candidate?.volume);
-  const candidateSampleId = typeof candidate?.sampleId === "string" && candidate.sampleId.length <= MAX_SAMPLE_ID_LENGTH
-    ? candidate.sampleId
-    : null;
-
-  return {
-    id: index + 1,
-    label: typeof candidate?.label === "string" && candidate.label.trim() ? candidate.label.trim().slice(0, 32) : fallback.label,
-    key: /^[A-Z0-9]$/.test(candidateKey) ? candidateKey : fallback.key,
-    color: candidateColor,
-    mode: candidate?.mode === "loop" ? "loop" : "oneshot",
-    volume: Number.isFinite(candidateVolume) ? clamp(candidateVolume, 0, 1) : fallback.volume,
-    sampleId: candidateSampleId,
-  };
+  return normalizePadDefinition(candidate, index, { padColors, keyboardKeys });
 }
 
 function normalizePads(candidatePads) {
@@ -201,22 +196,15 @@ function createKitRecord(slot, kitPads = createDefaultPads(), { name, empty = fa
     empty: Boolean(empty),
     createdAt: timestamp,
     updatedAt: timestamp,
+    schemaVersion: 2,
+    transport: undefined,
+    patterns: [],
+    scenes: [],
   };
 }
 
 function normalizeKit(candidate, slot) {
-  const fallback = createKitRecord(slot);
-  const name = typeof candidate?.name === "string" && candidate.name.trim()
-    ? candidate.name.trim().slice(0, MAX_KIT_NAME_LENGTH)
-    : fallback.name;
-  return {
-    id: `kit-${slot}`,
-    name,
-    pads: normalizePads(candidate?.pads),
-    empty: Boolean(candidate?.empty),
-    createdAt: typeof candidate?.createdAt === "string" ? candidate.createdAt : fallback.createdAt,
-    updatedAt: typeof candidate?.updatedAt === "string" ? candidate.updatedAt : fallback.updatedAt,
-  };
+  return normalizeKitRecord(candidate, slot, normalizePads);
 }
 
 function isValidStoredKit(kit) {
@@ -332,17 +320,9 @@ function readLayout() {
 
 function serializeLayout() {
   return {
-    version: 1,
+    version: 2,
     updatedAt: new Date().toISOString(),
-    pads: pads.map(({ id, label, key, color, mode, volume, sampleId }) => ({
-      id,
-      label,
-      key,
-      color,
-      mode,
-      volume,
-      sampleId,
-    })),
+    pads: pads.map((pad) => ({ ...pad })),
   };
 }
 
@@ -399,6 +379,12 @@ function openDatabase() {
         }
         if (!request.result.objectStoreNames.contains("kits")) {
           request.result.createObjectStore("kits", { keyPath: "id" });
+        }
+        if (!request.result.objectStoreNames.contains("takes")) {
+          request.result.createObjectStore("takes", { keyPath: "id" });
+        }
+        if (!request.result.objectStoreNames.contains("history")) {
+          request.result.createObjectStore("history", { keyPath: "id" });
         }
       });
       request.addEventListener("success", () => {
@@ -776,7 +762,7 @@ async function persistSample(file) {
   pendingSampleCount += 1;
   pendingSampleBytes += file.size;
 
-  const sample = {
+  const sample = normalizeSampleRecord({
     id: makeId(),
     name: file.name,
     mime: file.type || "audio/*",
@@ -784,7 +770,7 @@ async function persistSample(file) {
     blob: file,
     hash,
     createdAt: new Date().toISOString(),
-  };
+  });
 
   if (storageMode === "persistent") setStorageState("saving", "Saving sample…");
   try {
@@ -1037,12 +1023,11 @@ async function prepareAudio() {
 
 function getNextBeatTime(context) {
   const tempo = clamp(Number(tempoInput.value) || 120, 60, 200);
-  const beatLength = 60 / tempo;
-  return Math.ceil((context.currentTime + 0.025) / beatLength) * beatLength;
+  return getNextQuantizedTime(context.currentTime, { bpm: tempo, subdivision: "beat" });
 }
 
 function getPadVoices(index) {
-  return activeVoices.get(index) || new Set();
+  return voiceRegistry.get(index);
 }
 
 function clearBeatCountdown() {
@@ -1071,27 +1056,30 @@ function showBeatCountdown(time, message) {
 }
 
 function releaseVoice(index, voice) {
-  const voices = activeVoices.get(index);
-  if (!voices) return;
-
   if (voice.startTimer) window.clearTimeout(voice.startTimer);
-  voices.delete(voice);
-  if (!voices.size) activeVoices.delete(index);
-  updatePadState(index);
+  if (voiceRegistry.remove(index, voice)) updatePadState(index);
 }
 
-function registerVoice(index, source, startAt, { isLoop = false } = {}) {
+function registerVoice(index, source, startAt, { isLoop = false, gainNode } = {}) {
   const startContextTime = audioContext?.currentTime || 0;
   const voice = {
     source,
+    gainNode,
     startAt,
     isLoop,
     started: startAt <= startContextTime + 0.02,
     startTimer: undefined,
   };
-  const voices = getPadVoices(index);
-  voices.add(voice);
-  activeVoices.set(index, voices);
+  const { stolen } = voiceRegistry.add(index, voice);
+  for (const victim of stolen) {
+    if (victim.voice.startTimer) window.clearTimeout(victim.voice.startTimer);
+    try {
+      fadeAndStopVoice(victim.voice, startContextTime + 0.005);
+    } catch {
+      // A source may already have ended while the registry was enforcing limits.
+    }
+    updatePadState(victim.padIndex);
+  }
   source.addEventListener("ended", () => releaseVoice(index, voice), { once: true });
   if (!voice.started) {
     voice.startTimer = window.setTimeout(() => {
@@ -1114,6 +1102,20 @@ function startRegisteredVoice(index, voice, startAt, stopAt) {
   }
 }
 
+function fadeAndStopVoice(voice, stopAt = audioContext?.currentTime || 0) {
+  const now = audioContext?.currentTime || 0;
+  const endAt = Math.max(now + 0.005, Number(stopAt) || now + 0.005);
+  const fadeStart = Math.max(now, endAt - 0.005);
+  if (voice.gainNode?.gain) {
+    const currentGain = Math.max(0.0001, Number(voice.gainNode.gain.value) || 0.0001);
+    voice.gainNode.gain.cancelScheduledValues(now);
+    voice.gainNode.gain.setValueAtTime(currentGain, now);
+    voice.gainNode.gain.setValueAtTime(currentGain, fadeStart);
+    voice.gainNode.gain.linearRampToValueAtTime(0.0001, endAt);
+  }
+  voice.source.stop(endAt);
+}
+
 function stopPad(index, { quantized = false, announce = false } = {}) {
   const voices = activeVoices.get(index);
   if (!voices?.size || !audioContext) return false;
@@ -1121,7 +1123,7 @@ function stopPad(index, { quantized = false, announce = false } = {}) {
   const stopAt = quantized && quantizeInput.checked ? getNextBeatTime(audioContext) : audioContext.currentTime;
   for (const voice of voices) {
     try {
-      voice.source.stop(stopAt);
+      fadeAndStopVoice(voice, stopAt);
     } catch {
       releaseVoice(index, voice);
     }
@@ -1148,14 +1150,14 @@ function stopAll({ announce = true } = {}) {
     for (const voice of voices) {
       if (voice.startTimer) window.clearTimeout(voice.startTimer);
       try {
-        voice.source.stop();
+        fadeAndStopVoice(voice);
       } catch {
         releaseVoice(index, voice);
       }
     }
   }
 
-  activeVoices.clear();
+  voiceRegistry.clear();
   pendingPads.clear();
   for (let index = 0; index < PAD_COUNT; index += 1) updatePadState(index);
   if (announce) {
@@ -1206,7 +1208,7 @@ function playPreviewTone(index, pad, context) {
   gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.48);
   oscillator.connect(gain);
   gain.connect(masterGain);
-  const voice = registerVoice(index, oscillator, now);
+  const voice = registerVoice(index, oscillator, now, { gainNode: gain });
   startRegisteredVoice(index, voice, now, now + 0.5);
   setPlaybackStatus(`${getPadName(pad, index)} preview tone triggered.`);
 }
@@ -1222,7 +1224,7 @@ async function playSample(index, pad, sample, context, generation) {
   source.buffer = buffer;
   source.loop = isLoop;
   source.connect(gain);
-  const voice = registerVoice(index, source, startAt, { isLoop });
+  const voice = registerVoice(index, source, startAt, { isLoop, gainNode: gain });
   startRegisteredVoice(index, voice, startAt);
 
   if (isLoop && startAt > context.currentTime + 0.02) {
@@ -1341,8 +1343,14 @@ function renderPads() {
         // Pointer capture is not available in a few embedded browser contexts.
       }
       button.focus({ preventScroll: true });
-      selectPad(index);
-      void triggerPad(index);
+      inputAdapter.emit({
+        kind: "pointer",
+        action: "trigger",
+        padIndex: index,
+        pointerId: event.pointerId,
+        pressure: event.pressure,
+        timestamp: performance.now(),
+      });
     });
     button.addEventListener("pointerup", (event) => releasePadPointer(button, event));
     button.addEventListener("pointercancel", (event) => releasePadPointer(button, event));
@@ -1350,8 +1358,7 @@ function renderPads() {
     button.addEventListener("keydown", (event) => {
       if (event.repeat || (event.key !== "Enter" && event.key !== " ")) return;
       event.preventDefault();
-      selectPad(index);
-      void triggerPad(index);
+      inputAdapter.emit({ kind: "keyboard", action: "trigger", padIndex: index, timestamp: performance.now() });
     });
     button.addEventListener("contextmenu", (event) => event.preventDefault());
     padGrid.append(button);
@@ -1526,6 +1533,7 @@ async function saveSelectedPad(event) {
       setStatus("Kit save failed; your existing layout was preserved.", "error");
       return;
     }
+    layoutHistory.push(previousPads);
     setKitDirty(false);
     renderKitControls();
     setStatus(storageMode === "memory" ? `${savedMessage} Memory-only mode: a reload may discard changes.` : savedMessage, storageMode === "memory" ? "error" : "success");
@@ -1848,7 +1856,7 @@ async function importPack(event) {
 }
 
 function validateImportedLayout(parsedLayout) {
-  if (!parsedLayout || typeof parsedLayout !== "object" || parsedLayout.version !== 1) {
+  if (!parsedLayout || typeof parsedLayout !== "object" || ![1, 2].includes(parsedLayout.version)) {
     throw new Error("This layout version is not supported.");
   }
   if (!Array.isArray(parsedLayout.pads) || parsedLayout.pads.length !== PAD_COUNT) {
@@ -1988,8 +1996,7 @@ function bindEvents() {
     const padIndex = pads.findIndex((pad) => pad.key === event.key.toUpperCase());
     if (padIndex === -1) return;
     event.preventDefault();
-    selectPad(padIndex);
-    void triggerPad(padIndex);
+    inputAdapter.emit({ kind: "keyboard", action: "trigger", padIndex, timestamp: performance.now() });
   });
 
   window.addEventListener("beforeinstallprompt", (event) => {

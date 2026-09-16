@@ -11,7 +11,7 @@ Touchscreen Launchpad is a local-first browser instrument for triggering samples
 - Stop-all, master volume, and tempo controls.
 - Pad names, shortcuts, colours, and playback modes.
 - Five reusable named kits with instant switching, duplicate/delete/rename controls, and a shared local sample library.
-- Layout persistence in local storage with JSON import/export.
+- Versioned layout persistence in local storage with JSON v2 export and v1/v2 import compatibility.
 - Sample persistence in IndexedDB; audio files never leave the browser.
 - Folder or multi-file audio import with natural ordering, first-16 pad mapping, SHA-256 deduplication, and extra-library retention.
 - Portable `.launchpack` backup/restore containing all five kit definitions and their referenced audio, with validation and transactional rollback.

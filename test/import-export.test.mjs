@@ -68,7 +68,7 @@ test("export and import surface file failures without discarding layout state", 
 
 test("imports validate schema, pad count, and missing local sample bytes", () => {
   assert.match(app, /function validateImportedLayout\(parsedLayout\)/);
-  assert.match(app, /parsedLayout\.version !== 1/);
+  assert.match(app, /!\[1, 2\]\.includes\(parsedLayout\.version\)/);
   assert.match(app, /parsedLayout\.pads\.length !== PAD_COUNT/);
   assert.match(app, /const missingSampleIds = \[\.\.\.new Set\(importedPads\.map\(\(pad\) => pad\.sampleId\)\.filter\(Boolean\)\)\]/);
   assert.match(app, /assigned \$\{sampleWord\} missing in this browser/);

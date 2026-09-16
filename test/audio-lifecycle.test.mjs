@@ -18,6 +18,12 @@ test("failed voice starts release their registered state", () => {
   assert.match(app, /sample\.bufferPromise = undefined;/);
 });
 
+test("voice shutdown applies a short gain fade before stopping the source", () => {
+  assert.match(app, /function fadeAndStopVoice\(voice, stopAt = audioContext\?\.currentTime \|\| 0\)/);
+  assert.match(app, /voice\.gainNode\.gain\.linearRampToValueAtTime\(0\.0001, endAt\)/);
+  assert.match(app, /fadeAndStopVoice\(voice, stopAt\)/);
+});
+
 test("visibility and stop-all invalidate pending playback without changing controls", () => {
   assert.match(app, /stopAll\(\{ announce: false \}\);/);
   assert.match(app, /playbackGeneration \+= 1;/);

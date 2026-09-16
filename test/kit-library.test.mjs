@@ -8,11 +8,13 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
-test("IndexedDB v2 adds five kit slots without replacing the samples store", () => {
-  assert.match(app, /const DATABASE_VERSION = 2;/);
+test("IndexedDB v3 adds professional stores without replacing the samples store", () => {
+  assert.match(app, /const DATABASE_VERSION = 3;/);
   assert.match(app, /request\.result\.objectStoreNames\.contains\("samples"\)/);
   assert.match(app, /request\.result\.objectStoreNames\.contains\("kits"\)/);
   assert.match(app, /request\.result\.createObjectStore\("kits", \{ keyPath: "id" \}\)/);
+  assert.match(app, /request\.result\.createObjectStore\("takes", \{ keyPath: "id" \}\)/);
+  assert.match(app, /request\.result\.createObjectStore\("history", \{ keyPath: "id" \}\)/);
   assert.match(app, /async function initializeKitLibrary\(legacyPads\)/);
   assert.match(app, /name: slot === 1 \? "Kit 1 — Starter" : defaultKitName\(slot\)/);
 });

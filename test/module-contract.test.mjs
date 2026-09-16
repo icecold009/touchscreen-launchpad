@@ -42,6 +42,10 @@ test("module URLs share one cache version and remain in the offline shell", () =
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/pointer-state\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/storage-request\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/download\\.js\\?version=${htmlVersion}"`));
+  for (const moduleName of ["history", "input-adapter", "migrations", "transport", "voice-registry"]) {
+    assert.match(app, new RegExp(`${moduleName}\\.js\\?version=${htmlVersion}`));
+    assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/${moduleName}\\.js\\?version=${htmlVersion}"`));
+  }
 });
 
 test("syntax and aggregate validation include every browser module", () => {

@@ -30,6 +30,9 @@ test("the service worker caches a versioned shell and only falls back to HTML fo
   assert.match(serviceWorker, /caches\.open\(CACHE_NAME\)/);
   assert.match(serviceWorker, /const isNavigationRequest = event\.request\.mode === "navigate"/);
   assert.match(serviceWorker, /isNavigationRequest[\s\S]*caches\.open\(CACHE_NAME\)/);
+  for (const moduleName of ["history", "input-adapter", "migrations", "transport", "voice-registry"]) {
+    assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/${moduleName}\\.js\\?version=\\d+"`));
+  }
 });
 
 test("manifest and app shell use relative installable-PWA metadata", () => {

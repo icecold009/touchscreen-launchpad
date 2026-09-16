@@ -5,6 +5,16 @@ Reviewed: feature branch `codex/vercel-canonical-hosting-20260914` during the 20
 Release baseline: PR #7 was merged to `main` as `9c214a8`.
 Audit package baseline: `1dde9e9`; the merged release contains the security hardening, release-workflow pinning, and hosted Vercel deployment below.
 
+## Package: Professional audio foundation — `codex/launchpad-professional-foundation-20260916`
+
+- Goal: Establish versioned audio, transport, input, voice, migration, and bounded-history contracts for professional performance features.
+- Scope: Add pure transport/quantisation helpers, lookahead scheduling primitives, voice limits and de-click policy, input normalization, pad/kit/sample migration defaults, additive IndexedDB v3 stores, and foundation contract tests.
+- Non-goals: Recording, waveform editing, effects UI, sequencing UI, MIDI implementation, performance export, and cloud behavior.
+- Files: `app.js`, `src/history.js`, `src/input-adapter.js`, `src/migrations.js`, `src/transport.js`, `src/voice-registry.js`, `sw.js`, `scripts/validate-site.mjs`, `package.json`, and foundation tests.
+- Tests: `npm.cmd run validate`, module graph/cache validation, migration defaults, quantisation, scheduler lifecycle, voice stealing, input normalization, and bounded undo/redo.
+- Acceptance: Existing kits, samples, loop quantisation, stop-all, storage recovery, offline shell, and all current tests remain green; new records normalize deterministically; new browser modules are cached by the versioned service worker.
+- Evidence: `npm.cmd run validate` passes 48 tests; rendered local browser check confirms the launchpad shell, offline-ready state, and Pad 01 trigger; `main` remains untouched.
+
 ## Package: Simplified pad labels, light palette, and sidebar navigation — `codex/launchpad-simplified-sidebar-20260915`
 
 - Goal: Remove generic pad-name clutter, simplify the light visual system, and make the editor sidebar easier to navigate.
