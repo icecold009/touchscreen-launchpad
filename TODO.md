@@ -45,6 +45,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: A source sample remains intact; a slice bank is capped at 16; marker edits stay bounded; preview does not alter the pad; assignment stages until Save pad; pad and launchpack metadata retain the selected slice.
 - Evidence: `npm.cmd run validate` passes 67 tests; fresh local browser render at `http://localhost:4181/` exposes Create even slices, Clear slices, and the accessible slice list in the no-sample disabled state, with no console errors or warnings. Actual audio-file decoding, microphone/device behavior, and DAW/hosted import remain unclaimed; `main` remains untouched.
 
+## Package: Capture review and WAV fallback — `codex/launchpad-capture-review-export-20260916`
+
+- Goal: Make local performance takes reviewable, annotatable, pausable where supported, and portable beyond a browser codec.
+- Scope: Pause/resume recording state, native audio review, waveform/duration display, timestamped markers, take rename/delete/download, deterministic PCM/WAV conversion, explicit codec fallback, and versioned browser-module contracts.
+- Non-goals: Server rendering, cloud storage, unlimited multitrack recording, optional overdub design, take-level mix editing, or a DAW timeline.
+- Files: `index.html`, `style.css`, `app.js`, `src/recording.js`, `src/wav.js`, `src/bootstrap.js`, `sw.js`, `scripts/validate-site.mjs`, `package.json`, and recording/WAV/DOM/module/PWA tests.
+- Tests: `npm.cmd run validate`, recording lifecycle/pause/marker tests, deterministic WAV-byte tests, `git diff --check`, and fresh browser capture-card idle smoke with no console errors or warnings.
+- Acceptance: Saved takes remain local and bounded; pause/resume never counts paused time; review exposes audio and waveform/duration; markers and names persist; WAV export is deterministic or gives an actionable decode fallback; permission/device failures preserve previous takes.
+- Evidence: `npm.cmd run validate` passes 70 tests; fresh local browser render at `http://localhost:4181/` exposes Record performance and Pause recording, keeps Pause disabled while idle, exposes the saved-take review surface, and reports no console errors or warnings. Actual microphone permission, codec matrix, WAV download, device switching, hosted behavior, and DAW import remain unclaimed; `main` remains untouched.
+
 ## Package: Record to perform — `codex/launchpad-record-perform-20260916`
 
 - Goal: Turn a live sound or voice idea into a reusable performance sample without leaving the local-first app.

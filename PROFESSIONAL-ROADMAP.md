@@ -16,13 +16,13 @@ The current product already covers most of the performance loop. The remaining w
 | Pad surface | 4×4 touch, mouse, keyboard, focus, 16-color diagonal palette, fullscreen perform mode | Pressure/aftertouch gestures, optional pad velocity curves, long-session latency profiling | P1 |
 | Pad playback | One-shot, loop, trigger, gate, hold, retrigger, repeat, echo, quantized launch/stop, attack/release, pitch, live-speed fallback, pan, filter | Complex high-quality time-stretch, layered/chromatic pad modes, per-pad modulation/macros | P1 |
 | Voice safety | Per-pad/global voice caps, oldest-first stealing, de-click fades, choke/mute/link groups, stop-all cleanup, audio-clock lookahead, stale-timer cleanup, explicit context/device-loss handling | AudioWorklet/worker clock and long-session latency/stress profiling | P0 |
-| Recording | Permission-gated microphone plus app mix, bounded local takes, IndexedDB storage, assign-to-pad | Pause/overdub/markers, take rename, waveform review, PCM/WAV fallback and recording-device recovery | P1 |
+| Recording | Permission-gated microphone plus app mix, bounded local takes, IndexedDB storage, assign-to-pad, pause/resume, take rename, marker metadata, native review audio, waveform review, and PCM/WAV fallback | Optional overdub design, take-level mix editing, and device-specific recovery proof | P1 |
 | Sample lab | Waveform, trim, loop region, reverse, cents pitch, live-speed fallback, pan, filter, attack/release, delay/reverb send, bounded manual slice markers, per-slice preview, and slice-to-pad assignment | Automatic transient detection, fades, normalization, zoom, batch edits, true time-stretch | P1 |
 | Sample library | Shared local library, search, sort, folder import, natural ordering, deduplication, storage bounds | Drag/drop, tags/favorites, orphan cleanup, batch assignment, richer repair/preview tools | P1 |
 | Arrangement | Two persistent A/B scenes, four tracks, 16 steps, swing, editable probability/micro-timing, scene duplication, reversible edits, scene playback | Scene launch quantization, scene chaining, pattern copy/duplicate beyond whole-scene duplication | P1 |
 | Live effects | Per-pad delay/reverb sends, bounded master delay/reverb, filter/pan, local diagnostics, effects included in capture | Master EQ, compressor/limiter, safer feedback protection, effect snapshots/macros, output/cue routing | P1 |
 | MIDI | Optional Web MIDI input/output, learn mapping, velocity-aware input, gate/hold note-off, outbound note feedback | CC/aftertouch mapping, clock sync, LED color/state feedback, multi-device profiles, robust reconnect/fallback | P1 |
-| Export | JSON layout, `.launchpack` audio backup with slice metadata, local take download, deterministic two-scene MIDI | Offline rendered WAV, master/stem export, event/performance export, import verification in a DAW | P1/P2 |
+| Export | JSON layout, `.launchpack` audio backup with slice metadata, local take download, deterministic PCM/WAV take export, and two-scene MIDI | Offline rendered master/stem audio, event/performance export, import verification in a DAW | P1/P2 |
 | Persistence | Local storage + IndexedDB v3, versioned pad/sample migration, five kits, user-visible pad/scene undo-redo, non-destructive slice metadata, offline PWA | Autosave checkpoints, launchpack v2 migration, conflict/repair UX | P1 |
 | Accessibility | Semantic controls, keyboard/focus path, labeled step editor, live status messages, reduced-motion styling, fallback when MIDI/mic are unavailable | High-contrast/focus audit at performance distance, rate-limited announcements, screen-reader export feedback | P1 |
 | Delivery | Static no-build app, Vercel canonical deployment, secondary Pages workflow, service-worker cache contract | Release smoke matrix, hosted offline/update proof after each release, device matrix, optional observability | P0 |
@@ -43,6 +43,7 @@ These are complete on local feature branches and are intentionally stacked rathe
 9. Sequencer authoring and reversible edits: selected-step probability/micro-timing controls, scene duplication, scene undo/redo, pad undo/redo, and kit-scoped history reset.
 10. Audio clock and device resilience: audio-clock lookahead scheduling, explicit suspended/closed/unavailable diagnostics, stale sequencer-timer cleanup, and microphone device-loss handling.
 11. Slice-to-pads foundation: bounded non-destructive slice metadata, editable In/Out markers, per-slice preview, slice assignment to pads, and launchpack preservation.
+12. Capture review and WAV fallback: pause/resume state, take rename, local audio review, waveform rendering, marker metadata, and deterministic PCM/WAV export.
 
 Evidence boundary: local contract and rendered browser evidence are current for these packages. Physical hardware, microphone capture, DAW import, hosted production behavior, and installed-PWA behavior remain environment-specific until separately verified.
 
@@ -77,13 +78,13 @@ Evidence boundary: local contract and rendered browser evidence are current for 
 
 ### P1 — Professional control and capture depth
 
-#### Package D: Capture review and mix export
+#### Package D: Capture review and mix export — complete for local take review/export
 
 - Goal: make recorded work reviewable and portable beyond a browser blob.
-- Scope: take rename/delete/download polish, waveform and duration review, pause/resume where supported, optional overdub design, pure-JS PCM/WAV encoder, deterministic offline master render, explicit codec fallback.
+- Scope: take rename/delete/download polish, native audio plus waveform/duration review, timestamped markers, pause/resume where supported, pure-JS PCM/WAV encoder, and explicit codec fallback.
 - Non-goals: server rendering, cloud storage, unlimited multitrack recording.
-- Acceptance: a supported browser can save a bounded WAV or clearly label a codec fallback; a failed permission/device path preserves existing takes; render output is deterministic for the same event/sample inputs.
-- Verification: encoder byte tests, memory limits, MediaRecorder codec matrix, mic permission/device-loss smoke, download/import smoke.
+- Acceptance: a supported browser can review and rename a bounded local take, pause/resume where the recorder exposes it, add markers, export deterministic PCM WAV, and retain the source codec when decode is unavailable; a failed permission/device path preserves existing takes.
+- Verification: encoder byte tests, bounded marker/session tests, MediaRecorder pause state tests, rendered capture-card smoke, mic permission/device-loss review, and download/import smoke. Actual microphone permission, codec support, and device recovery remain environment-specific.
 
 #### Package E: Master bus and performance macros
 

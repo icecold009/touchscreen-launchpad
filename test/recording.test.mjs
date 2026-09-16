@@ -7,6 +7,7 @@ import {
   createTakeRecord,
   formatRecordingTime,
   isValidTakeRecord,
+  normalizeTakeRecord,
 } from "../src/recording.js";
 
 class FakeRecorder {
@@ -40,6 +41,14 @@ class FakeRecorder {
     this.state = "inactive";
     this.emit("dataavailable", { data: new Blob(["take"], { type: this.mimeType }) });
     this.emit("stop");
+  }
+
+  pause() {
+    this.state = "paused";
+  }
+
+  resume() {
+    this.state = "recording";
   }
 }
 
@@ -78,6 +87,23 @@ test("cancelling a session discards the pending recorder data", () => {
   assert.deepEqual(states, ["recording", "idle", "idle"]);
 });
 
+test("recording pause and resume exclude the paused interval from duration", async () => {
+  let now = 1000;
+  const states = [];
+  const session = createRecordingSession({ RecorderClass: FakeRecorder, now: () => now, onStateChange: ({ state }) => states.push(state) });
+  session.start({ getTracks: () => [] });
+  now += 500;
+  session.pause();
+  now += 2000;
+  assert.equal(session.elapsedMs, 500);
+  session.resume();
+  now += 500;
+  const blob = await session.stop();
+  assert.equal(blob.size, 4);
+  assert.equal(session.elapsedMs, 1000);
+  assert.deepEqual(states, ["recording", "paused", "recording", "stopping", "ready"]);
+});
+
 test("take records reject empty or oversized blobs", () => {
   assert.throws(() => createTakeRecord({ blob: new Blob([]) }), /did not contain audio/);
   const take = createTakeRecord({
@@ -88,6 +114,16 @@ test("take records reject empty or oversized blobs", () => {
   });
   assert.equal(take.name, "Room idea");
   assert.equal(take.durationMs, 1800);
+  assert.deepEqual(take.markers, []);
   assert.equal(isValidTakeRecord(take), true);
   assert.equal(isValidTakeRecord({ ...take, size: 3 }), false);
+});
+
+test("take markers normalize to the recorded duration", () => {
+  const take = normalizeTakeRecord({
+    id: "take-markers",
+    durationMs: 1000,
+    markers: [{ label: "  Drop  ", atMs: 2000 }],
+  });
+  assert.deepEqual(take.markers, [{ id: "marker-1", label: "Drop", atMs: 1000 }]);
 });

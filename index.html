@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=41" />
+    <link rel="stylesheet" href="style.css?version=42" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -89,6 +89,7 @@
             </div>
             <div class="recording-controls">
               <button id="record-performance" class="button button-primary" type="button">Record performance</button>
+              <button id="pause-recording" class="button button-secondary" type="button" disabled>Pause recording</button>
               <span id="recording-state" class="recording-state" role="status" aria-live="polite">Ready to capture</span>
             </div>
             <ul id="take-list" class="sample-list take-list" aria-label="Saved performance takes">
@@ -530,6 +531,6 @@
       </section>
     </main>
 
-            <script type="module" src="src/bootstrap.js?version=41"></script>
+            <script type="module" src="src/bootstrap.js?version=42"></script>
   </body>
 </html>

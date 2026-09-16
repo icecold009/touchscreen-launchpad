@@ -1,23 +1,24 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=41";
-import { createInputAdapter } from "./src/input-adapter.js?version=41";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=41";
-import { createPointerState } from "./src/pointer-state.js?version=41";
-import { attachStorageRequest } from "./src/storage-request.js?version=41";
-import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=41";
-import { getNextQuantizedTime } from "./src/transport.js?version=41";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=41";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=41";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=41";
-import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=41";
-import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=41";
-import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=41";
-import { createMidiFile } from "./src/midi-file.js?version=41";
-import { createImpulseResponse, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=41";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=41";
-import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=41";
-import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=41";
+import { createHistory } from "./src/history.js?version=42";
+import { createInputAdapter } from "./src/input-adapter.js?version=42";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=42";
+import { createPointerState } from "./src/pointer-state.js?version=42";
+import { attachStorageRequest } from "./src/storage-request.js?version=42";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=42";
+import { getNextQuantizedTime } from "./src/transport.js?version=42";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=42";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=42";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=42";
+import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=42";
+import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=42";
+import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=42";
+import { createMidiFile } from "./src/midi-file.js?version=42";
+import { createImpulseResponse, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=42";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=42";
+import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=42";
+import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=42";
+import { encodePcmWav } from "./src/wav.js?version=42";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -41,6 +42,7 @@ const padGrid = document.querySelector("#pad-grid");
 const statusMessage = document.querySelector("#status");
 const beatIndicator = document.querySelector("#beat-indicator");
 const recordButton = document.querySelector("#record-performance");
+const recordPauseButton = document.querySelector("#pause-recording");
 const recordingTimer = document.querySelector("#recording-timer");
 const recordingState = document.querySelector("#recording-state");
 const takeList = document.querySelector("#take-list");
@@ -188,6 +190,8 @@ let recordingMicStream;
 let recordingMicSource;
 let recordingMicGain;
 let recordingTicker;
+const takePreviewUrls = new Map();
+const takeWaveformTokens = new Map();
 let lastTakeId;
 let waveformRenderToken = 0;
 let masterEffects = normalizeMasterEffects();
@@ -1635,7 +1639,92 @@ function assignSampleToSelectedPad(sampleId) {
   setStatus(`${sample.name} selected for ${getPadName(pads[selectedPadIndex], selectedPadIndex)}. Save the pad to apply it.`);
 }
 
+function revokeTakePreviewUrls() {
+  for (const url of takePreviewUrls.values()) URL.revokeObjectURL(url);
+  takePreviewUrls.clear();
+}
+
+function drawTakeWaveformPlaceholder(canvas, message = "Preview waveform") {
+  if (!canvas?.getContext) return;
+  const context = canvas.getContext("2d");
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "#f3f4f8";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "#7d8494";
+  context.font = "12px system-ui";
+  context.textAlign = "center";
+  context.fillText(message, canvas.width / 2, canvas.height / 2 + 4);
+}
+
+async function renderTakeWaveform(take, canvas) {
+  const token = (takeWaveformTokens.get(take.id) || 0) + 1;
+  takeWaveformTokens.set(take.id, token);
+  try {
+    const buffer = await getAudioContext().decodeAudioData((await take.blob.arrayBuffer()).slice(0));
+    if (takeWaveformTokens.get(take.id) !== token) return;
+    drawWaveform(canvas, buffer);
+  } catch {
+    if (takeWaveformTokens.get(take.id) === token) drawTakeWaveformPlaceholder(canvas, "Waveform unavailable");
+  }
+}
+
+async function renameTake(takeId) {
+  const take = takes.get(takeId);
+  if (!take) return;
+  const nextName = window.prompt("Name this take", take.name);
+  if (nextName === null) return;
+  const safeName = nextName.trim().slice(0, 80);
+  if (!safeName) {
+    setStatus("Take names must contain at least one character.", "error");
+    return;
+  }
+  const updated = normalizeTakeRecord({ ...take, name: safeName });
+  try {
+    await writeTake(updated);
+    takes.set(takeId, updated);
+    renderTakeLibrary();
+    setStatus(`${safeName} renamed and saved.`, "success");
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "The take name could not be saved.", "error");
+  }
+}
+
+async function addTakeMarker(takeId, audioElement) {
+  const take = takes.get(takeId);
+  if (!take) return;
+  const atMs = Math.max(0, Number(audioElement.currentTime) * 1000 || 0);
+  const label = window.prompt("Marker label", `Marker ${take.markers?.length + 1 || 1}`);
+  if (label === null) return;
+  const safeLabel = label.trim().slice(0, 40) || `Marker ${take.markers?.length + 1 || 1}`;
+  const updated = normalizeTakeRecord({
+    ...take,
+    markers: [...(take.markers || []), { id: makeId(), label: safeLabel, atMs }],
+  });
+  try {
+    await writeTake(updated);
+    takes.set(takeId, updated);
+    renderTakeLibrary();
+    setStatus(`${safeLabel} added to ${take.name}.`, "success");
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "The take marker could not be saved.", "error");
+  }
+}
+
+async function downloadTakeWav(takeId) {
+  const take = takes.get(takeId);
+  if (!take) return;
+  try {
+    const buffer = await getAudioContext().decodeAudioData((await take.blob.arrayBuffer()).slice(0));
+    const wav = new Blob([encodePcmWav(buffer)], { type: "audio/wav" });
+    triggerBlobDownload({ documentRef: document, windowRef: window }, `${safePackFilename(take.name)}.wav`, wav);
+    setStatus(`${take.name} exported as deterministic PCM WAV.`, "success");
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "WAV export is unavailable for this recording. The source take is still available.", "error");
+  }
+}
+
 function renderTakeLibrary() {
+  revokeTakePreviewUrls();
   const orderedTakes = [...takes.values()].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
   takeCount.textContent = `${orderedTakes.length} ${orderedTakes.length === 1 ? "take" : "takes"}`;
   takeList.replaceChildren();
@@ -1658,7 +1747,28 @@ function renderTakeLibrary() {
     const meta = document.createElement("span");
     meta.className = "muted";
     meta.textContent = `${formatRecordingTime(take.durationMs)} · ${formatBytes(take.size)}`;
-    details.append(name, meta);
+    const waveform = document.createElement("canvas");
+    waveform.className = "take-waveform";
+    waveform.width = 320;
+    waveform.height = 48;
+    waveform.setAttribute("aria-label", `${take.name} waveform preview`);
+    drawTakeWaveformPlaceholder(waveform);
+    details.append(name, meta, waveform);
+    const previewUrl = URL.createObjectURL(take.blob);
+    takePreviewUrls.set(take.id, previewUrl);
+    const audio = document.createElement("audio");
+    audio.controls = true;
+    audio.preload = "metadata";
+    audio.src = previewUrl;
+    audio.setAttribute("aria-label", `Review ${take.name}`);
+    audio.addEventListener("loadeddata", () => void renderTakeWaveform(take, waveform), { once: true });
+    details.append(audio);
+    if (take.markers?.length) {
+      const markers = document.createElement("span");
+      markers.className = "muted take-markers";
+      markers.textContent = `Markers: ${take.markers.map((marker) => `${marker.label} ${formatRecordingTime(marker.atMs)}`).join(" · ")}`;
+      details.append(markers);
+    }
     const actions = document.createElement("div");
     actions.className = "take-actions";
     const assignButton = document.createElement("button");
@@ -1673,12 +1783,30 @@ function renderTakeLibrary() {
     downloadButton.textContent = "Download";
     downloadButton.setAttribute("aria-label", `Download ${take.name}`);
     downloadButton.addEventListener("click", () => downloadTake(take.id));
+    const wavButton = document.createElement("button");
+    wavButton.className = "text-button";
+    wavButton.type = "button";
+    wavButton.textContent = "WAV";
+    wavButton.setAttribute("aria-label", `Export ${take.name} as WAV`);
+    wavButton.addEventListener("click", () => void downloadTakeWav(take.id));
+    const markerButton = document.createElement("button");
+    markerButton.className = "text-button";
+    markerButton.type = "button";
+    markerButton.textContent = "Mark position";
+    markerButton.setAttribute("aria-label", `Add marker to ${take.name}`);
+    markerButton.addEventListener("click", () => void addTakeMarker(take.id, audio));
+    const renameButton = document.createElement("button");
+    renameButton.className = "text-button";
+    renameButton.type = "button";
+    renameButton.textContent = "Rename";
+    renameButton.setAttribute("aria-label", `Rename ${take.name}`);
+    renameButton.addEventListener("click", () => void renameTake(take.id));
     const deleteButton = document.createElement("button");
     deleteButton.className = "text-button";
     deleteButton.type = "button";
     deleteButton.textContent = "Delete";
     deleteButton.addEventListener("click", () => void removeTake(take.id));
-    actions.append(assignButton, downloadButton, deleteButton);
+    actions.append(assignButton, downloadButton, wavButton, markerButton, renameButton, deleteButton);
     item.append(details, actions);
     takeList.append(item);
   }
@@ -1687,7 +1815,7 @@ function renderTakeLibrary() {
 function downloadTake(takeId) {
   const take = takes.get(takeId);
   if (!take) return;
-  const extension = take.mime.includes("ogg") ? "ogg" : take.mime.includes("mp4") ? "m4a" : "webm";
+  const extension = take.mime.includes("wav") ? "wav" : take.mime.includes("ogg") ? "ogg" : take.mime.includes("mp4") ? "m4a" : "webm";
   try {
     triggerBlobDownload(
       { documentRef: document, windowRef: window },
@@ -1704,7 +1832,7 @@ async function assignTakeToSelectedPad(takeId) {
   const take = takes.get(takeId);
   if (!take) return;
   try {
-    const extension = take.mime.includes("ogg") ? "ogg" : take.mime.includes("mp4") ? "m4a" : "webm";
+    const extension = take.mime.includes("wav") ? "wav" : take.mime.includes("ogg") ? "ogg" : take.mime.includes("mp4") ? "m4a" : "webm";
     const file = new File([take.blob], `${take.name}.${extension}`, { type: take.mime });
     const persisted = await persistSample(file);
     assignSampleToSelectedPad(persisted.sample.id);
@@ -1730,12 +1858,22 @@ async function removeTake(takeId) {
 }
 
 function updateRecordingState({ state = recordingSession.state, elapsedMs = recordingSession.elapsedMs, error } = {}) {
-  const isRecording = state === "recording" || state === "stopping";
-  recordButton.textContent = state === "recording" ? "Stop recording" : "Record performance";
+  const isRecording = state === "recording" || state === "paused" || state === "stopping";
+  recordButton.textContent = isRecording ? "Stop recording" : "Record performance";
   recordButton.classList.toggle("is-recording", state === "recording");
   recordButton.disabled = state === "stopping";
+  recordPauseButton.disabled = state !== "recording" && state !== "paused";
+  recordPauseButton.textContent = state === "paused" ? "Resume recording" : "Pause recording";
   recordingTimer.textContent = formatRecordingTime(elapsedMs);
-  recordingState.textContent = state === "recording" ? "Capturing microphone + app mix" : state === "stopping" ? "Finalizing take…" : state === "ready" ? "Take saved locally" : "Ready to capture";
+  recordingState.textContent = state === "recording"
+    ? "Capturing microphone + app mix"
+    : state === "paused"
+      ? "Recording paused"
+      : state === "stopping"
+        ? "Finalizing take…"
+        : state === "ready"
+          ? "Take saved locally"
+          : "Ready to capture";
   recordingState.dataset.state = state;
   if (error) setStatus(error instanceof Error ? error.message : "The recording failed.", "error");
   if (!isRecording && recordingTicker) {
@@ -1784,7 +1922,7 @@ async function startPerformanceRecording() {
 }
 
 async function stopPerformanceRecording() {
-  if (recordingSession.state !== "recording") return;
+  if (recordingSession.state !== "recording" && recordingSession.state !== "paused") return;
   try {
     const elapsedMs = recordingSession.elapsedMs;
     const blob = await recordingSession.stop();
@@ -1820,8 +1958,17 @@ async function stopPerformanceRecording() {
 }
 
 function togglePerformanceRecording() {
-  if (recordingSession.state === "recording") void stopPerformanceRecording();
+  if (recordingSession.state === "recording" || recordingSession.state === "paused") void stopPerformanceRecording();
   else if (recordingSession.state === "idle" || recordingSession.state === "ready") void startPerformanceRecording();
+}
+
+function toggleRecordingPause() {
+  try {
+    if (recordingSession.state === "recording") recordingSession.pause();
+    else if (recordingSession.state === "paused") recordingSession.resume();
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "This browser cannot pause the recording.", "error");
+  }
 }
 
 function formatBytes(bytes) {
@@ -3265,6 +3412,7 @@ function bindEvents() {
   });
   tempoInput.addEventListener("change", () => syncMetronome());
   recordButton.addEventListener("click", togglePerformanceRecording);
+  recordPauseButton.addEventListener("click", toggleRecordingPause);
   performanceModeButton.addEventListener("click", () => void togglePerformanceMode());
   sceneAButton.addEventListener("click", () => setSequencerScene("scene-a"));
   sceneBButton.addEventListener("click", () => setSequencerScene("scene-b"));
@@ -3423,7 +3571,10 @@ export async function initLaunchpad() {
 
   try {
     const [storedSamples, storedTakes] = await Promise.all([readSamples(), readTakes()]);
-    takes = new Map(storedTakes.filter(isValidTakeRecord).sort((left, right) => right.createdAt.localeCompare(left.createdAt)).slice(0, MAX_TAKE_COUNT).map((take) => [take.id, take]));
+    takes = new Map(storedTakes.filter(isValidTakeRecord).sort((left, right) => right.createdAt.localeCompare(left.createdAt)).slice(0, MAX_TAKE_COUNT).map((take) => {
+      const normalized = normalizeTakeRecord(take);
+      return [normalized.id, normalized];
+    }));
     renderTakeLibrary();
     const { valid, corrupt } = partitionStoredSamples(storedSamples);
     const { accepted, excess } = limitStoredSamples(valid);

@@ -27,6 +27,7 @@ const requiredFiles = [
   "src/slices.js",
   "src/transport.js",
   "src/voice-registry.js",
+  "src/wav.js",
   "manifest.webmanifest",
   "sw.js",
   "icon.svg",

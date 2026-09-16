@@ -1045,12 +1045,16 @@ body.is-performance-mode .effects-panel {
   color: #b23c55;
 }
 
+.recording-state[data-state="paused"] {
+  color: #9a6700;
+}
+
 .button.is-recording {
   background: #b23c55;
 }
 
 .take-list {
-  max-height: 9rem;
+  max-height: 24rem;
 }
 
 .take-actions {
@@ -1058,6 +1062,24 @@ body.is-performance-mode .effects-panel {
   align-items: center;
   gap: 0.4rem;
   flex: 0 0 auto;
+}
+
+.take-waveform {
+  display: block;
+  width: min(100%, 20rem);
+  height: 3rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: #f3f4f8;
+}
+
+.take-item audio {
+  width: min(100%, 20rem);
+  height: 2rem;
+}
+
+.take-markers {
+  line-height: 1.35;
 }
 
 .sample-tools {

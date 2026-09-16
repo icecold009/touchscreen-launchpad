@@ -25,7 +25,26 @@ export function formatRecordingTime(milliseconds) {
   return `${minutes}:${seconds}`;
 }
 
-export function createTakeRecord({ id, blob, name, kitId, padIndex, durationMs = 0, createdAt = new Date().toISOString() }) {
+function normalizeMarkers(value, durationMs) {
+  if (!Array.isArray(value)) return [];
+  const duration = Math.max(0, Number(durationMs) || 0);
+  return value.slice(0, 64).map((marker, index) => ({
+    id: typeof marker?.id === "string" && marker.id.length <= 80 ? marker.id : `marker-${index + 1}`,
+    label: typeof marker?.label === "string" && marker.label.trim() ? marker.label.trim().slice(0, 40) : `Marker ${index + 1}`,
+    atMs: Math.min(duration, Math.max(0, Number(marker?.atMs) || 0)),
+  }));
+}
+
+export function normalizeTakeRecord(candidate) {
+  if (!candidate || typeof candidate !== "object") return candidate;
+  return {
+    ...candidate,
+    schemaVersion: 2,
+    markers: normalizeMarkers(candidate.markers, candidate.durationMs),
+  };
+}
+
+export function createTakeRecord({ id, blob, name, kitId, padIndex, durationMs = 0, markers = [], createdAt = new Date().toISOString() }) {
   if (!blob || typeof blob.size !== "number" || blob.size <= 0) {
     throw new Error("A recording did not contain audio data.");
   }
@@ -33,9 +52,9 @@ export function createTakeRecord({ id, blob, name, kitId, padIndex, durationMs =
     throw new Error("This recording is too large to save safely.");
   }
   const safeName = String(name || "Launchpad take").trim().slice(0, 80) || "Launchpad take";
-  return {
+  return normalizeTakeRecord({
     id: String(id || `take-${Date.now()}`),
-    schemaVersion: 1,
+    schemaVersion: 2,
     name: safeName,
     mime: blob.type || "audio/*",
     size: blob.size,
@@ -43,8 +62,9 @@ export function createTakeRecord({ id, blob, name, kitId, padIndex, durationMs =
     kitId: typeof kitId === "string" ? kitId : null,
     padIndex: Number.isInteger(padIndex) && padIndex >= 0 ? padIndex : null,
     durationMs: Math.max(0, Number(durationMs) || 0),
+    markers,
     createdAt,
-  };
+  });
 }
 
 export function isValidTakeRecord(candidate) {
@@ -78,10 +98,19 @@ export function createRecordingSession({
   let durationTimer;
   let state = "idle";
   let cancelled = false;
+  let pausedAt = 0;
+  let pausedDuration = 0;
+  let activeMaxDurationMs = RECORDING_LIMITS.maxDurationMs;
+
+  function elapsed() {
+    if (!startedAt) return 0;
+    const end = state === "paused" ? pausedAt : now();
+    return Math.max(0, end - startedAt - pausedDuration);
+  }
 
   function emit(nextState, detail = {}) {
     state = nextState;
-    onStateChange({ state, elapsedMs: startedAt ? Math.max(0, now() - startedAt) : 0, ...detail });
+    onStateChange({ state, elapsedMs: elapsed(), ...detail });
   }
 
   function clearDurationTimer() {
@@ -91,8 +120,18 @@ export function createRecordingSession({
 
   function stopInternal() {
     if (!recorder || recorder.state === "inactive") return;
-    if (state === "recording") emit("stopping");
+    if (state === "paused" && pausedAt) {
+      pausedDuration += now() - pausedAt;
+      pausedAt = 0;
+    }
+    if (state === "recording" || state === "paused") emit("stopping");
     recorder.stop();
+  }
+
+  function scheduleDurationTimer() {
+    clearDurationTimer();
+    const remaining = Math.max(1000, activeMaxDurationMs - elapsed());
+    durationTimer = setTimeout(() => stopInternal(), remaining);
   }
 
   function start(stream, options = {}) {
@@ -111,6 +150,9 @@ export function createRecordingSession({
     cancelled = false;
     chunks = [];
     startedAt = now();
+    pausedAt = 0;
+    pausedDuration = 0;
+    activeMaxDurationMs = Math.max(1000, Number(maxDurationMs) || RECORDING_LIMITS.maxDurationMs);
     stopPromise = new Promise((resolve, reject) => {
       recorder.addEventListener("dataavailable", (event) => {
         if (event.data?.size) {
@@ -144,16 +186,36 @@ export function createRecordingSession({
       }, { once: true });
       activeRecorder.start(250);
       emit("recording");
-      durationTimer = setTimeout(() => stopInternal(), Math.max(1000, Number(maxDurationMs) || RECORDING_LIMITS.maxDurationMs));
+      scheduleDurationTimer();
     });
     return { mimeType: activeRecorder.mimeType || mimeType, startedAt };
   }
 
   function stop() {
-    if (!recorder || state !== "recording") return Promise.reject(new Error("No recording is in progress."));
-    emit("stopping");
+    if (!recorder || (state !== "recording" && state !== "paused")) return Promise.reject(new Error("No recording is in progress."));
     stopInternal();
     return stopPromise;
+  }
+
+  function pause() {
+    if (!recorder || state !== "recording") return false;
+    if (typeof recorder.pause !== "function") throw new Error("This browser cannot pause local recording.");
+    recorder.pause();
+    pausedAt = now();
+    clearDurationTimer();
+    emit("paused");
+    return true;
+  }
+
+  function resume() {
+    if (!recorder || state !== "paused") return false;
+    if (typeof recorder.resume !== "function") throw new Error("This browser cannot resume local recording.");
+    recorder.resume();
+    pausedDuration += Math.max(0, now() - pausedAt);
+    pausedAt = 0;
+    emit("recording");
+    scheduleDurationTimer();
+    return true;
   }
 
   function cancel() {
@@ -166,14 +228,16 @@ export function createRecordingSession({
     recorder = undefined;
     stopPromise = undefined;
     startedAt = 0;
+    pausedAt = 0;
+    pausedDuration = 0;
     emit("idle");
   }
 
   return {
     cancel,
-    get elapsedMs() {
-      return startedAt ? Math.max(0, now() - startedAt) : 0;
-    },
+    get elapsedMs() { return elapsed(); },
+    pause,
+    resume,
     get state() {
       return state;
     },
