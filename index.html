@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=43" />
+    <link rel="stylesheet" href="style.css?version=44" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -184,6 +184,37 @@
                 <select id="midi-output"><option value="">Connect to list devices</option></select>
               </label>
             </div>
+            <div class="midi-profile-controls">
+              <label class="compact-control" for="midi-profile-name">
+                <span>Kit MIDI profile</span>
+                <input id="midi-profile-name" type="text" maxlength="40" value="Default profile" />
+              </label>
+              <label class="check-control" for="midi-clock-in">
+                <input id="midi-clock-in" type="checkbox" />
+                <span>Clock in · follow tempo</span>
+              </label>
+              <label class="check-control" for="midi-clock-out">
+                <input id="midi-clock-out" type="checkbox" />
+                <span>Clock out · sequence transport</span>
+              </label>
+            </div>
+            <div class="midi-controller-controls">
+              <label class="compact-control" for="midi-mapping-target">
+                <span>Controller target</span>
+                <select id="midi-mapping-target">
+                  <option value="masterVolume">Master volume</option>
+                  <option value="warmth">Warmth macro</option>
+                  <option value="space">Space macro</option>
+                  <option value="punch">Punch macro</option>
+                  <option value="tempo">Tempo</option>
+                </select>
+              </label>
+              <button id="midi-learn-controller" class="button button-secondary" type="button">Learn CC / aftertouch</button>
+              <button id="midi-cancel-learn" class="button button-quiet" type="button" disabled>Cancel learn</button>
+              <button id="midi-clear-mappings" class="button button-quiet" type="button">Clear mappings</button>
+            </div>
+            <p id="midi-mapping-status" class="muted" role="status" aria-live="polite">Choose a target, then learn a controller.</p>
+            <ul id="midi-mappings" class="midi-mappings" aria-label="Learned MIDI controller mappings"></ul>
           </section>
 
           <section class="effects-panel" aria-labelledby="effects-title">
@@ -584,6 +615,6 @@
       </section>
     </main>
 
-            <script type="module" src="src/bootstrap.js?version=43"></script>
+            <script type="module" src="src/bootstrap.js?version=44"></script>
   </body>
 </html>

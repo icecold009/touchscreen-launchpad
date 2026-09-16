@@ -65,6 +65,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: Master processing is bounded and ordered before destination/capture output; snapshots persist per kit; macros map to safe parameters; level checks label headroom/clipping; unsupported graph pieces degrade without breaking local pads.
 - Evidence: `npm.cmd run validate` passes 71 tests; fresh local browser render at `http://localhost:4181/` exposes EQ, compressor, limiter, macro, snapshot, and level controls; after Check audio it reports `running · 48000 Hz · 10 ms latency`, and Check levels reports `Peak 0% · headroom available` with no console errors or warnings. Physical output, long-session loudness, hosted behavior, and cue-device routing remain unclaimed; `main` remains untouched.
 
+## Package: MIDI and controller depth — `codex/launchpad-midi-depth-20260916`
+
+- Goal: Make optional MIDI hardware integration reliable for repeat performances without making MIDI a requirement.
+- Scope: CC/aftertouch mappings to master volume, tempo, and master macros; per-kit MIDI profile names and device IDs; learn cancellation and note/controller conflict feedback; clock-in tempo following; clock-out sequence transport pulses; reconnect-safe device selection; generic note-state output feedback; launchpack preservation; and versioned module/cache contracts.
+- Non-goals: SysEx or vendor-specific RGB protocols, multichannel hardware routing, automatic DAW control, hardware certification, or MIDI becoming required for local operation.
+- Files: `index.html`, `style.css`, `app.js`, `src/midi.js`, `sw.js`, `src/bootstrap.js`, `test/midi.test.mjs`, `test/site-dom.test.mjs`, module/PWA contracts, README, and this backlog entry.
+- Tests: `npm.cmd run validate`, MIDI parser/profile/controller/clock tests, DOM/module/cache/PWA contracts, fresh no-MIDI browser fallback, learn-cancel smoke, and browser console inspection.
+- Acceptance: Browsers without Web MIDI retain full local operation; mappings and clock policy persist per kit and in `.launchpack`; conflicts are visible; reconnect does not leave a gate or clock timer stuck; outbound note feedback is bounded and degrades visibly when a device disappears.
+- Evidence: `npm.cmd run validate` passes 73 tests; fresh local browser render exposes the MIDI profile, clock, controller target, mapping list, and cancel controls; no-MIDI Connect reports `MIDI permission was not granted. The launchpad still works locally.`; Learn CC / aftertouch enables Cancel learn and cancellation restores the idle state; no console errors or warnings. Physical controller I/O, device LEDs, long-session clock drift, hosted behavior, and DAW sync remain unclaimed; `main` remains untouched.
+
 ## Package: Record to perform — `codex/launchpad-record-perform-20260916`
 
 - Goal: Turn a live sound or voice idea into a reusable performance sample without leaving the local-first app.

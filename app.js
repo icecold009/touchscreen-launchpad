@@ -1,24 +1,24 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=43";
-import { createInputAdapter } from "./src/input-adapter.js?version=43";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=43";
-import { createPointerState } from "./src/pointer-state.js?version=43";
-import { attachStorageRequest } from "./src/storage-request.js?version=43";
-import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=43";
-import { getNextQuantizedTime } from "./src/transport.js?version=43";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=43";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=43";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=43";
-import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=43";
-import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=43";
-import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=43";
-import { createMidiFile } from "./src/midi-file.js?version=43";
-import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=43";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=43";
-import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=43";
-import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=43";
-import { encodePcmWav } from "./src/wav.js?version=43";
+import { createHistory } from "./src/history.js?version=44";
+import { createInputAdapter } from "./src/input-adapter.js?version=44";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=44";
+import { createPointerState } from "./src/pointer-state.js?version=44";
+import { attachStorageRequest } from "./src/storage-request.js?version=44";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=44";
+import { getNextQuantizedTime } from "./src/transport.js?version=44";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=44";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=44";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=44";
+import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=44";
+import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=44";
+import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=44";
+import { createMidiFile } from "./src/midi-file.js?version=44";
+import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=44";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=44";
+import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=44";
+import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=44";
+import { encodePcmWav } from "./src/wav.js?version=44";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -71,6 +71,15 @@ const midiLearnButton = document.querySelector("#midi-learn");
 const midiStatus = document.querySelector("#midi-status");
 const midiInputSelect = document.querySelector("#midi-input");
 const midiOutputSelect = document.querySelector("#midi-output");
+const midiProfileNameInput = document.querySelector("#midi-profile-name");
+const midiClockInInput = document.querySelector("#midi-clock-in");
+const midiClockOutInput = document.querySelector("#midi-clock-out");
+const midiMappingTargetSelect = document.querySelector("#midi-mapping-target");
+const midiLearnControllerButton = document.querySelector("#midi-learn-controller");
+const midiCancelLearnButton = document.querySelector("#midi-cancel-learn");
+const midiClearMappingsButton = document.querySelector("#midi-clear-mappings");
+const midiMappingStatus = document.querySelector("#midi-mapping-status");
+const midiMappingsList = document.querySelector("#midi-mappings");
 const delayTimeInput = document.querySelector("#delay-time");
 const delayFeedbackInput = document.querySelector("#delay-feedback");
 const reverbDecayInput = document.querySelector("#reverb-decay");
@@ -226,8 +235,21 @@ let midiInputs = new Map();
 let midiOutputs = new Map();
 let activeMidiInput;
 let activeMidiOutput;
+let midiClockTimer;
+let midiConfig = normalizeMidiConfig();
 const midiLearnState = createMidiLearnState({
   onLearned: ({ note, channel }) => void saveMidiMapping({ note, channel }),
+});
+const midiControllerLearnState = createMidiLearnState({
+  onLearned: (message) => void saveMidiControllerMapping(message),
+});
+const midiClockTracker = createMidiClockTracker({
+  onTempo: (tempo) => {
+    if (!midiConfig.clockIn) return;
+    tempoInput.value = String(Math.round(tempo * 10) / 10);
+    updateTempoValue();
+    midiStatus.textContent = `MIDI clock in · ${Math.round(tempo)} BPM`;
+  },
 });
 const sequencerRunner = createClockedSequencerRunner({
   clock: () => audioContext?.currentTime || 0,
@@ -375,6 +397,7 @@ function createKitRecord(slot, kitPads = createDefaultPads(), { name, empty = fa
     scenes: [],
     masterEffects: normalizeMasterEffects(),
     masterSnapshots: [],
+    midiConfig: normalizeMidiConfig(),
   };
 }
 
@@ -390,6 +413,7 @@ function normalizeKit(candidate, slot) {
         effects: normalizeMasterEffects(snapshot?.effects),
       }))
       : [],
+    midiConfig: normalizeMidiConfig(candidate?.midiConfig),
   };
 }
 
@@ -911,6 +935,7 @@ function setSequencerScene(sceneId) {
 async function toggleSequencer() {
   if (sequencerRunner.running) {
     sequencerRunner.stop();
+    stopMidiClockOutput();
     sequencerPlayButton.textContent = "Play sequence";
     renderSequencer();
     return;
@@ -918,6 +943,7 @@ async function toggleSequencer() {
   try {
     await prepareAudio();
     sequencerRunner.start();
+    startMidiClockOutput();
     sequencerPlayButton.textContent = "Stop sequence";
     renderSequencer();
   } catch (error) {
@@ -997,13 +1023,95 @@ function renderMidiDevices() {
   if (activeMidiOutput) midiOutputSelect.value = activeMidiOutput.id;
 }
 
+function getMidiTargetLabel(target) {
+  return {
+    masterVolume: "Master volume",
+    warmth: "Warmth macro",
+    space: "Space macro",
+    punch: "Punch macro",
+    tempo: "Tempo",
+  }[target] || "Master volume";
+}
+
+function renderMidiMappings() {
+  if (!midiMappingsList) return;
+  midiMappingsList.replaceChildren();
+  const mappings = midiConfig.controllerMappings || [];
+  if (!mappings.length) {
+    const empty = document.createElement("li");
+    empty.className = "empty-state";
+    empty.textContent = "No CC or aftertouch mappings yet.";
+    midiMappingsList.append(empty);
+    return;
+  }
+  for (const mapping of mappings) {
+    const item = document.createElement("li");
+    item.className = "midi-mapping-item";
+    const label = document.createElement("span");
+    const source = mapping.type === "cc" ? `CC ${mapping.controller}` : "Aftertouch";
+    const channel = mapping.channel === null ? "omni" : `ch ${mapping.channel + 1}`;
+    label.textContent = `${source} · ${channel} → ${getMidiTargetLabel(mapping.target)}`;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "text-button";
+    remove.textContent = "Remove";
+    remove.addEventListener("click", () => {
+      midiConfig = normalizeMidiConfig({
+        ...midiConfig,
+        controllerMappings: mappings.filter((candidate) => candidate.id !== mapping.id),
+      });
+      renderMidiMappings();
+      void persistMidiConfig("MIDI mapping removed.");
+    });
+    item.append(label, remove);
+    midiMappingsList.append(item);
+  }
+}
+
+function syncMidiConfigInputs() {
+  if (!midiProfileNameInput) return;
+  midiProfileNameInput.value = midiConfig.profileName;
+  midiClockInInput.checked = midiConfig.clockIn;
+  midiClockOutInput.checked = midiConfig.clockOut;
+  renderMidiMappings();
+  renderMidiDevices();
+}
+
+async function persistMidiConfig(message = "MIDI profile saved locally.") {
+  const kit = kits.get(currentKitId);
+  if (!kit) return false;
+  const nextKit = { ...kit, midiConfig: normalizeMidiConfig(midiConfig), updatedAt: new Date().toISOString() };
+  if (!(await persistKitRecord(nextKit))) return false;
+  midiConfig = normalizeMidiConfig(nextKit.midiConfig);
+  setKitDirty(false);
+  renderKitControls();
+  setStatus(storageMode === "memory" ? `${message} Memory-only mode: a reload may discard changes.` : message, storageMode === "memory" ? "error" : "success");
+  return true;
+}
+
+function handleMidiClockMessage(message) {
+  if (!midiConfig.clockIn || !["clock", "start", "continue", "stop"].includes(message.command)) return false;
+  if (message.command === "start" || message.command === "continue") midiClockTracker.start();
+  else if (message.command === "stop") midiClockTracker.stop();
+  else midiClockTracker.tick(performance.now());
+  if (message.command === "start") midiStatus.textContent = "MIDI clock in · started";
+  if (message.command === "stop") midiStatus.textContent = "MIDI clock in · stopped";
+  return true;
+}
+
 function handleMidiMessage(event) {
   const message = parseMidiMessage(event.data);
   if (!message) return;
+  if (handleMidiClockMessage(message)) return;
+  if (midiControllerLearnState.handle(message)) {
+    midiMappingStatus.textContent = "Controller learned and saved.";
+    return;
+  }
   if (midiLearnState.handle(message)) {
     midiStatus.textContent = `Learned MIDI note ${message.note}.`;
     return;
   }
+  if (applyMidiControllerMessage(message)) return;
   if (message.command !== "noteon" && message.command !== "noteoff") return;
   const padIndex = getPadIndexForMidiNote(pads, message.note, { channel: message.channel });
   if (padIndex < 0) return;
@@ -1020,10 +1128,47 @@ function selectMidiInput(inputId) {
   if (activeMidiInput) activeMidiInput.onmidimessage = null;
   activeMidiInput = midiInputs.get(inputId) || undefined;
   if (activeMidiInput) activeMidiInput.onmidimessage = handleMidiMessage;
+  midiConfig = normalizeMidiConfig({ ...midiConfig, inputId: activeMidiInput?.id || "" });
+  if (activeMidiInput) void persistMidiConfig("MIDI input profile saved locally.");
 }
 
 function selectMidiOutput(outputId) {
   activeMidiOutput = midiOutputs.get(outputId) || undefined;
+  midiConfig = normalizeMidiConfig({ ...midiConfig, outputId: activeMidiOutput?.id || "" });
+  if (activeMidiOutput) {
+    void persistMidiConfig("MIDI output profile saved locally.");
+    if (sequencerRunner.running) startMidiClockOutput();
+  }
+}
+
+function refreshMidiDevices() {
+  const savedInputId = midiConfig.inputId;
+  const savedOutputId = midiConfig.outputId;
+  if (activeMidiInput && !midiInputs.has(activeMidiInput.id)) {
+    stopAll({ announce: false });
+    activeMidiInput.onmidimessage = null;
+    activeMidiInput = undefined;
+  }
+  if (activeMidiOutput && !midiOutputs.has(activeMidiOutput.id)) {
+    stopMidiClockOutput({ sendStop: false });
+    activeMidiOutput = undefined;
+  }
+  if (!activeMidiInput && savedInputId && midiInputs.has(savedInputId)) selectMidiInput(savedInputId);
+  if (!activeMidiOutput && savedOutputId && midiOutputs.has(savedOutputId)) selectMidiOutput(savedOutputId);
+  renderMidiDevices();
+}
+
+function sendMidiData(data) {
+  if (!activeMidiOutput) return false;
+  try {
+    activeMidiOutput.send(data);
+    return true;
+  } catch {
+    activeMidiOutput = undefined;
+    renderMidiDevices();
+    midiStatus.textContent = "MIDI output disconnected. Reconnect the device to resume feedback.";
+    return false;
+  }
 }
 
 async function connectMidi() {
@@ -1039,9 +1184,13 @@ async function connectMidi() {
     midiAccess.onstatechange = () => {
       midiInputs = new Map(midiAccess.inputs);
       midiOutputs = new Map(midiAccess.outputs);
-      renderMidiDevices();
+      const hadActiveDevice = Boolean(activeMidiInput || activeMidiOutput);
+      refreshMidiDevices();
+      midiStatus.textContent = hadActiveDevice && !activeMidiInput && !activeMidiOutput
+        ? "MIDI device disconnected. Reconnect to restore the saved profile."
+        : `${midiInputs.size} input${midiInputs.size === 1 ? "" : "s"} · ${midiOutputs.size} output${midiOutputs.size === 1 ? "" : "s"}`;
     };
-    renderMidiDevices();
+    refreshMidiDevices();
     midiConnectButton.textContent = "MIDI connected";
     midiStatus.textContent = `${midiInputs.size} input${midiInputs.size === 1 ? "" : "s"} · ${midiOutputs.size} output${midiOutputs.size === 1 ? "" : "s"}`;
     setStatus("MIDI is ready. Choose an input or learn a note for the selected pad.", "success");
@@ -1053,6 +1202,12 @@ async function connectMidi() {
 
 async function saveMidiMapping(mapping) {
   const normalized = normalizeMidiMapping(mapping);
+  const conflicts = getMidiMappingConflicts(pads, normalized, selectedPadIndex);
+  if (conflicts.length) {
+    midiLearnButton.textContent = "Learn selected pad";
+    midiStatus.textContent = `That note is already mapped to ${getPadName(pads[conflicts[0]], conflicts[0])}.`;
+    return false;
+  }
   midiLearnButton.textContent = "Learn selected pad";
   pads[selectedPadIndex] = { ...pads[selectedPadIndex], midi: normalized };
   renderPads();
@@ -1061,23 +1216,130 @@ async function saveMidiMapping(mapping) {
 }
 
 function learnMidiForSelectedPad() {
+  if (midiLearnState.active) {
+    midiLearnState.cancel();
+    midiLearnButton.textContent = "Learn selected pad";
+    midiStatus.textContent = "Pad learn cancelled.";
+    return;
+  }
   midiLearnState.start();
   midiLearnButton.textContent = "Play a MIDI note…";
   midiStatus.textContent = `Listening for a note for ${getPadName(pads[selectedPadIndex], selectedPadIndex)}.`;
+}
+
+function cancelMidiLearn() {
+  midiLearnState.cancel();
+  midiControllerLearnState.cancel();
+  midiLearnButton.textContent = "Learn selected pad";
+  midiLearnControllerButton.textContent = "Learn CC / aftertouch";
+  midiCancelLearnButton.disabled = true;
+  midiStatus.textContent = "MIDI learn cancelled.";
+  midiMappingStatus.textContent = "Choose a target, then learn a controller.";
+}
+
+function learnMidiController() {
+  if (midiControllerLearnState.active) {
+    cancelMidiLearn();
+    return;
+  }
+  midiLearnState.cancel();
+  midiLearnButton.textContent = "Learn selected pad";
+  midiControllerLearnState.start({ mode: "controller" });
+  midiLearnControllerButton.textContent = "Move a CC or touch…";
+  midiCancelLearnButton.disabled = false;
+  midiMappingStatus.textContent = `Listening for ${getMidiTargetLabel(midiMappingTargetSelect.value)}.`;
+}
+
+async function saveMidiControllerMapping(message) {
+  const type = message.command === "controlchange" ? "cc" : "aftertouch";
+  const controller = type === "cc" ? message.note : null;
+  const candidate = normalizeMidiControllerMapping({
+    id: `controller-${type}-${controller ?? "aftertouch"}-${message.channel ?? "omni"}`,
+    type,
+    controller,
+    channel: message.channel,
+    target: midiMappingTargetSelect.value,
+  }, midiConfig.controllerMappings.length);
+  const conflict = midiConfig.controllerMappings.find((mapping) => getMidiControllerValue(message, mapping) !== null);
+  if (conflict && conflict.target !== candidate.target) {
+    midiMappingStatus.textContent = `${message.command === "controlchange" ? `CC ${message.note}` : "Aftertouch"} already controls ${getMidiTargetLabel(conflict.target)}.`;
+    midiLearnControllerButton.textContent = "Learn CC / aftertouch";
+    midiCancelLearnButton.disabled = true;
+    return false;
+  }
+  midiConfig = normalizeMidiConfig({
+    ...midiConfig,
+    controllerMappings: [
+      ...midiConfig.controllerMappings.filter((mapping) => getMidiControllerValue(message, mapping) === null),
+      candidate,
+    ],
+  });
+  midiLearnControllerButton.textContent = "Learn CC / aftertouch";
+  midiCancelLearnButton.disabled = true;
+  renderMidiMappings();
+  return persistMidiConfig(`${getMidiTargetLabel(candidate.target)} mapping saved locally.`);
+}
+
+function applyMidiControllerMessage(message) {
+  const mapping = midiConfig.controllerMappings.find((candidate) => getMidiControllerValue(message, candidate) !== null);
+  if (!mapping) return false;
+  const value = getMidiControllerValue(message, mapping);
+  switch (mapping.target) {
+    case "masterVolume":
+      masterVolumeInput.value = String(value);
+      updateMasterVolume();
+      break;
+    case "warmth":
+      macroWarmthInput.value = String(value);
+      applyMasterMacro();
+      break;
+    case "space":
+      macroSpaceInput.value = String(value);
+      applyMasterMacro();
+      break;
+    case "punch":
+      macroPunchInput.value = String(value);
+      applyMasterMacro();
+      break;
+    case "tempo":
+      tempoInput.value = String(Math.round(60 + value * 140));
+      updateTempoValue();
+      break;
+    default:
+      return false;
+  }
+  midiMappingStatus.textContent = `${getMidiTargetLabel(mapping.target)} · ${Math.round(value * 100)}%`;
+  return true;
+}
+
+function startMidiClockOutput() {
+  stopMidiClockOutput({ sendStop: false });
+  if (!midiConfig.clockOut || !activeMidiOutput) return;
+  sendMidiData(createMidiClockMessage("start"));
+  const period = Math.max(2, 60000 / (clamp(Number(tempoInput.value) || 120, 40, 240) * 24));
+  midiClockTimer = window.setInterval(() => sendMidiData(createMidiClockMessage("clock")), period);
+}
+
+function stopMidiClockOutput({ sendStop = true } = {}) {
+  if (midiClockTimer) window.clearInterval(midiClockTimer);
+  midiClockTimer = undefined;
+  if (sendStop && activeMidiOutput && midiConfig.clockOut) sendMidiData(createMidiClockMessage("stop"));
 }
 
 function sendMidiForPad(index, command, velocity = 1) {
   if (!activeMidiOutput) return;
   const mapping = normalizeMidiMapping(pads[index]?.midi, 36 + index);
   if (mapping.note === null) return;
-  activeMidiOutput.send(createMidiNoteMessage(command, mapping.note, velocity, mapping.channel || 0));
+  sendMidiData(createMidiNoteMessage(command, mapping.note, velocity, mapping.channel || 0));
 }
 
 function applyKit(kit) {
   pads = kit?.empty ? createDefaultPads() : normalizePads(kit?.pads);
   masterEffects = normalizeMasterEffects(kit?.masterEffects);
+  midiConfig = normalizeMidiConfig(kit?.midiConfig);
   syncMasterEffectInputs();
   renderMasterSnapshots();
+  syncMidiConfigInputs();
   if (audioContext) configureMasterEffects();
   layoutHistory.clear();
   for (const history of sequencerHistories.values()) history.clear();
@@ -1112,6 +1374,7 @@ async function saveActiveKit(message = "Kit saved locally.") {
     ...(previousKit || createKitRecord(kitSlotNumber(currentKitId) || 1)),
     id: currentKitId,
     pads: clonePads(),
+    midiConfig: normalizeMidiConfig(midiConfig),
     empty: false,
     updatedAt: new Date().toISOString(),
   };
@@ -2029,6 +2292,7 @@ function handleAudioContextStateChange() {
   clearSequencerTimers();
   if (sequencerRunner.running) {
     sequencerRunner.stop();
+    stopMidiClockOutput();
     sequencerPlayButton.textContent = "Play sequence";
     renderSequencer();
   }
@@ -2511,6 +2775,7 @@ function stopAll({ announce = true } = {}) {
   clearSequencerTimers();
   if (sequencerRunner.running) {
     sequencerRunner.stop();
+    stopMidiClockOutput();
     sequencerPlayButton.textContent = "Play sequence";
     renderSequencer();
   }
@@ -3255,6 +3520,9 @@ async function exportLaunchpack() {
         createdAt: kit.createdAt,
         updatedAt: kit.updatedAt,
         pads: clonePads(kit.pads),
+        masterEffects: normalizeMasterEffects(kit.masterEffects),
+        masterSnapshots: kit.masterSnapshots || [],
+        midiConfig: normalizeMidiConfig(kit.midiConfig),
       })),
       samples: packSamples,
     };
@@ -3656,6 +3924,31 @@ function bindEvents() {
   });
   midiConnectButton.addEventListener("click", () => void connectMidi());
   midiLearnButton.addEventListener("click", learnMidiForSelectedPad);
+  midiLearnControllerButton.addEventListener("click", learnMidiController);
+  midiCancelLearnButton.addEventListener("click", cancelMidiLearn);
+  midiClearMappingsButton.addEventListener("click", () => {
+    midiControllerLearnState.cancel();
+    midiConfig = normalizeMidiConfig({ ...midiConfig, controllerMappings: [] });
+    renderMidiMappings();
+    void persistMidiConfig("MIDI controller mappings cleared.");
+  });
+  midiProfileNameInput.addEventListener("change", () => {
+    midiConfig = normalizeMidiConfig({ ...midiConfig, profileName: midiProfileNameInput.value });
+    void persistMidiConfig("MIDI profile saved locally.");
+  });
+  midiClockInInput.addEventListener("change", () => {
+    midiConfig = normalizeMidiConfig({ ...midiConfig, clockIn: midiClockInInput.checked });
+    if (!midiConfig.clockIn) midiClockTracker.stop();
+    void persistMidiConfig("MIDI clock-in setting saved locally.");
+  });
+  midiClockOutInput.addEventListener("change", () => {
+    midiConfig = normalizeMidiConfig({ ...midiConfig, clockOut: midiClockOutInput.checked });
+    if (sequencerRunner.running) {
+      if (midiConfig.clockOut) startMidiClockOutput();
+      else stopMidiClockOutput();
+    }
+    void persistMidiConfig("MIDI clock-out setting saved locally.");
+  });
   midiInputSelect.addEventListener("change", (event) => selectMidiInput(event.target.value));
   midiOutputSelect.addEventListener("change", (event) => selectMidiOutput(event.target.value));
   const masterEffectInputs = [delayTimeInput, delayFeedbackInput, reverbDecayInput, masterEqLowInput, masterEqMidInput, masterEqHighInput, compressorThresholdInput, compressorRatioInput, limiterThresholdInput];

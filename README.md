@@ -25,7 +25,7 @@ The feature-by-feature delivery plan, acceptance criteria, and explicit deferred
 - Four-track A/B scenes with swing, probability, micro-timing, repeat scheduling, fullscreen performance mode, and deterministic MIDI export.
 - Selected-step probability/micro-timing editing, scene duplication, and user-visible pad/scene undo-redo.
 - Audio-clock lookahead sequencing with explicit suspended/closed diagnostics, stale-timer cleanup, and microphone device-loss handling.
-- Optional Web MIDI input/output with learned pad mappings and velocity-aware triggering.
+- Optional Web MIDI input/output with learned pad mappings, velocity-aware triggering, CC/aftertouch targets, per-kit profiles, clock policy, reconnect handling, and generic note-state feedback.
 - Offline application shell through a service worker.
 - Preview tones for pads without an assigned sample.
 

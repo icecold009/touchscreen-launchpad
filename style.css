@@ -974,6 +974,49 @@ body.is-performance-mode .sequencer-panel {
   color: var(--text);
 }
 
+.midi-profile-controls,
+.midi-controller-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.midi-profile-controls .compact-control,
+.midi-controller-controls .compact-control {
+  min-width: min(100%, 13rem);
+}
+
+.midi-profile-controls input[type="text"],
+.midi-controller-controls select {
+  min-height: 2.2rem;
+  padding: 0.35rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.55rem;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.midi-mappings {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.midi-mapping-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: var(--surface);
+  font-size: 0.82rem;
+}
+
 body.is-performance-mode .midi-panel {
   display: none;
 }

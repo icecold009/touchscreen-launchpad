@@ -21,7 +21,7 @@ The current product already covers most of the performance loop. The remaining w
 | Sample library | Shared local library, search, sort, folder import, natural ordering, deduplication, storage bounds | Drag/drop, tags/favorites, orphan cleanup, batch assignment, richer repair/preview tools | P1 |
 | Arrangement | Two persistent A/B scenes, four tracks, 16 steps, swing, editable probability/micro-timing, scene duplication, reversible edits, scene playback | Scene launch quantization, scene chaining, pattern copy/duplicate beyond whole-scene duplication | P1 |
 | Live effects | Per-pad delay/reverb sends, bounded master delay/reverb, filter/pan, local diagnostics, effects included in capture, master EQ/compressor/limiter, per-kit snapshots, Warmth/Space/Punch macros, and peak/headroom checks | Output/cue routing, richer metering, and device-specific calibration | P1 |
-| MIDI | Optional Web MIDI input/output, learn mapping, velocity-aware input, gate/hold note-off, outbound note feedback | CC/aftertouch mapping, clock sync, LED color/state feedback, multi-device profiles, robust reconnect/fallback | P1 |
+| MIDI | Optional Web MIDI input/output, learn mapping, velocity-aware input, gate/hold note-off, outbound note feedback, CC/aftertouch targets, per-kit profiles, clock-in tempo follow, clock-out transport pulses, and reconnect-safe selection | Device-specific LED color protocols, SysEx profiles, and hardware certification | P1 |
 | Export | JSON layout, `.launchpack` audio backup with slice metadata, local take download, deterministic PCM/WAV take export, and two-scene MIDI | Offline rendered master/stem audio, event/performance export, import verification in a DAW | P1/P2 |
 | Persistence | Local storage + IndexedDB v3, versioned pad/sample migration, five kits, user-visible pad/scene undo-redo, non-destructive slice metadata, offline PWA | Autosave checkpoints, launchpack v2 migration, conflict/repair UX | P1 |
 | Accessibility | Semantic controls, keyboard/focus path, labeled step editor, live status messages, reduced-motion styling, fallback when MIDI/mic are unavailable | High-contrast/focus audit at performance distance, rate-limited announcements, screen-reader export feedback | P1 |
@@ -45,6 +45,7 @@ These are complete on local feature branches and are intentionally stacked rathe
 11. Slice-to-pads foundation: bounded non-destructive slice metadata, editable In/Out markers, per-slice preview, slice assignment to pads, and launchpack preservation.
 12. Capture review and WAV fallback: pause/resume state, take rename, local audio review, waveform rendering, marker metadata, and deterministic PCM/WAV export.
 13. Master bus and performance macros: bounded EQ, compressor/limiter protection, per-kit effect snapshots, Warmth/Space/Punch macros, peak/headroom diagnostics, and capture-bus inclusion.
+14. MIDI and controller depth: bounded CC/aftertouch mappings, per-kit profiles, learn cancellation/conflict feedback, clock-in tempo following, clock-out sequence pulses, reconnect-safe device selection, and note-state feedback.
 
 Evidence boundary: local contract and rendered browser evidence are current for these packages. Physical hardware, microphone capture, DAW import, hosted production behavior, and installed-PWA behavior remain environment-specific until separately verified.
 
@@ -94,6 +95,14 @@ Evidence boundary: local contract and rendered browser evidence are current for 
 - Non-goals: third-party plugins, arbitrary WebAssembly DSP, multichannel cue mixing.
 - Acceptance: feedback and output levels remain bounded; effects can be reset; snapshots persist with the kit; macros map only to safe parameters; capture includes the selected master state; diagnostics distinguish browser limitation from source failure.
 - Verification: parameter-bound and peak tests, rendered EQ/dynamics/macro/snapshot controls, audio diagnostics and level-check smoke, capture-bus review, `git diff --check`, and `npm.cmd run validate` (71 tests). Browser-local evidence is current; physical output, long-session loudness, hosted behavior, and cue-device routing remain separate.
+
+#### Package F: MIDI and controller depth — complete for optional Web MIDI
+
+- Goal: make optional hardware integration reliable for repeat performances without making MIDI a requirement.
+- Scope: bounded CC/aftertouch mappings for master volume, tempo, and master macros; per-kit MIDI profiles; learn cancellation and note/controller conflict feedback; clock-in tempo following; clock-out start/clock/stop pulses tied to sequence transport; reconnect-safe input/output selection; and generic note-state feedback for controller LEDs where exposed.
+- Non-goals: SysEx scripts for every controller, vendor-specific RGB protocols, multichannel hardware routing, automatic DAW control, or hardware certification.
+- Acceptance: browsers without Web MIDI retain full local operation; learned pad/controller mappings and clock policy persist with the kit and launchpack; duplicate mappings are surfaced instead of silently stealing a control; disconnect/reconnect does not leave gate state or clock timers stuck; outbound feedback remains bounded and errors degrade to a visible reconnect state.
+- Verification: MIDI parser/profile/controller/clock contract tests, module/cache/DOM contracts, fresh browser fallback smoke, learn-cancel smoke, and console inspection. Physical controller matrix, MIDI permission success, device LEDs, long-session clock drift, hosted behavior, and DAW sync remain environment-specific.
 
 #### Package F: MIDI and controller depth
 
