@@ -45,6 +45,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: A user can assign four pads, toggle 16 steps, set swing, save either scene, switch A/B, play the scene, and stop it without leaving repeat timers or pad voices behind.
 - Evidence: `npm.cmd run validate` passes 58 tests; fresh local render exposes four tracks, 16 steps per track, A/B scene controls, swing, and play/stop controls; a step toggled to on and Scene B switched cleanly; `main` remains untouched.
 
+## Package: Web MIDI hardware bridge — `codex/launchpad-midi-20260916`
+
+- Goal: Make the launchpad usable from controller hardware without making MIDI a requirement.
+- Scope: Web MIDI permission flow, hot-plug input/output discovery, default notes 36–51, per-pad learned note/channel mapping, note-on velocity scaling, note-off handling for gate/hold modes, outbound note feedback, and clear unsupported/permission states.
+- Non-goals: SysEx, device-specific controller scripts, audio-device routing, multichannel hardware output, or MIDI file export.
+- Files: `index.html`, `style.css`, `app.js`, `src/midi.js`, `src/migrations.js`, `sw.js`, `src/bootstrap.js`, `scripts/validate-site.mjs`, `package.json`, and MIDI contract tests.
+- Tests: `npm.cmd run validate`, MIDI message/mapping/learn tests, rendered hardware panel smoke, browser-without-MIDI fallback, and velocity/gate wiring review.
+- Acceptance: A supported browser can connect, select input/output, learn a note for the selected pad, trigger pads with velocity, release gate/hold notes, and continue working normally when Web MIDI is absent.
+- Evidence: `npm.cmd run validate` passes 60 tests; fresh local render exposes the MIDI bridge, and the browser fallback reports denied/unavailable MIDI without breaking local pads; physical controller input/output remains environment dependent; `main` remains untouched.
+
 ## Package: Professional audio foundation — `codex/launchpad-professional-foundation-20260916`
 
 - Goal: Establish versioned audio, transport, input, voice, migration, and bounded-history contracts for professional performance features.

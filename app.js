@@ -1,17 +1,18 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=35";
-import { createInputAdapter } from "./src/input-adapter.js?version=35";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=35";
-import { createPointerState } from "./src/pointer-state.js?version=35";
-import { attachStorageRequest } from "./src/storage-request.js?version=35";
-import { downloadText as triggerTextDownload } from "./src/download.js?version=35";
-import { getNextQuantizedTime } from "./src/transport.js?version=35";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=35";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=35";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=35";
-import { createPattern, createSequencerRunner, getStepEvents, normalizePattern, toggleStep } from "./src/sequencer.js?version=35";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=35";
+import { createHistory } from "./src/history.js?version=36";
+import { createInputAdapter } from "./src/input-adapter.js?version=36";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=36";
+import { createPointerState } from "./src/pointer-state.js?version=36";
+import { attachStorageRequest } from "./src/storage-request.js?version=36";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=36";
+import { getNextQuantizedTime } from "./src/transport.js?version=36";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=36";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=36";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=36";
+import { createPattern, createSequencerRunner, getStepEvents, normalizePattern, toggleStep } from "./src/sequencer.js?version=36";
+import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=36";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=36";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -47,6 +48,11 @@ const sceneAButton = document.querySelector("#scene-a");
 const sceneBButton = document.querySelector("#scene-b");
 const sequencerSwingInput = document.querySelector("#sequencer-swing");
 const sequencerSwingValue = document.querySelector("#sequencer-swing-value");
+const midiConnectButton = document.querySelector("#midi-connect");
+const midiLearnButton = document.querySelector("#midi-learn");
+const midiStatus = document.querySelector("#midi-status");
+const midiInputSelect = document.querySelector("#midi-input");
+const midiOutputSelect = document.querySelector("#midi-output");
 const sampleWaveform = document.querySelector("#sample-waveform");
 const sampleEditStatus = document.querySelector("#sample-edit-status");
 const sampleStartInput = document.querySelector("#sample-start");
@@ -151,6 +157,14 @@ let metronomeTimer;
 let countInPromise;
 let repeatTimers = new Map();
 let activeSceneId = "scene-a";
+let midiAccess;
+let midiInputs = new Map();
+let midiOutputs = new Map();
+let activeMidiInput;
+let activeMidiOutput;
+const midiLearnState = createMidiLearnState({
+  onLearned: ({ note, channel }) => void saveMidiMapping({ note, channel }),
+});
 const sequencerRunner = createSequencerRunner({
   getBpm: () => Number(tempoInput.value) || 120,
   getSwing: () => Number(sequencerSwingInput.value) || 0,
@@ -187,14 +201,15 @@ const layoutHistory = createHistory({
 });
 const inputAdapter = createInputAdapter({
   padCount: PAD_COUNT,
-  onInput: ({ action, padIndex }) => {
+  onInput: ({ action, padIndex, velocity }) => {
     if (action === "release") {
       if (shouldReleaseOnPointer(pads[padIndex]?.triggerMode)) stopPad(padIndex, { quantized: true, announce: false });
+      sendMidiForPad(padIndex, "noteoff");
       return;
     }
     if (action !== "trigger") return;
     selectPad(padIndex);
-    void triggerPad(padIndex);
+    void triggerPad(padIndex, { velocity });
   },
 });
 
@@ -771,6 +786,109 @@ async function toggleSequencer() {
 async function clearSequencer() {
   if (!window.confirm(`Clear ${activeSceneId === "scene-a" ? "Scene A" : "Scene B"}?`)) return;
   await persistSequencerPattern(createPattern(), "Scene cleared and saved locally.");
+}
+
+function renderMidiDevices() {
+  midiInputSelect.replaceChildren();
+  midiOutputSelect.replaceChildren();
+  const noInput = document.createElement("option");
+  noInput.value = "";
+  noInput.textContent = midiInputs.size ? "Choose MIDI input" : "No MIDI input detected";
+  midiInputSelect.append(noInput);
+  for (const [id, input] of midiInputs) {
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = input.name || input.manufacturer || id;
+    midiInputSelect.append(option);
+  }
+  const noOutput = document.createElement("option");
+  noOutput.value = "";
+  noOutput.textContent = midiOutputs.size ? "Choose MIDI output" : "No MIDI output detected";
+  midiOutputSelect.append(noOutput);
+  for (const [id, output] of midiOutputs) {
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = output.name || output.manufacturer || id;
+    midiOutputSelect.append(option);
+  }
+  if (activeMidiInput) midiInputSelect.value = activeMidiInput.id;
+  if (activeMidiOutput) midiOutputSelect.value = activeMidiOutput.id;
+}
+
+function handleMidiMessage(event) {
+  const message = parseMidiMessage(event.data);
+  if (!message) return;
+  if (midiLearnState.handle(message)) {
+    midiStatus.textContent = `Learned MIDI note ${message.note}.`;
+    return;
+  }
+  if (message.command !== "noteon" && message.command !== "noteoff") return;
+  const padIndex = getPadIndexForMidiNote(pads, message.note, { channel: message.channel });
+  if (padIndex < 0) return;
+  inputAdapter.emit({
+    kind: "midi",
+    action: message.command === "noteon" ? "trigger" : "release",
+    padIndex,
+    velocity: message.velocity,
+    timestamp: performance.now(),
+  });
+}
+
+function selectMidiInput(inputId) {
+  if (activeMidiInput) activeMidiInput.onmidimessage = null;
+  activeMidiInput = midiInputs.get(inputId) || undefined;
+  if (activeMidiInput) activeMidiInput.onmidimessage = handleMidiMessage;
+}
+
+function selectMidiOutput(outputId) {
+  activeMidiOutput = midiOutputs.get(outputId) || undefined;
+}
+
+async function connectMidi() {
+  if (!navigator.requestMIDIAccess) {
+    midiStatus.textContent = "Web MIDI is unavailable in this browser.";
+    setStatus("This browser does not expose Web MIDI. Keyboard and touch controls remain available.", "error");
+    return;
+  }
+  try {
+    midiAccess = await navigator.requestMIDIAccess({ sysex: false });
+    midiInputs = new Map(midiAccess.inputs);
+    midiOutputs = new Map(midiAccess.outputs);
+    midiAccess.onstatechange = () => {
+      midiInputs = new Map(midiAccess.inputs);
+      midiOutputs = new Map(midiAccess.outputs);
+      renderMidiDevices();
+    };
+    renderMidiDevices();
+    midiConnectButton.textContent = "MIDI connected";
+    midiStatus.textContent = `${midiInputs.size} input${midiInputs.size === 1 ? "" : "s"} · ${midiOutputs.size} output${midiOutputs.size === 1 ? "" : "s"}`;
+    setStatus("MIDI is ready. Choose an input or learn a note for the selected pad.", "success");
+  } catch {
+    midiStatus.textContent = "MIDI permission was not granted.";
+    setStatus("MIDI permission was not granted. The launchpad still works locally.", "error");
+  }
+}
+
+async function saveMidiMapping(mapping) {
+  const normalized = normalizeMidiMapping(mapping);
+  midiLearnButton.textContent = "Learn selected pad";
+  pads[selectedPadIndex] = { ...pads[selectedPadIndex], midi: normalized };
+  renderPads();
+  selectPad(selectedPadIndex);
+  await saveActiveKit(`MIDI note ${normalized.note} mapped to ${getPadName(pads[selectedPadIndex], selectedPadIndex)}.`);
+}
+
+function learnMidiForSelectedPad() {
+  midiLearnState.start();
+  midiLearnButton.textContent = "Play a MIDI note…";
+  midiStatus.textContent = `Listening for a note for ${getPadName(pads[selectedPadIndex], selectedPadIndex)}.`;
+}
+
+function sendMidiForPad(index, command, velocity = 1) {
+  if (!activeMidiOutput) return;
+  const mapping = normalizeMidiMapping(pads[index]?.midi, 36 + index);
+  if (mapping.note === null) return;
+  activeMidiOutput.send(createMidiNoteMessage(command, mapping.note, velocity, mapping.channel || 0));
 }
 
 function applyKit(kit) {
@@ -1558,6 +1676,7 @@ function stopGroupPeers(index, groupKey) {
 
 function stopPad(index, { quantized = false, announce = false } = {}) {
   stopRepeat(index);
+  sendMidiForPad(index, "noteoff");
   const voices = activeVoices.get(index);
   if (!voices?.size || !audioContext) return false;
 
@@ -1595,6 +1714,7 @@ function stopAll({ announce = true } = {}) {
     renderSequencer();
   }
   for (const index of repeatTimers.keys()) stopRepeat(index);
+  for (let index = 0; index < PAD_COUNT; index += 1) sendMidiForPad(index, "noteoff");
   for (const [index, voices] of activeVoices) {
     for (const voice of voices) {
       if (voice.startTimer) window.clearTimeout(voice.startTimer);
@@ -1637,9 +1757,9 @@ async function getSampleBuffer(sample, context) {
   return sample.bufferPromise;
 }
 
-function createVoiceGain(context, pad) {
+function createVoiceGain(context, pad, velocity = 1) {
   const gain = context.createGain();
-  gain.gain.value = clamp(Number(pad.volume) || 0, 0, 1);
+  gain.gain.value = clamp((Number(pad.volume) || 0) * clamp(Number(velocity) || 1, 0, 1), 0, 1);
   if (typeof context.createBiquadFilter !== "function") {
     gain.connect(masterGain);
     return gain;
@@ -1660,7 +1780,7 @@ function createVoiceGain(context, pad) {
   return gain;
 }
 
-function playPreviewTone(index, pad, context) {
+function playPreviewTone(index, pad, context, velocity = 1) {
   const now = context.currentTime;
   const oscillator = context.createOscillator();
   const gain = context.createGain();
@@ -1669,7 +1789,7 @@ function playPreviewTone(index, pad, context) {
   oscillator.type = "triangle";
   oscillator.frequency.setValueAtTime(frequency, now);
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, 0.3 * pad.volume), now + 0.015);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, 0.3 * pad.volume * velocity), now + 0.015);
   gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.48);
   oscillator.connect(gain);
   gain.connect(masterGain);
@@ -1678,11 +1798,11 @@ function playPreviewTone(index, pad, context) {
   setPlaybackStatus(`${getPadName(pad, index)} preview tone triggered.`);
 }
 
-async function playSample(index, pad, sample, context, generation) {
+async function playSample(index, pad, sample, context, generation, velocity = 1) {
   const buffer = await getSampleBuffer(sample, context);
   if (generation !== playbackGeneration) return false;
   const source = context.createBufferSource();
-  const gain = createVoiceGain(context, pad);
+  const gain = createVoiceGain(context, pad, velocity);
   const isLoop = pad.mode === "loop";
   const settings = normalizePerformanceSettings(pad);
   const launchGrid = settings.launchQuantize === "off" && isLoop && quantizeInput.checked ? "beat" : settings.launchQuantize;
@@ -1706,7 +1826,7 @@ async function playSample(index, pad, sample, context, generation) {
   const attack = clamp(Number(pad.attack) || 0, 0, 1);
   gain.gain.cancelScheduledValues(startAt);
   gain.gain.setValueAtTime(0.0001, startAt);
-  gain.gain.linearRampToValueAtTime(Math.max(0.0001, Number(pad.volume) || 0.8), startAt + attack);
+  gain.gain.linearRampToValueAtTime(Math.max(0.0001, (Number(pad.volume) || 0.8) * clamp(Number(velocity) || 1, 0, 1)), startAt + attack);
   startRegisteredVoice(index, voice, startAt, isLoop ? undefined : startAt + plan.duration);
 
   if (isLoop && startAt > context.currentTime + 0.02) {
@@ -1718,7 +1838,7 @@ async function playSample(index, pad, sample, context, generation) {
   return true;
 }
 
-async function triggerPad(index, { linked = false, bypassCountIn = false, fromRepeat = false } = {}) {
+async function triggerPad(index, { linked = false, bypassCountIn = false, fromRepeat = false, velocity = 1 } = {}) {
   if (pendingPads.has(index)) return;
   const pad = pads[index];
   const settings = normalizePerformanceSettings(pad);
@@ -1729,6 +1849,7 @@ async function triggerPad(index, { linked = false, bypassCountIn = false, fromRe
       linked: true,
       bypassCountIn: linkedIndex > 0 || bypassCountIn,
       fromRepeat,
+      velocity,
     })));
     return;
   }
@@ -1773,14 +1894,15 @@ async function triggerPad(index, { linked = false, bypassCountIn = false, fromRe
     }
 
     if (sample) {
-      await playSample(index, pad, sample, context, generation);
+      await playSample(index, pad, sample, context, generation, velocity);
     } else {
-      playPreviewTone(index, pad, context);
+      playPreviewTone(index, pad, context, velocity);
     }
+    sendMidiForPad(index, "noteon", velocity);
     if (!fromRepeat && settings.triggerMode === "repeat") {
       const interval = getRepeatIntervalMs(Number(tempoInput.value), "sixteenth");
       repeatTimers.set(index, window.setInterval(() => {
-        if (!pendingPads.has(index)) void triggerPad(index, { linked: true, bypassCountIn: true, fromRepeat: true });
+        if (!pendingPads.has(index)) void triggerPad(index, { linked: true, bypassCountIn: true, fromRepeat: true, velocity });
       }, interval));
     }
   } catch (error) {
@@ -2620,6 +2742,10 @@ function bindEvents() {
     next.swing = Number(sequencerSwingInput.value) || 0;
     void persistSequencerPattern(next, "Swing saved locally.");
   });
+  midiConnectButton.addEventListener("click", () => void connectMidi());
+  midiLearnButton.addEventListener("click", learnMidiForSelectedPad);
+  midiInputSelect.addEventListener("change", (event) => selectMidiInput(event.target.value));
+  midiOutputSelect.addEventListener("change", (event) => selectMidiOutput(event.target.value));
   document.addEventListener("fullscreenchange", () => {
     const isActive = document.body.classList.contains("is-performance-mode");
     if (!document.fullscreenElement && isActive) {

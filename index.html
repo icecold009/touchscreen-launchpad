@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=35" />
+    <link rel="stylesheet" href="style.css?version=36" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -120,6 +120,29 @@
               </label>
             </div>
             <div id="sequencer-grid" class="sequencer-grid" aria-label="Four-track 16-step sequencer"></div>
+          </section>
+
+          <section class="midi-panel" aria-labelledby="midi-title">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Hardware bridge</p>
+                <h3 id="midi-title">MIDI control</h3>
+                <p class="section-subtitle">Optional Web MIDI input, output, and learn mapping.</p>
+              </div>
+              <span id="midi-status" class="muted" role="status" aria-live="polite">Not connected</span>
+            </div>
+            <div class="midi-controls">
+              <button id="midi-connect" class="button button-secondary" type="button">Connect MIDI</button>
+              <button id="midi-learn" class="button button-secondary" type="button">Learn selected pad</button>
+              <label class="compact-control" for="midi-input">
+                <span>Input</span>
+                <select id="midi-input"><option value="">Connect to list devices</option></select>
+              </label>
+              <label class="compact-control" for="midi-output">
+                <span>Output</span>
+                <select id="midi-output"><option value="">Connect to list devices</option></select>
+              </label>
+            </div>
           </section>
 
           <div class="pad-performance">
@@ -410,6 +433,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/bootstrap.js?version=35"></script>
+    <script type="module" src="src/bootstrap.js?version=36"></script>
   </body>
 </html>

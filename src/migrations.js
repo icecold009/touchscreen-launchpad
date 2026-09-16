@@ -39,6 +39,7 @@ export function createDefaultPad(index, { padColors = DEFAULT_COLORS, keyboardKe
     chokeGroup: null,
     muteGroup: null,
     linkGroup: null,
+    midi: { note: null, channel: null },
     layerIds: [],
     sampleRegion: { start: 0, end: 1, loopStart: 0, loopEnd: 1, reverse: false },
     pitchCents: 0,
@@ -85,6 +86,10 @@ export function normalizePadDefinition(candidate, index, options = {}) {
     chokeGroup: normalizeGroup(value.chokeGroup),
     muteGroup: normalizeGroup(value.muteGroup),
     linkGroup: normalizeGroup(value.linkGroup),
+    midi: {
+      note: Number.isInteger(Number(value.midi?.note)) && Number(value.midi.note) >= 0 && Number(value.midi.note) <= 127 ? Number(value.midi.note) : null,
+      channel: Number.isInteger(Number(value.midi?.channel)) && Number(value.midi.channel) >= 0 && Number(value.midi.channel) <= 15 ? Number(value.midi.channel) : null,
+    },
     layerIds: normalizeLayerIds(value.layerIds),
     sampleRegion: {
       start: normalizedStart,

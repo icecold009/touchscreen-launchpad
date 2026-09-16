@@ -12,6 +12,7 @@ const requiredFiles = [
   "src/history.js",
   "src/input-adapter.js",
   "src/migrations.js",
+  "src/midi.js",
   "src/pointer-state.js",
   "src/storage-request.js",
   "src/download.js",
