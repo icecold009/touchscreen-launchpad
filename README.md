@@ -19,6 +19,7 @@ The feature-by-feature delivery plan, acceptance criteria, and explicit deferred
 - Portable `.launchpack` backup/restore containing all five kit definitions and their referenced audio, with validation and transactional rollback.
 - Local performance capture with microphone-plus-app mix, saved takes, take assignment, and direct take download.
 - Waveform/sample shaping with trim, loop regions, reverse, pitch, live-speed fallback, pan, filter, envelope, and per-pad delay/reverb sends.
+- Non-destructive sample slicing with up to 16 editable markers, per-slice preview, and assignment to any pad.
 - Four-track A/B scenes with swing, probability, micro-timing, repeat scheduling, fullscreen performance mode, and deterministic MIDI export.
 - Selected-step probability/micro-timing editing, scene duplication, and user-visible pad/scene undo-redo.
 - Audio-clock lookahead sequencing with explicit suspended/closed diagnostics, stale-timer cleanup, and microphone device-loss handling.
@@ -55,7 +56,7 @@ This checks application and service-worker syntax, required static assets and PW
 4. Trigger it by touch, mouse, or the displayed keyboard shortcut.
 5. Use **Save kit** for an explicit local save, or switch among the five named kit slots.
 6. Use **Export .launchpack** for a portable backup of all kits and referenced audio. **Import Pack** accepts a folder or multiple audio files; the first 16 natural-sorted files map to pads and any remaining files stay in the shared library.
-7. Record a local take, assign it to a pad, or download it. Build Scene A/B patterns and use **Export MIDI** to move the arrangement into a DAW or hardware sequencer.
+7. Record a local take, assign it to a pad, or download it. In Sample lab, create a bounded slice bank, adjust In/Out markers, preview a slice, and assign it to the selected pad before saving. Build Scene A/B patterns and use **Export MIDI** to move the arrangement into a DAW or hardware sequencer.
 
 Exported JSON contains pad assignments and settings, not audio bytes. An imported layout may therefore show missing samples until those files are assigned again in the current browser. `.launchpack` backups include the referenced audio bytes and never upload them to the hosted app.
 

@@ -17,13 +17,13 @@ The current product already covers most of the performance loop. The remaining w
 | Pad playback | One-shot, loop, trigger, gate, hold, retrigger, repeat, echo, quantized launch/stop, attack/release, pitch, live-speed fallback, pan, filter | Complex high-quality time-stretch, layered/chromatic pad modes, per-pad modulation/macros | P1 |
 | Voice safety | Per-pad/global voice caps, oldest-first stealing, de-click fades, choke/mute/link groups, stop-all cleanup, audio-clock lookahead, stale-timer cleanup, explicit context/device-loss handling | AudioWorklet/worker clock and long-session latency/stress profiling | P0 |
 | Recording | Permission-gated microphone plus app mix, bounded local takes, IndexedDB storage, assign-to-pad | Pause/overdub/markers, take rename, waveform review, PCM/WAV fallback and recording-device recovery | P1 |
-| Sample lab | Waveform, trim, loop region, reverse, cents pitch, live-speed fallback, pan, filter, attack/release, delay/reverb send | Manual/automatic slicing to pads, fades, normalization, zoom, batch edits, true time-stretch | P0/P1 |
+| Sample lab | Waveform, trim, loop region, reverse, cents pitch, live-speed fallback, pan, filter, attack/release, delay/reverb send, bounded manual slice markers, per-slice preview, and slice-to-pad assignment | Automatic transient detection, fades, normalization, zoom, batch edits, true time-stretch | P1 |
 | Sample library | Shared local library, search, sort, folder import, natural ordering, deduplication, storage bounds | Drag/drop, tags/favorites, orphan cleanup, batch assignment, richer repair/preview tools | P1 |
 | Arrangement | Two persistent A/B scenes, four tracks, 16 steps, swing, editable probability/micro-timing, scene duplication, reversible edits, scene playback | Scene launch quantization, scene chaining, pattern copy/duplicate beyond whole-scene duplication | P1 |
 | Live effects | Per-pad delay/reverb sends, bounded master delay/reverb, filter/pan, local diagnostics, effects included in capture | Master EQ, compressor/limiter, safer feedback protection, effect snapshots/macros, output/cue routing | P1 |
 | MIDI | Optional Web MIDI input/output, learn mapping, velocity-aware input, gate/hold note-off, outbound note feedback | CC/aftertouch mapping, clock sync, LED color/state feedback, multi-device profiles, robust reconnect/fallback | P1 |
-| Export | JSON layout, `.launchpack` audio backup, local take download, deterministic two-scene MIDI | Offline rendered WAV, master/stem export, event/performance export, import verification in a DAW | P1/P2 |
-| Persistence | Local storage + IndexedDB v3, versioned pad migration, five kits, user-visible pad/scene undo-redo, offline PWA | Autosave checkpoints, launchpack v2 migration, conflict/repair UX | P1 |
+| Export | JSON layout, `.launchpack` audio backup with slice metadata, local take download, deterministic two-scene MIDI | Offline rendered WAV, master/stem export, event/performance export, import verification in a DAW | P1/P2 |
+| Persistence | Local storage + IndexedDB v3, versioned pad/sample migration, five kits, user-visible pad/scene undo-redo, non-destructive slice metadata, offline PWA | Autosave checkpoints, launchpack v2 migration, conflict/repair UX | P1 |
 | Accessibility | Semantic controls, keyboard/focus path, labeled step editor, live status messages, reduced-motion styling, fallback when MIDI/mic are unavailable | High-contrast/focus audit at performance distance, rate-limited announcements, screen-reader export feedback | P1 |
 | Delivery | Static no-build app, Vercel canonical deployment, secondary Pages workflow, service-worker cache contract | Release smoke matrix, hosted offline/update proof after each release, device matrix, optional observability | P0 |
 | Content and licensing | Local-only samples with repository licensing guidance; cleared sample preparation boundary | Starter kits with source/license manifest and no copyrighted artist recordings/stems | P1 |
@@ -42,6 +42,7 @@ These are complete on local feature branches and are intentionally stacked rathe
 8. Performance export: local take download and deterministic `.mid` export for both scenes with default/learned pad notes.
 9. Sequencer authoring and reversible edits: selected-step probability/micro-timing controls, scene duplication, scene undo/redo, pad undo/redo, and kit-scoped history reset.
 10. Audio clock and device resilience: audio-clock lookahead scheduling, explicit suspended/closed/unavailable diagnostics, stale sequencer-timer cleanup, and microphone device-loss handling.
+11. Slice-to-pads foundation: bounded non-destructive slice metadata, editable In/Out markers, per-slice preview, slice assignment to pads, and launchpack preservation.
 
 Evidence boundary: local contract and rendered browser evidence are current for these packages. Physical hardware, microphone capture, DAW import, hosted production behavior, and installed-PWA behavior remain environment-specific until separately verified.
 
@@ -66,13 +67,13 @@ Evidence boundary: local contract and rendered browser evidence are current for 
 - Acceptance: a suspended/closed context never leaves pads or scenes falsely playing; scheduled events remain bounded; fallback is explicit and the local surface stays usable.
 - Verification: audio lifecycle and clocked-runner contract tests, browser audio diagnostics smoke, scene play/stop smoke, and browser console inspection. A real 10-minute stress session, output-device switching, hosted installed-PWA behavior, and AudioWorklet/worker timing remain separate evidence or follow-up work.
 
-#### Package C: Slice-to-pads foundation
+#### Package C: Slice-to-pads foundation — complete for manual slicing
 
 - Goal: turn one imported recording into playable slices without replacing the source sample.
-- Scope: manual slice markers, bounded slice count, per-slice preview, assign selected slice to a pad, reversible slice metadata in the kit/launchpack schema, safe handling of decoded-audio limits.
+- Scope: editable manual slice markers, bounded slice count, per-slice preview, assign selected slice to a pad, reversible slice metadata in the kit/launchpack schema, and safe handling of decoded-audio limits.
 - Non-goals: automatic transient detection, complex time-warping, destructive source replacement.
 - Acceptance: a source remains intact; every generated slice has a deterministic region; assignments survive export/import and storage repair.
-- Verification: region/bounds tests, generated-pad persistence tests, audio decode failure tests, rendered editor smoke.
+- Verification: region/bounds tests, sample/pad migration tests, launchpack metadata contract, rendered editor smoke, and no-sample disabled-state review. Automatic transient detection, actual audio-file decoding, and microphone/device behavior remain separate evidence.
 
 ### P1 — Professional control and capture depth
 

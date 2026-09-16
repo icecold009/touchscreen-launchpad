@@ -8,6 +8,7 @@ const DEFAULT_KEYS = ["Q", "W", "E", "R", "A", "S", "D", "F", "Z", "X", "C", "V"
 const QUANTIZE_GRIDS = new Set(["off", "beat", "eighth", "sixteenth", "thirtysecond", "bar", "phrase"]);
 const TRIGGER_MODES = new Set(["trigger", "gate", "hold", "loop", "retrigger", "repeat", "echo"]);
 const MAPPING_MODES = new Set(["single", "velocity16", "chromatic16"]);
+import { normalizeSliceDefinitions } from "./slices.js";
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -31,6 +32,7 @@ export function createDefaultPad(index, { padColors = DEFAULT_COLORS, keyboardKe
     mode: "oneshot",
     volume: 0.8,
     sampleId: null,
+    sliceId: null,
     schemaVersion: 2,
     triggerMode: "trigger",
     mappingMode: "single",
@@ -78,6 +80,7 @@ export function normalizePadDefinition(candidate, index, options = {}) {
     mode: value.mode === "loop" ? "loop" : "oneshot",
     volume: Number.isFinite(candidateVolume) ? clamp(candidateVolume, 0, 1) : fallback.volume,
     sampleId: typeof value.sampleId === "string" && value.sampleId.length <= 128 ? value.sampleId : null,
+    sliceId: typeof value.sliceId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(value.sliceId) ? value.sliceId : null,
     schemaVersion: 2,
     triggerMode: TRIGGER_MODES.has(value.triggerMode) ? value.triggerMode : fallback.triggerMode,
     mappingMode: MAPPING_MODES.has(value.mappingMode) ? value.mappingMode : fallback.mappingMode,
@@ -121,6 +124,7 @@ export function normalizeSampleRecord(candidate) {
     schemaVersion: 2,
     sourceId: typeof candidate?.sourceId === "string" ? candidate.sourceId : null,
     editRecipe: Array.isArray(candidate?.editRecipe) ? candidate.editRecipe.slice(0, 64) : [],
+    slices: normalizeSliceDefinitions(candidate?.slices),
   };
 }
 

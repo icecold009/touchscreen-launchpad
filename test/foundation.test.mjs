@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { createHistory } from "../src/history.js";
 import { createInputAdapter, normalizeInputEvent } from "../src/input-adapter.js";
-import { createDefaultPad, normalizePadDefinition } from "../src/migrations.js";
+import { createDefaultPad, normalizePadDefinition, normalizeSampleRecord } from "../src/migrations.js";
 import { createLookaheadScheduler, getNextQuantizedTime, normalizeTransport, quantizeBeat } from "../src/transport.js";
 import { createVoiceRegistry } from "../src/voice-registry.js";
 
@@ -16,10 +16,18 @@ test("pad migration adds bounded professional defaults without changing legacy f
   assert.equal(pad.schemaVersion, 2);
   assert.equal(pad.triggerMode, "trigger");
   assert.deepEqual(pad.layerIds, []);
+  assert.equal(pad.sliceId, null);
   assert.equal(pad.sampleRegion.end, 1);
   const bounded = normalizePadDefinition({ sampleRegion: { start: 0.9, end: 0.1, loopStart: -1, loopEnd: 2 } }, 0);
   assert.deepEqual(bounded.sampleRegion, { start: 0.9, end: 0.9, loopStart: 0.9, loopEnd: 0.9, reverse: false });
   assert.equal(createDefaultPad(0).key, "Q");
+});
+
+test("sample migration keeps bounded non-destructive slice metadata", () => {
+  const sample = normalizeSampleRecord({ slices: Array.from({ length: 20 }, (_, index) => ({ id: `slice-${index + 1}`, start: 0, end: 1 })) });
+  assert.equal(sample.slices.length, 16);
+  assert.equal(sample.slices[0].start, 0);
+  assert.equal(sample.slices.at(-1).end, 1);
 });
 
 test("transport normalization and quantization are deterministic", () => {

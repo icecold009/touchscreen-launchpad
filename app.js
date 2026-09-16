@@ -1,22 +1,23 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=40";
-import { createInputAdapter } from "./src/input-adapter.js?version=40";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=40";
-import { createPointerState } from "./src/pointer-state.js?version=40";
-import { attachStorageRequest } from "./src/storage-request.js?version=40";
-import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=40";
-import { getNextQuantizedTime } from "./src/transport.js?version=40";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=40";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=40";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=40";
-import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=40";
-import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=40";
-import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=40";
-import { createMidiFile } from "./src/midi-file.js?version=40";
-import { createImpulseResponse, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=40";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=40";
-import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=40";
+import { createHistory } from "./src/history.js?version=41";
+import { createInputAdapter } from "./src/input-adapter.js?version=41";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=41";
+import { createPointerState } from "./src/pointer-state.js?version=41";
+import { attachStorageRequest } from "./src/storage-request.js?version=41";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=41";
+import { getNextQuantizedTime } from "./src/transport.js?version=41";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=41";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=41";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=41";
+import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=41";
+import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=41";
+import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=41";
+import { createMidiFile } from "./src/midi-file.js?version=41";
+import { createImpulseResponse, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=41";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=41";
+import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=41";
+import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=41";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -80,6 +81,11 @@ const sampleEndInput = document.querySelector("#sample-end");
 const sampleLoopStartInput = document.querySelector("#sample-loop-start");
 const sampleLoopEndInput = document.querySelector("#sample-loop-end");
 const sampleReverseInput = document.querySelector("#sample-reverse");
+const sliceCountInput = document.querySelector("#slice-count");
+const createSlicesButton = document.querySelector("#create-slices");
+const clearSlicesButton = document.querySelector("#clear-slices");
+const sliceCountValue = document.querySelector("#slice-count-value");
+const sliceList = document.querySelector("#slice-list");
 const pitchInput = document.querySelector("#pad-pitch");
 const pitchValue = document.querySelector("#pad-pitch-value");
 const stretchInput = document.querySelector("#pad-stretch");
@@ -232,6 +238,7 @@ let editorDirty = false;
 let kitDirty = false;
 let draftSampleCleared = false;
 let draftSampleId = null;
+let draftSliceId = null;
 let playbackGeneration = 0;
 let beatCountdownTimer;
 let lastPlaybackStatusAt = 0;
@@ -1231,6 +1238,7 @@ async function persistSample(file) {
     blob: file,
     hash,
     createdAt: new Date().toISOString(),
+    slices: [],
   });
 
   if (storageMode === "persistent") setStorageState("saving", "Saving sample…");
@@ -1251,6 +1259,177 @@ async function persistSample(file) {
   samples.set(sample.id, sample);
   renderSampleLibrary();
   return { sample, created: true };
+}
+
+function getPersistedSampleRecord(sample) {
+  if (!sample) return sample;
+  const { buffer, bufferPromise, reverseBuffer, ...record } = sample;
+  return normalizeSampleRecord(record);
+}
+
+function getEditorSample() {
+  const pad = pads[selectedPadIndex];
+  return (draftSampleId && samples.get(draftSampleId)) || (pad?.sampleId && samples.get(pad.sampleId)) || null;
+}
+
+function getSampleSlice(sample, sliceId) {
+  return normalizeSliceDefinitions(sample?.slices).find((slice) => slice.id === sliceId) || null;
+}
+
+async function persistSampleSlices(sample, nextSlices, message = "Slices saved locally.") {
+  if (!sample) return false;
+  const previousSlices = normalizeSliceDefinitions(sample.slices);
+  sample.slices = normalizeSliceDefinitions(nextSlices);
+  if (storageMode === "memory") {
+    setStatus(`${message} Memory-only mode: a reload may discard changes.`, "error");
+    renderSliceEditor(sample);
+    return true;
+  }
+  try {
+    await writeSample(getPersistedSampleRecord(sample));
+    setStorageState("saved");
+    renderSliceEditor(sample);
+    setStatus(message, "success");
+    return true;
+  } catch (error) {
+    sample.slices = previousSlices;
+    markMemoryOnlyMode("Sample storage failed. Slice edits are available for this session only.", isQuotaError(error) ? "quota" : "unavailable");
+    renderSliceEditor(sample);
+    setStatus(error instanceof Error ? error.message : "Slice metadata could not be saved.", "error");
+    return false;
+  }
+}
+
+function renderSliceEditor(sample) {
+  if (!sliceList) return;
+  const slices = normalizeSliceDefinitions(sample?.slices);
+  sliceCountValue.textContent = `${slices.length}/${MAX_SLICE_COUNT}`;
+  createSlicesButton.disabled = !sample;
+  clearSlicesButton.disabled = !sample || !slices.length;
+  sliceList.replaceChildren();
+
+  if (!sample) {
+    const emptyItem = document.createElement("li");
+    emptyItem.className = "empty-state";
+    emptyItem.textContent = "Load and save a sample before creating slices.";
+    sliceList.append(emptyItem);
+    return;
+  }
+  if (!slices.length) {
+    const emptyItem = document.createElement("li");
+    emptyItem.className = "empty-state";
+    emptyItem.textContent = "No slices yet. Create an even bank, then adjust each marker.";
+    sliceList.append(emptyItem);
+    return;
+  }
+
+  for (const [index, slice] of slices.entries()) {
+    const item = document.createElement("li");
+    item.className = "slice-item";
+    item.dataset.sliceId = slice.id;
+    if (slice.id === draftSliceId || slice.id === pads[selectedPadIndex]?.sliceId) item.classList.add("is-selected");
+
+    const header = document.createElement("div");
+    header.className = "slice-item-header";
+    const label = document.createElement("input");
+    label.className = "slice-label";
+    label.type = "text";
+    label.maxLength = 32;
+    label.value = slice.label;
+    label.setAttribute("aria-label", `${slice.label} name`);
+    label.addEventListener("change", () => {
+      void persistSampleSlices(sample, updateSliceDefinition(sample.slices, index, { label: label.value }), `${sample.name} slice ${index + 1} renamed.`);
+    });
+    const rangeText = document.createElement("span");
+    rangeText.className = "muted slice-range-text";
+    rangeText.textContent = `${Math.round(slice.start * 100)}–${Math.round(slice.end * 100)}%`;
+    header.append(label, rangeText);
+
+    const rangeGrid = document.createElement("div");
+    rangeGrid.className = "slice-range-grid";
+    const startLabel = document.createElement("label");
+    startLabel.textContent = "In";
+    const startInput = document.createElement("input");
+    startInput.type = "range";
+    startInput.min = "0";
+    startInput.max = "1";
+    startInput.step = "0.001";
+    startInput.value = String(slice.start);
+    startInput.setAttribute("aria-label", `${slice.label} start`);
+    startInput.addEventListener("change", () => {
+      void persistSampleSlices(sample, updateSliceDefinition(sample.slices, index, { start: startInput.value }), `${sample.name} slice ${index + 1} updated.`);
+    });
+    startLabel.append(startInput);
+    const endLabel = document.createElement("label");
+    endLabel.textContent = "Out";
+    const endInput = document.createElement("input");
+    endInput.type = "range";
+    endInput.min = "0";
+    endInput.max = "1";
+    endInput.step = "0.001";
+    endInput.value = String(slice.end);
+    endInput.setAttribute("aria-label", `${slice.label} end`);
+    endInput.addEventListener("change", () => {
+      void persistSampleSlices(sample, updateSliceDefinition(sample.slices, index, { end: endInput.value }), `${sample.name} slice ${index + 1} updated.`);
+    });
+    endLabel.append(endInput);
+    rangeGrid.append(startLabel, endLabel);
+
+    const actions = document.createElement("div");
+    actions.className = "slice-actions";
+    const previewButton = document.createElement("button");
+    previewButton.className = "button button-quiet";
+    previewButton.type = "button";
+    previewButton.textContent = "Preview";
+    previewButton.setAttribute("aria-label", `Preview ${slice.label}`);
+    previewButton.addEventListener("click", () => void previewSampleSlice(sample, slice.id));
+    const assignButton = document.createElement("button");
+    assignButton.className = "button button-secondary";
+    assignButton.type = "button";
+    assignButton.textContent = "Assign to pad";
+    assignButton.setAttribute("aria-label", `Assign ${slice.label} to the selected pad`);
+    assignButton.addEventListener("click", () => assignSliceToSelectedPad(sample, slice.id));
+    actions.append(previewButton, assignButton);
+    item.append(header, rangeGrid, actions);
+    sliceList.append(item);
+  }
+}
+
+async function previewSampleSlice(sample, sliceId) {
+  const slice = getSampleSlice(sample, sliceId);
+  if (!slice) return;
+  try {
+    const context = await prepareAudio();
+    const generation = playbackGeneration;
+    await playSample(selectedPadIndex, {
+      ...pads[selectedPadIndex],
+      mode: "oneshot",
+      sampleRegion: { start: slice.start, end: slice.end, loopStart: slice.start, loopEnd: slice.end, reverse: false },
+    }, sample, context, generation, 1);
+    if (generation === playbackGeneration) setStatus(`${sample.name} · ${slice.label} previewed.`, "info", { force: true });
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "The slice preview could not be played.", "error");
+  }
+}
+
+function assignSliceToSelectedPad(sample, sliceId) {
+  const slice = getSampleSlice(sample, sliceId);
+  if (!slice) return;
+  stopPad(selectedPadIndex);
+  draftSampleId = sample.id;
+  draftSampleCleared = false;
+  draftSliceId = slice.id;
+  sampleFileInput.value = "";
+  sampleStartInput.value = String(slice.start);
+  sampleEndInput.value = String(slice.end);
+  sampleLoopStartInput.value = String(slice.start);
+  sampleLoopEndInput.value = String(slice.end);
+  sampleReverseInput.checked = false;
+  updateSampleName();
+  updateSampleEditorLabels();
+  renderSliceEditor(sample);
+  markEditorDirty();
+  setStatus(`${sample.name} · ${slice.label} staged for ${getPadName(pads[selectedPadIndex], selectedPadIndex)}. Save the pad to apply it.`);
 }
 
 function isValidStoredSample(sample) {
@@ -1316,7 +1495,10 @@ async function repairSampleStorage() {
   try {
     const { valid, corrupt } = partitionStoredSamples(await readSamples());
     const { accepted, excess } = limitStoredSamples(valid);
-    samples = new Map(accepted.map((sample) => [sample.id, sample]));
+    samples = new Map(accepted.map((sample) => {
+      const normalized = normalizeSampleRecord(sample);
+      return [normalized.id, normalized];
+    }));
     renderSampleLibrary();
     updateSampleName();
 
@@ -1445,8 +1627,10 @@ function assignSampleToSelectedPad(sampleId) {
   stopPad(selectedPadIndex);
   draftSampleId = sampleId;
   draftSampleCleared = false;
+  draftSliceId = null;
   sampleFileInput.value = "";
   updateSampleName();
+  void renderSampleEditor();
   markEditorDirty();
   setStatus(`${sample.name} selected for ${getPadName(pads[selectedPadIndex], selectedPadIndex)}. Save the pad to apply it.`);
 }
@@ -2340,8 +2524,11 @@ function updateSampleEditorLabels() {
 }
 
 function getSampleEditorValues() {
+  const sample = getEditorSample();
+  const slice = getSampleSlice(sample, draftSliceId);
   return {
     sampleRegion: getSampleRegionFromEditor(),
+    sliceId: slice?.id || null,
     pitchCents: Number(pitchInput.value),
     timeStretch: Number(stretchInput.value),
     pan: Number(panInput.value),
@@ -2378,7 +2565,8 @@ async function renderSampleEditor() {
   padReverbSendInput.value = String(pad.effectSends?.reverb || 0);
   updateSampleEditorLabels();
   waveformBuffer = undefined;
-  const sample = pad.sampleId ? samples.get(pad.sampleId) : null;
+  const sample = getEditorSample();
+  renderSliceEditor(sample);
   if (!sample) {
     drawEmptyWaveform();
     return;
@@ -2427,6 +2615,7 @@ function selectPad(index) {
   sampleFileInput.value = "";
   draftSampleCleared = false;
   draftSampleId = null;
+  draftSliceId = pad.sliceId || null;
   setEditorDirty(false);
   updateSampleName();
   void renderSampleEditor();
@@ -2605,8 +2794,10 @@ function clearSelectedSample() {
   stopPad(selectedPadIndex);
   draftSampleCleared = true;
   draftSampleId = null;
+  draftSliceId = null;
   sampleFileInput.value = "";
   updateSampleName();
+  renderSliceEditor(null);
   markEditorDirty();
   setStatus("Preview tone selected. Save the pad to apply it.");
 }
@@ -2692,6 +2883,7 @@ async function exportLaunchpack() {
         size: bytes.byteLength,
         hash,
         createdAt: sample.createdAt,
+        slices: normalizeSliceDefinitions(sample.slices),
         data: toBase64(bytes),
       });
     }
@@ -2777,6 +2969,7 @@ function validateLaunchpack(parsedPack) {
       hash: candidate.hash.toLowerCase(),
       blob: new Blob([bytes], { type: candidate.mime }),
       createdAt: typeof candidate.createdAt === "string" ? candidate.createdAt : new Date().toISOString(),
+      slices: normalizeSliceDefinitions(candidate.slices),
     };
   });
 
@@ -2795,6 +2988,7 @@ async function importLaunchpack(file) {
   const parsedPack = JSON.parse(await file.text());
   const { importedKits, importedSamples, activeKitId } = validateLaunchpack(parsedPack);
   const remappedSamples = [];
+  const updatedExistingSamples = [];
   const sampleIdRemap = new Map();
 
   for (const importedSample of importedSamples) {
@@ -2803,6 +2997,11 @@ async function importLaunchpack(file) {
     const existing = await findSampleByHash(importedSample.hash);
     if (existing) {
       sampleIdRemap.set(importedSample.id, existing.id);
+      if (importedSample.slices.length) {
+        const updatedExisting = getPersistedSampleRecord({ ...existing, slices: importedSample.slices });
+        updatedExistingSamples.push(updatedExisting);
+        samples.set(existing.id, { ...existing, slices: importedSample.slices });
+      }
       continue;
     }
     const nextSample = { ...importedSample, id: makeId() };
@@ -2820,7 +3019,7 @@ async function importLaunchpack(file) {
     pads: kit.pads.map((pad) => ({ ...pad, sampleId: pad.sampleId ? sampleIdRemap.get(pad.sampleId) || null : null })),
     updatedAt: new Date().toISOString(),
   }));
-  await writeKitsAndSamples(remappedKits, remappedSamples);
+  await writeKitsAndSamples(remappedKits, [...remappedSamples, ...updatedExistingSamples]);
   for (const sample of remappedSamples) samples.set(sample.id, sample);
   kits = new Map(remappedKits.map((kit) => [kit.id, kit]));
   currentKitId = activeKitId;
@@ -3024,11 +3223,30 @@ function bindEvents() {
   sampleFileInput.addEventListener("change", () => {
     draftSampleCleared = false;
     draftSampleId = null;
+    draftSliceId = null;
     updateSampleName();
+    renderSliceEditor(null);
     markEditorDirty();
   });
   [sampleStartInput, sampleEndInput, sampleLoopStartInput, sampleLoopEndInput, sampleReverseInput, pitchInput, stretchInput, panInput, filterTypeInput, filterFrequencyInput, padDelaySendInput, padReverbSendInput, attackInput, releaseInput]
     .forEach((input) => input.addEventListener("input", updateSampleEditorLabels));
+  [sampleStartInput, sampleEndInput, sampleLoopStartInput, sampleLoopEndInput, sampleReverseInput].forEach((input) => input.addEventListener("change", () => {
+    draftSliceId = null;
+    renderSliceEditor(getEditorSample());
+  }));
+  sliceCountInput.addEventListener("input", () => {
+    sliceCountValue.textContent = `${sliceCountInput.value}/${MAX_SLICE_COUNT}`;
+  });
+  createSlicesButton.addEventListener("click", () => {
+    const sample = getEditorSample();
+    if (!sample) return;
+    void persistSampleSlices(sample, createEvenSlices(sliceCountInput.value), `${sample.name} split into ${sliceCountInput.value} slices.`);
+  });
+  clearSlicesButton.addEventListener("click", () => {
+    const sample = getEditorSample();
+    if (!sample) return;
+    void persistSampleSlices(sample, [], `${sample.name} slice markers cleared.`);
+  });
   padVolumeInput.addEventListener("input", updatePadVolumeLabel);
   masterVolumeInput.addEventListener("input", updateMasterVolume);
   loopToggleButton.addEventListener("click", () => void toggleSelectedPadLoop());
@@ -3209,7 +3427,10 @@ export async function initLaunchpad() {
     renderTakeLibrary();
     const { valid, corrupt } = partitionStoredSamples(storedSamples);
     const { accepted, excess } = limitStoredSamples(valid);
-    samples = new Map(accepted.map((sample) => [sample.id, sample]));
+    samples = new Map(accepted.map((sample) => {
+      const normalized = normalizeSampleRecord(sample);
+      return [normalized.id, normalized];
+    }));
     await initializeKitLibrary(pads);
     applyKit(kits.get(currentKitId));
     renderSampleLibrary();

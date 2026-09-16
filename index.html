@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=40" />
+    <link rel="stylesheet" href="style.css?version=41" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -389,6 +389,20 @@
                   <input id="sample-loop-end" type="range" min="0" max="1" step="0.01" value="1" />
                 </label>
               </div>
+              <div class="slice-toolbar">
+                <label class="field" for="slice-count">
+                  <span>Slice bank <output id="slice-count-value" for="slice-count">0/16</output></span>
+                  <input id="slice-count" type="number" min="1" max="16" step="1" value="4" />
+                </label>
+                <div class="slice-toolbar-actions">
+                  <button id="create-slices" class="button button-secondary" type="button">Create even slices</button>
+                  <button id="clear-slices" class="button button-quiet" type="button" disabled>Clear slices</button>
+                </div>
+              </div>
+              <p class="field-help slice-help">Create up to 16 non-destructive markers. Adjust In/Out, preview a slice, then assign it to the selected pad.</p>
+              <ul id="slice-list" class="slice-list" aria-label="Sample slices">
+                <li class="empty-state">Load and save a sample before creating slices.</li>
+              </ul>
               <label class="check-control sample-reverse-control" for="sample-reverse">
                 <input id="sample-reverse" type="checkbox" />
                 <span>Reverse playback</span>
@@ -516,6 +530,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/bootstrap.js?version=40"></script>
+            <script type="module" src="src/bootstrap.js?version=41"></script>
   </body>
 </html>

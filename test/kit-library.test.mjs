@@ -59,7 +59,8 @@ test("launchpack export/import validates safe paths, hashes, limits, remaps IDs,
   assert.match(app, /function validateLaunchpack\(parsedPack\)/);
   assert.match(app, /async function exportLaunchpack\(\)/);
   assert.match(app, /async function importLaunchpack\(file\)/);
-  assert.match(app, /writeKitsAndSamples\(remappedKits, remappedSamples\)/);
+  assert.match(app, /writeKitsAndSamples\(remappedKits, \[\.\.\.remappedSamples, \.\.\.updatedExistingSamples\]\)/);
+  assert.match(app, /slices: normalizeSliceDefinitions\(sample\.slices\)/);
   assert.match(app, /const sampleIdRemap = new Map\(\)/);
   assert.match(app, /actualHash !== importedSample\.hash/);
   assert.match(app, /transaction\.abort\(\)/);

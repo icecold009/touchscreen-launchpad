@@ -52,6 +52,10 @@ test("the launchpad DOM exposes its primary interaction surface", () => {
     "sequencer-redo",
     "undo-pad",
     "redo-pad",
+    "slice-count",
+    "create-slices",
+    "clear-slices",
+    "slice-list",
   ];
 
   for (const id of requiredIds) {

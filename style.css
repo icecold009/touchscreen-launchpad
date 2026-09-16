@@ -682,6 +682,84 @@ output {
   gap: 0.6rem;
 }
 
+.slice-toolbar {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.7fr) minmax(0, 1.3fr);
+  align-items: end;
+  gap: 0.6rem;
+}
+
+.slice-toolbar-actions,
+.slice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.slice-help {
+  margin: 0;
+}
+
+.slice-list {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 18rem;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.slice-item {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: var(--surface);
+}
+
+.slice-item.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.12);
+}
+
+.slice-item-header,
+.slice-range-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.slice-range-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.slice-range-grid label {
+  display: grid;
+  gap: 0.2rem;
+  color: var(--quiet);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.slice-label {
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.35rem;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  padding: 0.25rem 0.35rem;
+}
+
+.slice-range-text {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .sample-reverse-control {
   min-height: 2rem;
 }

@@ -35,6 +35,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: Audio diagnostics expose running/suspended/closed/unavailable states; sequencer playback enters and exits cleanly; scheduled timers are bounded and cleared on stop/interruption; live microphone loss is reported without corrupting the kit.
 - Evidence: `npm.cmd run validate` passes 63 tests; fresh local browser render at `http://localhost:4181/` reports `running · 48000 Hz · 10 ms latency`, enters `Scene A · Playing`, returns to `Scene A · Ready` after Stop sequence, and reports no console errors or warnings. Real device switching, long-session stress, AudioWorklet/worker timing, hosted behavior, and physical hardware remain unclaimed; `main` remains untouched.
 
+## Package: Slice-to-pads foundation — `codex/launchpad-slice-to-pads-20260916`
+
+- Goal: Turn one imported recording into reusable playable regions without replacing the source sample.
+- Scope: Bounded sample-level slice metadata, even-bank creation, editable In/Out markers, per-slice preview, staged assignment to a selected pad, pad slice references, launchpack preservation, and migration/cache contracts.
+- Non-goals: Automatic transient detection, destructive source replacement, complex time-warping, fades/normalization, or unbounded decoded audio.
+- Files: `index.html`, `style.css`, `app.js`, `src/migrations.js`, `src/slices.js`, `src/bootstrap.js`, `sw.js`, `scripts/validate-site.mjs`, `package.json`, and slice/DOM/migration/module/PWA tests.
+- Tests: `npm.cmd run validate`, bounded marker and migration tests, launchpack metadata contract, `git diff --check`, and fresh browser render of the Sample lab slice controls with no console errors or warnings.
+- Acceptance: A source sample remains intact; a slice bank is capped at 16; marker edits stay bounded; preview does not alter the pad; assignment stages until Save pad; pad and launchpack metadata retain the selected slice.
+- Evidence: `npm.cmd run validate` passes 67 tests; fresh local browser render at `http://localhost:4181/` exposes Create even slices, Clear slices, and the accessible slice list in the no-sample disabled state, with no console errors or warnings. Actual audio-file decoding, microphone/device behavior, and DAW/hosted import remain unclaimed; `main` remains untouched.
+
 ## Package: Record to perform — `codex/launchpad-record-perform-20260916`
 
 - Goal: Turn a live sound or voice idea into a reusable performance sample without leaving the local-first app.
