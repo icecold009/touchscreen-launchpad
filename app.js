@@ -1,13 +1,14 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=31";
-import { createInputAdapter } from "./src/input-adapter.js?version=31";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=31";
-import { createPointerState } from "./src/pointer-state.js?version=31";
-import { attachStorageRequest } from "./src/storage-request.js?version=31";
-import { downloadText as triggerTextDownload } from "./src/download.js?version=31";
-import { getNextQuantizedTime } from "./src/transport.js?version=31";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=31";
+import { createHistory } from "./src/history.js?version=32";
+import { createInputAdapter } from "./src/input-adapter.js?version=32";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=32";
+import { createPointerState } from "./src/pointer-state.js?version=32";
+import { attachStorageRequest } from "./src/storage-request.js?version=32";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=32";
+import { getNextQuantizedTime } from "./src/transport.js?version=32";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=32";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=32";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -24,10 +25,17 @@ const MAX_KIT_NAME_LENGTH = 40;
 const MAX_PACK_PATH_LENGTH = 240;
 const MAX_DECODED_AUDIO_BYTES = 256 * 1024 * 1024;
 const MAX_DECODED_AUDIO_SECONDS = 15 * 60;
+const MAX_TAKE_COUNT = 32;
+const MAX_TAKE_STORAGE_BYTES = 256 * 1024 * 1024;
 
 const padGrid = document.querySelector("#pad-grid");
 const statusMessage = document.querySelector("#status");
 const beatIndicator = document.querySelector("#beat-indicator");
+const recordButton = document.querySelector("#record-performance");
+const recordingTimer = document.querySelector("#recording-timer");
+const recordingState = document.querySelector("#recording-state");
+const takeList = document.querySelector("#take-list");
+const takeCount = document.querySelector("#take-count");
 const persistenceNote = document.querySelector("#persistence-note");
 const connectionStatus = document.querySelector("#connection-status");
 const stopAllButton = document.querySelector("#stop-all");
@@ -86,11 +94,18 @@ const activeVoices = voiceRegistry.byPad;
 const pendingPads = new Set();
 let pads = [];
 let samples = new Map();
+let takes = new Map();
 let kits = new Map();
 let currentKitId = "kit-1";
 let selectedPadIndex = 0;
 let audioContext;
 let masterGain;
+let recordingDestination;
+let recordingMicStream;
+let recordingMicSource;
+let recordingMicGain;
+let recordingTicker;
+let lastTakeId;
 let databasePromise;
 let sampleDatabase;
 let deferredInstallPrompt;
@@ -105,6 +120,9 @@ let draftSampleId = null;
 let playbackGeneration = 0;
 let beatCountdownTimer;
 let lastPlaybackStatusAt = 0;
+const recordingSession = createRecordingSession({
+  onStateChange: updateRecordingState,
+});
 const pointerState = createPointerState();
 const layoutHistory = createHistory({
   limit: 20,
@@ -425,6 +443,31 @@ function writeSample(sample) {
 function deleteSample(sampleId) {
   return runStorageTransaction("readwrite", ["samples"], (transaction) => {
     transaction.objectStore("samples").delete(sampleId);
+  });
+}
+
+function requestFromTakeStore(mode, operation) {
+  return openDatabase().then((database) => new Promise((resolve, reject) => {
+    const transaction = database.transaction("takes", mode);
+    const store = transaction.objectStore("takes");
+    const request = operation(store);
+    attachStorageRequest(request, transaction, resolve, reject);
+  }));
+}
+
+function readTakes() {
+  return requestFromTakeStore("readonly", (store) => store.getAll());
+}
+
+function writeTake(take) {
+  return runStorageTransaction("readwrite", ["takes"], (transaction) => {
+    transaction.objectStore("takes").put(take);
+  });
+}
+
+function deleteTakeRecord(takeId) {
+  return runStorageTransaction("readwrite", ["takes"], (transaction) => {
+    transaction.objectStore("takes").delete(takeId);
   });
 }
 
@@ -901,6 +944,7 @@ async function resetSampleStorage() {
   try {
     await deleteSampleDatabase();
     samples = new Map();
+    takes = new Map();
     pads = pads.map((pad) => ({ ...pad, sampleId: null }));
     currentKitId = "kit-1";
     kits = new Map();
@@ -916,6 +960,7 @@ async function resetSampleStorage() {
     renderPads();
     selectPad(0);
     renderSampleLibrary();
+    renderTakeLibrary();
     saveLayout("Sample storage reset. Layout saved without sample assignments.");
   } catch (error) {
     markMemoryOnlyMode("Sample storage reset did not complete. No saved samples were intentionally removed.", "unavailable");
@@ -988,6 +1033,173 @@ function assignSampleToSelectedPad(sampleId) {
   setStatus(`${sample.name} selected for ${getPadName(pads[selectedPadIndex], selectedPadIndex)}. Save the pad to apply it.`);
 }
 
+function renderTakeLibrary() {
+  const orderedTakes = [...takes.values()].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  takeCount.textContent = `${orderedTakes.length} ${orderedTakes.length === 1 ? "take" : "takes"}`;
+  takeList.replaceChildren();
+  if (!orderedTakes.length) {
+    const emptyItem = document.createElement("li");
+    emptyItem.className = "empty-state";
+    emptyItem.textContent = "No takes yet. Record a voice, room sound, or pad performance.";
+    takeList.append(emptyItem);
+    return;
+  }
+
+  for (const take of orderedTakes.slice(0, 8)) {
+    const item = document.createElement("li");
+    item.className = "sample-item take-item";
+    item.dataset.takeId = take.id;
+    const details = document.createElement("div");
+    details.className = "sample-item-details";
+    const name = document.createElement("span");
+    name.textContent = take.name;
+    const meta = document.createElement("span");
+    meta.className = "muted";
+    meta.textContent = `${formatRecordingTime(take.durationMs)} · ${formatBytes(take.size)}`;
+    details.append(name, meta);
+    const actions = document.createElement("div");
+    actions.className = "take-actions";
+    const assignButton = document.createElement("button");
+    assignButton.className = "button button-secondary";
+    assignButton.type = "button";
+    assignButton.textContent = "Use on pad";
+    assignButton.setAttribute("aria-label", `Use ${take.name} on the selected pad`);
+    assignButton.addEventListener("click", () => void assignTakeToSelectedPad(take.id));
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "text-button";
+    deleteButton.type = "button";
+    deleteButton.textContent = "Delete";
+    deleteButton.addEventListener("click", () => void removeTake(take.id));
+    actions.append(assignButton, deleteButton);
+    item.append(details, actions);
+    takeList.append(item);
+  }
+}
+
+async function assignTakeToSelectedPad(takeId) {
+  const take = takes.get(takeId);
+  if (!take) return;
+  try {
+    const extension = take.mime.includes("ogg") ? "ogg" : take.mime.includes("mp4") ? "m4a" : "webm";
+    const file = new File([take.blob], `${take.name}.${extension}`, { type: take.mime });
+    const persisted = await persistSample(file);
+    assignSampleToSelectedPad(persisted.sample.id);
+    setStatus(`${take.name} is ready on ${getPadName(pads[selectedPadIndex], selectedPadIndex)}. Save the pad to apply it.`, "success");
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "The take could not be assigned.", "error");
+  }
+}
+
+async function removeTake(takeId) {
+  const take = takes.get(takeId);
+  if (!take || !window.confirm(`Delete ${take.name}?`)) return;
+  try {
+    await deleteTakeRecord(takeId);
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "The take could not be deleted.", "error");
+    return;
+  }
+  takes.delete(takeId);
+  if (lastTakeId === takeId) lastTakeId = undefined;
+  renderTakeLibrary();
+  setStatus(`${take.name} deleted.`, "success");
+}
+
+function updateRecordingState({ state = recordingSession.state, elapsedMs = recordingSession.elapsedMs, error } = {}) {
+  const isRecording = state === "recording" || state === "stopping";
+  recordButton.textContent = state === "recording" ? "Stop recording" : "Record performance";
+  recordButton.classList.toggle("is-recording", state === "recording");
+  recordButton.disabled = state === "stopping";
+  recordingTimer.textContent = formatRecordingTime(elapsedMs);
+  recordingState.textContent = state === "recording" ? "Capturing microphone + app mix" : state === "stopping" ? "Finalizing take…" : state === "ready" ? "Take saved locally" : "Ready to capture";
+  recordingState.dataset.state = state;
+  if (error) setStatus(error instanceof Error ? error.message : "The recording failed.", "error");
+  if (!isRecording && recordingTicker) {
+    window.clearInterval(recordingTicker);
+    recordingTicker = undefined;
+  }
+}
+
+function stopRecordingTracks() {
+  recordingMicSource?.disconnect();
+  recordingMicGain?.disconnect();
+  recordingMicSource = undefined;
+  recordingMicGain = undefined;
+  recordingMicStream?.getTracks().forEach((track) => track.stop());
+  recordingMicStream = undefined;
+}
+
+async function startPerformanceRecording() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    setStatus("This browser does not expose microphone capture.", "error");
+    return;
+  }
+  if (!recordingDestination) {
+    setStatus("This browser cannot mix app audio for local recording.", "error");
+    return;
+  }
+  try {
+    const context = await prepareAudio();
+    recordingMicStream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+      video: false,
+    });
+    recordingMicSource = context.createMediaStreamSource(recordingMicStream);
+    recordingMicGain = context.createGain();
+    recordingMicGain.gain.value = 1;
+    recordingMicSource.connect(recordingMicGain);
+    recordingMicGain.connect(recordingDestination);
+    recordingSession.start(recordingDestination.stream, { name: "Launchpad take" });
+    recordingTicker = window.setInterval(() => updateRecordingState({ state: recordingSession.state, elapsedMs: recordingSession.elapsedMs }), 250);
+    setStatus("Recording microphone and app mix. Perform, then stop when ready.", "success");
+  } catch (error) {
+    stopRecordingTracks();
+    recordingSession.cancel();
+    setStatus(error instanceof Error ? error.message : "Microphone permission or recording setup failed.", "error");
+  }
+}
+
+async function stopPerformanceRecording() {
+  if (recordingSession.state !== "recording") return;
+  try {
+    const elapsedMs = recordingSession.elapsedMs;
+    const blob = await recordingSession.stop();
+    stopRecordingTracks();
+    const take = createTakeRecord({
+      id: makeId(),
+      blob,
+      name: `Take ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+      kitId: currentKitId,
+      padIndex: selectedPadIndex,
+      durationMs: elapsedMs,
+    });
+    const storedBytes = [...takes.values()].reduce((total, item) => total + item.size, 0);
+    if (takes.size >= MAX_TAKE_COUNT || storedBytes + take.size > MAX_TAKE_STORAGE_BYTES) {
+      throw new Error("Take storage is full. Delete an older take before recording another.");
+    }
+    try {
+      await writeTake(take);
+    } catch (error) {
+      markMemoryOnlyMode("The take is available for this session, but could not be saved locally.", isQuotaError(error) ? "quota" : "unavailable");
+    }
+    takes.set(take.id, take);
+    lastTakeId = take.id;
+    renderTakeLibrary();
+    updateRecordingState({ state: "ready", elapsedMs });
+    setStatus(`${take.name} saved. Use it on the selected pad or keep performing.`, "success");
+  } catch (error) {
+    stopRecordingTracks();
+    recordingSession.cancel();
+    updateRecordingState({ state: "idle" });
+    setStatus(error instanceof Error ? error.message : "The take could not be saved.", "error");
+  }
+}
+
+function togglePerformanceRecording() {
+  if (recordingSession.state === "recording") void stopPerformanceRecording();
+  else if (recordingSession.state === "idle" || recordingSession.state === "ready") void startPerformanceRecording();
+}
+
 function formatBytes(bytes) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -1000,8 +1212,12 @@ function getAudioContext() {
 
     audioContext = new AudioContextClass();
     masterGain = audioContext.createGain();
+    recordingDestination = typeof audioContext.createMediaStreamDestination === "function"
+      ? audioContext.createMediaStreamDestination()
+      : undefined;
     masterGain.gain.value = Number(masterVolumeInput.value);
     masterGain.connect(audioContext.destination);
+    if (recordingDestination) masterGain.connect(recordingDestination);
   }
 
   return audioContext;
@@ -1941,6 +2157,8 @@ function bindEvents() {
   window.addEventListener("pagehide", () => {
     clearPointerState();
     stopAll({ announce: false });
+    if (recordingSession.state === "recording") recordingSession.cancel();
+    stopRecordingTracks();
   });
   window.addEventListener("orientationchange", clearPointerState);
   padEditor.addEventListener("submit", (event) => void saveSelectedPad(event));
@@ -1965,6 +2183,7 @@ function bindEvents() {
   quantizeInput.addEventListener("change", () => {
     if (!quantizeInput.checked) clearBeatCountdown();
   });
+  recordButton.addEventListener("click", togglePerformanceRecording);
   saveLayoutButton.addEventListener("click", () => void saveActiveKit());
   exportLayoutButton.addEventListener("click", exportLayout);
   importLayoutInput.addEventListener("change", (event) => void importLayout(event));
@@ -2061,9 +2280,13 @@ export async function initLaunchpad() {
   updateMasterVolume();
   updateTempoValue();
   renderSampleLibrary();
+  renderTakeLibrary();
 
   try {
-    const { valid, corrupt } = partitionStoredSamples(await readSamples());
+    const [storedSamples, storedTakes] = await Promise.all([readSamples(), readTakes()]);
+    takes = new Map(storedTakes.filter(isValidTakeRecord).sort((left, right) => right.createdAt.localeCompare(left.createdAt)).slice(0, MAX_TAKE_COUNT).map((take) => [take.id, take]));
+    renderTakeLibrary();
+    const { valid, corrupt } = partitionStoredSamples(storedSamples);
     const { accepted, excess } = limitStoredSamples(valid);
     samples = new Map(accepted.map((sample) => [sample.id, sample]));
     await initializeKitLibrary(pads);

@@ -5,6 +5,16 @@ Reviewed: feature branch `codex/vercel-canonical-hosting-20260914` during the 20
 Release baseline: PR #7 was merged to `main` as `9c214a8`.
 Audit package baseline: `1dde9e9`; the merged release contains the security hardening, release-workflow pinning, and hosted Vercel deployment below.
 
+## Package: Record to perform — `codex/launchpad-record-perform-20260916`
+
+- Goal: Turn a live sound or voice idea into a reusable performance sample without leaving the local-first app.
+- Scope: Permission-gated microphone capture, app-mix recording through the Web Audio graph, bounded MediaRecorder sessions, saved takes in the additive IndexedDB store, take deletion, and one-click staging of a take onto the selected pad.
+- Non-goals: System-audio capture, cloud upload, account sharing, multitrack editing, waveform chopping, or DAW export.
+- Files: `index.html`, `style.css`, `app.js`, `src/recording.js`, `sw.js`, `src/bootstrap.js`, `scripts/validate-site.mjs`, `package.json`, README, and recording contract tests.
+- Tests: `npm.cmd run validate`, recording state-machine tests, local rendered capture-card smoke, permission/error messaging review, and storage-boundary review.
+- Acceptance: A supported browser can ask for microphone permission, record mic plus app output, stop safely, save a bounded take locally, list it after reload, and stage it onto the selected pad without exposing audio to a server.
+- Evidence: `npm.cmd run validate` passes 52 tests; fresh local browser render confirms the capture card and clear no-mix fallback; `main` remains untouched. Microphone capture itself remains permission/device dependent and is not claimed from this environment.
+
 ## Package: Professional audio foundation — `codex/launchpad-professional-foundation-20260916`
 
 - Goal: Establish versioned audio, transport, input, voice, migration, and bounded-history contracts for professional performance features.

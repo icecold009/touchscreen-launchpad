@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=31" />
+    <link rel="stylesheet" href="style.css?version=32" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -60,6 +60,25 @@
                 <button id="reset-storage" class="text-button" type="button" hidden>Reset saved samples</button>
               </span>
             </div>
+          </section>
+
+          <section class="performance-capture" aria-labelledby="recording-title">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Record to perform</p>
+                <h3 id="recording-title">Capture a take</h3>
+                <p class="section-subtitle">Microphone plus the launchpad mix, saved only in this browser.</p>
+              </div>
+              <span id="recording-timer" class="recording-timer" aria-label="Recording duration">00:00</span>
+            </div>
+            <div class="recording-controls">
+              <button id="record-performance" class="button button-primary" type="button">Record performance</button>
+              <span id="recording-state" class="recording-state" role="status" aria-live="polite">Ready to capture</span>
+            </div>
+            <ul id="take-list" class="sample-list take-list" aria-label="Saved performance takes">
+              <li class="empty-state">No takes yet. Record a voice, room sound, or pad performance.</li>
+            </ul>
+            <span id="take-count" class="sr-only">0 takes</span>
           </section>
 
           <div class="pad-performance">
@@ -230,6 +249,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/bootstrap.js?version=31"></script>
+    <script type="module" src="src/bootstrap.js?version=32"></script>
   </body>
 </html>
