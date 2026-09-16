@@ -692,6 +692,46 @@ output {
   font-weight: 800;
 }
 
+.performance-mode-grid,
+.group-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stage-heading #performance-mode {
+  flex: 0 0 auto;
+}
+
+body.is-performance-mode {
+  background: #0b1020;
+}
+
+body.is-performance-mode .app-header,
+body.is-performance-mode .editor-panel,
+body.is-performance-mode .kit-dock {
+  display: none;
+}
+
+body.is-performance-mode .workspace {
+  display: block;
+}
+
+body.is-performance-mode .stage {
+  min-height: calc(100vh - 2rem);
+  border: 0;
+  box-shadow: none;
+}
+
+body.is-performance-mode .performance-capture,
+body.is-performance-mode .controls > .status-message,
+body.is-performance-mode .controls > .persistence-note {
+  display: none;
+}
+
+body.is-performance-mode .pad-grid {
+  width: min(100%, 1100px);
+  margin-top: 1.5rem;
+}
+
 .performance-capture {
   margin-top: 1rem;
   padding: 0.9rem;

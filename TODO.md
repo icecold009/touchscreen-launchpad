@@ -25,6 +25,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: A selected pad exposes a visible waveform and shape controls; invalid regions normalize safely; playback honors the saved region/reverse/pitch/pan/filter/envelope values; no sample remains a valid empty-state experience.
 - Evidence: `npm.cmd run validate` passes 54 tests; fresh local browser render exposes the waveform/sample-shaping controls, a pitch adjustment marks the pad unsaved, and Pad 01 still triggers; `main` remains untouched. Audio-file waveform decoding and persistence are not claimed without a user-provided sample in this environment.
 
+## Package: Performance engine — `codex/launchpad-performance-engine-20260916`
+
+- Goal: Make pad triggering expressive and stage-ready while preserving immediate one-shot behavior by default.
+- Scope: Trigger/gate/hold/retrigger/repeat/echo mode contracts, pointer/keyboard release handling, per-pad launch and stop grids, choke/mute/link groups, count-in, metronome clicks, repeat scheduling with voice limits, and browser fullscreen perform mode.
+- Non-goals: Full effect sends/returns, multitrack scenes, MIDI I/O, DAW timeline, or cloud collaboration.
+- Files: `index.html`, `style.css`, `app.js`, `src/performance-engine.js`, `src/migrations.js`, `sw.js`, `src/bootstrap.js`, `scripts/validate-site.mjs`, `package.json`, README/backlog, and performance-engine tests.
+- Tests: `npm.cmd run validate`, group/mode/quantization tests, rendered trigger-mode and perform-mode smoke, keyboard/pointer release review, metronome/count-in error handling, and stop-all repeat cleanup.
+- Acceptance: Pad settings persist and remain accessible; gate/hold release cannot leave a voice stuck; group actions stop/link the intended pads; repeat timers are bounded and cleaned up; perform mode exposes the grid without editing chrome.
+- Evidence: `npm.cmd run validate` passes 56 tests; fresh local render exposes trigger modes, launch/stop grids, group fields, metronome/count-in, and fullscreen perform mode; perform mode hides the editor and kit chrome while preserving controls and pads; `main` remains untouched.
+
 ## Package: Professional audio foundation — `codex/launchpad-professional-foundation-20260916`
 
 - Goal: Establish versioned audio, transport, input, voice, migration, and bounded-history contracts for professional performance features.

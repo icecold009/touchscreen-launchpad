@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=33" />
+    <link rel="stylesheet" href="style.css?version=34" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -31,6 +31,7 @@
               <p class="eyebrow">Performance surface</p>
               <h2>Play your pads</h2>
             </div>
+            <button id="performance-mode" class="button button-secondary" type="button" aria-pressed="false">Perform full screen</button>
           </div>
 
           <section class="controls" aria-label="Launchpad controls">
@@ -47,6 +48,21 @@
               <label class="check-control" for="quantize">
                 <input id="quantize" type="checkbox" checked />
                 <span>Quantize loops</span>
+              </label>
+
+              <label class="check-control" for="metronome">
+                <input id="metronome" type="checkbox" />
+                <span>Metronome</span>
+              </label>
+
+              <label class="compact-control" for="count-in">
+                <span>Count-in</span>
+                <select id="count-in">
+                  <option value="0">Off</option>
+                  <option value="1">1 bar</option>
+                  <option value="2">2 bars</option>
+                  <option value="4">4 bars</option>
+                </select>
               </label>
 
             </div>
@@ -167,6 +183,57 @@
                   <option value="oneshot">One-shot</option>
                   <option value="loop">Loop</option>
                 </select>
+              </label>
+            </div>
+
+            <div class="field-grid performance-mode-grid">
+              <label class="field" for="trigger-mode">
+                <span>Trigger mode</span>
+                <select id="trigger-mode" name="triggerMode">
+                  <option value="trigger">Trigger</option>
+                  <option value="gate">Gate</option>
+                  <option value="hold">Hold</option>
+                  <option value="retrigger">Retrigger</option>
+                  <option value="repeat">Repeat</option>
+                  <option value="echo">Echo</option>
+                </select>
+              </label>
+              <label class="field" for="launch-quantize">
+                <span>Launch grid</span>
+                <select id="launch-quantize" name="launchQuantize">
+                  <option value="off">Off</option>
+                  <option value="beat">Beat</option>
+                  <option value="eighth">1/8</option>
+                  <option value="sixteenth">1/16</option>
+                  <option value="bar">Bar</option>
+                  <option value="phrase">Phrase</option>
+                </select>
+              </label>
+              <label class="field" for="stop-quantize">
+                <span>Stop grid</span>
+                <select id="stop-quantize" name="stopQuantize">
+                  <option value="off">Off</option>
+                  <option value="beat">Beat</option>
+                  <option value="eighth">1/8</option>
+                  <option value="sixteenth">1/16</option>
+                  <option value="bar">Bar</option>
+                  <option value="phrase">Phrase</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="field-grid group-grid">
+              <label class="field" for="choke-group">
+                <span>Choke group</span>
+                <input id="choke-group" name="chokeGroup" type="text" maxlength="32" placeholder="e.g. hats" />
+              </label>
+              <label class="field" for="mute-group">
+                <span>Mute group</span>
+                <input id="mute-group" name="muteGroup" type="text" maxlength="32" placeholder="e.g. bass" />
+              </label>
+              <label class="field" for="link-group">
+                <span>Link group</span>
+                <input id="link-group" name="linkGroup" type="text" maxlength="32" placeholder="e.g. stack" />
               </label>
             </div>
 
@@ -318,6 +385,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/bootstrap.js?version=33"></script>
+    <script type="module" src="src/bootstrap.js?version=34"></script>
   </body>
 </html>

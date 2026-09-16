@@ -1,15 +1,16 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=33";
-import { createInputAdapter } from "./src/input-adapter.js?version=33";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=33";
-import { createPointerState } from "./src/pointer-state.js?version=33";
-import { attachStorageRequest } from "./src/storage-request.js?version=33";
-import { downloadText as triggerTextDownload } from "./src/download.js?version=33";
-import { getNextQuantizedTime } from "./src/transport.js?version=33";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=33";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=33";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=33";
+import { createHistory } from "./src/history.js?version=34";
+import { createInputAdapter } from "./src/input-adapter.js?version=34";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=34";
+import { createPointerState } from "./src/pointer-state.js?version=34";
+import { attachStorageRequest } from "./src/storage-request.js?version=34";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=34";
+import { getNextQuantizedTime } from "./src/transport.js?version=34";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=34";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=34";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=34";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=34";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -63,6 +64,9 @@ const stopAllButton = document.querySelector("#stop-all");
 const tempoInput = document.querySelector("#tempo");
 const tempoValue = document.querySelector("#tempo-value");
 const quantizeInput = document.querySelector("#quantize");
+const metronomeInput = document.querySelector("#metronome");
+const countInInput = document.querySelector("#count-in");
+const performanceModeButton = document.querySelector("#performance-mode");
 const masterVolumeInput = document.querySelector("#master-volume");
 const masterVolumeValue = document.querySelector("#master-volume-value");
 const loopToggleButton = document.querySelector("#loop-toggle");
@@ -70,6 +74,12 @@ const padEditor = document.querySelector("#pad-editor");
 const padLabelInput = document.querySelector("#pad-label");
 const padKeyInput = document.querySelector("#pad-key");
 const padModeInput = document.querySelector("#pad-mode");
+const triggerModeInput = document.querySelector("#trigger-mode");
+const launchQuantizeInput = document.querySelector("#launch-quantize");
+const stopQuantizeInput = document.querySelector("#stop-quantize");
+const chokeGroupInput = document.querySelector("#choke-group");
+const muteGroupInput = document.querySelector("#mute-group");
+const linkGroupInput = document.querySelector("#link-group");
 const padVolumeInput = document.querySelector("#pad-volume");
 const padVolumeValue = document.querySelector("#pad-volume-value");
 const sampleFileInput = document.querySelector("#sample-file");
@@ -128,6 +138,9 @@ let recordingMicGain;
 let recordingTicker;
 let lastTakeId;
 let waveformRenderToken = 0;
+let metronomeTimer;
+let countInPromise;
+let repeatTimers = new Map();
 let databasePromise;
 let sampleDatabase;
 let deferredInstallPrompt;
@@ -153,6 +166,10 @@ const layoutHistory = createHistory({
 const inputAdapter = createInputAdapter({
   padCount: PAD_COUNT,
   onInput: ({ action, padIndex }) => {
+    if (action === "release") {
+      if (shouldReleaseOnPointer(pads[padIndex]?.triggerMode)) stopPad(padIndex, { quantized: true, announce: false });
+      return;
+    }
     if (action !== "trigger") return;
     selectPad(padIndex);
     void triggerPad(padIndex);
@@ -1256,12 +1273,66 @@ async function prepareAudio() {
     }
   }
   if (context.state !== "running") throw new Error("Audio is unavailable in the current browser state.");
+  syncMetronome();
   return context;
 }
 
 function getNextBeatTime(context) {
+  return getNextPadTime(context, "beat");
+}
+
+function getNextPadTime(context, subdivision = "beat", { quantized = true } = {}) {
   const tempo = clamp(Number(tempoInput.value) || 120, 60, 200);
-  return getNextQuantizedTime(context.currentTime, { bpm: tempo, subdivision: "beat" });
+  return quantized && quantizeInput.checked
+    ? getNextQuantizedTime(context.currentTime, { bpm: tempo, subdivision })
+    : context.currentTime;
+}
+
+function playMetronomeClick(context, when, accent = false) {
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(accent ? 1400 : 900, when);
+  gain.gain.setValueAtTime(0.0001, when);
+  gain.gain.exponentialRampToValueAtTime(accent ? 0.12 : 0.07, when + 0.003);
+  gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.045);
+  oscillator.connect(gain);
+  gain.connect(masterGain);
+  oscillator.start(when);
+  oscillator.stop(when + 0.05);
+}
+
+function syncMetronome() {
+  if (metronomeTimer) window.clearInterval(metronomeTimer);
+  metronomeTimer = undefined;
+  if (!metronomeInput.checked || !audioContext) return;
+  const beatDuration = 60 / clamp(Number(tempoInput.value) || 120, 60, 200);
+  let beat = 0;
+  metronomeTimer = window.setInterval(() => {
+    if (audioContext?.state === "running") playMetronomeClick(audioContext, audioContext.currentTime + 0.01, beat++ % 4 === 0);
+  }, beatDuration * 1000);
+}
+
+function runCountIn(context) {
+  const bars = Number(countInInput.value) || 0;
+  const beats = getCountInBeatCount(bars);
+  if (!beats) return Promise.resolve();
+  if (countInPromise) return countInPromise;
+  const beatDuration = 60 / clamp(Number(tempoInput.value) || 120, 60, 200);
+  const firstBeat = getNextQuantizedTime(context.currentTime, { bpm: Number(tempoInput.value) || 120, subdivision: "beat" });
+  for (let index = 0; index < beats; index += 1) {
+    const when = firstBeat + index * beatDuration;
+    window.setTimeout(() => {
+      if (audioContext?.state === "running") playMetronomeClick(context, when, index % 4 === 0);
+    }, Math.max(0, (when - context.currentTime) * 1000));
+  }
+  setPlaybackStatus(`Count-in: ${bars} ${bars === 1 ? "bar" : "bars"}.`, "info", { force: true });
+  countInPromise = new Promise((resolve) => {
+    window.setTimeout(resolve, Math.max(0, (firstBeat + beats * beatDuration - context.currentTime) * 1000));
+  }).finally(() => {
+    countInPromise = undefined;
+  });
+  return countInPromise;
 }
 
 function getPadVoices(index) {
@@ -1354,11 +1425,24 @@ function fadeAndStopVoice(voice, stopAt = audioContext?.currentTime || 0) {
   voice.source.stop(endAt);
 }
 
+function stopRepeat(index) {
+  const timer = repeatTimers.get(index);
+  if (timer !== undefined) window.clearInterval(timer);
+  repeatTimers.delete(index);
+}
+
+function stopGroupPeers(index, groupKey) {
+  for (const peerIndex of getGroupPeers(pads, index, groupKey)) stopPad(peerIndex, { quantized: false });
+}
+
 function stopPad(index, { quantized = false, announce = false } = {}) {
+  stopRepeat(index);
   const voices = activeVoices.get(index);
   if (!voices?.size || !audioContext) return false;
 
-  const stopAt = quantized && quantizeInput.checked ? getNextBeatTime(audioContext) : audioContext.currentTime;
+  const settings = normalizePerformanceSettings(pads[index]);
+  const stopGrid = settings.stopQuantize === "off" && pads[index].mode === "loop" && quantizeInput.checked ? "beat" : settings.stopQuantize;
+  const stopAt = quantized && stopGrid !== "off" ? getNextPadTime(audioContext, stopGrid) : audioContext.currentTime;
   for (const voice of voices) {
     try {
       fadeAndStopVoice(voice, stopAt);
@@ -1384,6 +1468,7 @@ function stopPad(index, { quantized = false, announce = false } = {}) {
 function stopAll({ announce = true } = {}) {
   playbackGeneration += 1;
   clearBeatCountdown();
+  for (const index of repeatTimers.keys()) stopRepeat(index);
   for (const [index, voices] of activeVoices) {
     for (const voice of voices) {
       if (voice.startTimer) window.clearTimeout(voice.startTimer);
@@ -1473,7 +1558,9 @@ async function playSample(index, pad, sample, context, generation) {
   const source = context.createBufferSource();
   const gain = createVoiceGain(context, pad);
   const isLoop = pad.mode === "loop";
-  const startAt = isLoop && quantizeInput.checked ? getNextBeatTime(context) : context.currentTime;
+  const settings = normalizePerformanceSettings(pad);
+  const launchGrid = settings.launchQuantize === "off" && isLoop && quantizeInput.checked ? "beat" : settings.launchQuantize;
+  const startAt = launchGrid === "off" ? context.currentTime : getNextPadTime(context, launchGrid);
   const plan = createPlaybackPlan({
     duration: buffer.duration,
     region: pad.sampleRegion,
@@ -1505,9 +1592,30 @@ async function playSample(index, pad, sample, context, generation) {
   return true;
 }
 
-async function triggerPad(index) {
+async function triggerPad(index, { linked = false, bypassCountIn = false, fromRepeat = false } = {}) {
   if (pendingPads.has(index)) return;
   const pad = pads[index];
+  const settings = normalizePerformanceSettings(pad);
+
+  if (!linked && settings.linkGroup) {
+    const linkedIndices = [index, ...getGroupPeers(pads, index, "linkGroup")];
+    await Promise.all(linkedIndices.map((padIndex, linkedIndex) => triggerPad(padIndex, {
+      linked: true,
+      bypassCountIn: linkedIndex > 0 || bypassCountIn,
+      fromRepeat,
+    })));
+    return;
+  }
+
+  if (!linked) {
+    if (settings.chokeGroup) stopGroupPeers(index, "chokeGroup");
+    if (settings.muteGroup) stopGroupPeers(index, "muteGroup");
+  }
+
+  if (!fromRepeat && settings.triggerMode === "repeat" && repeatTimers.has(index)) {
+    stopPad(index, { quantized: true, announce: true });
+    return;
+  }
   const existingVoices = [...getPadVoices(index)].filter((voice) => voice.isLoop);
 
   if (pad.mode === "loop" && existingVoices.length) {
@@ -1528,6 +1636,8 @@ async function triggerPad(index) {
   try {
     const context = await prepareAudio();
     if (generation !== playbackGeneration) return;
+    if (!bypassCountIn && !fromRepeat && Number(countInInput.value) > 0) await runCountIn(context);
+    if (generation !== playbackGeneration) return;
     const sample = pad.sampleId ? samples.get(pad.sampleId) : null;
 
     if (pad.sampleId && !sample) {
@@ -1540,6 +1650,12 @@ async function triggerPad(index) {
       await playSample(index, pad, sample, context, generation);
     } else {
       playPreviewTone(index, pad, context);
+    }
+    if (!fromRepeat && settings.triggerMode === "repeat") {
+      const interval = getRepeatIntervalMs(Number(tempoInput.value), "sixteenth");
+      repeatTimers.set(index, window.setInterval(() => {
+        if (!pendingPads.has(index)) void triggerPad(index, { linked: true, bypassCountIn: true, fromRepeat: true });
+      }, interval));
     }
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "The sample could not be played.", "error");
@@ -1567,7 +1683,10 @@ function releasePadPointer(button, event) {
   const index = Number(button.dataset.index);
   const pointerId = event.pointerId;
   const { shouldClearPressed } = pointerState.release(pointerId, index);
-  if (shouldClearPressed) button.classList.remove("is-pressed");
+  if (shouldClearPressed) {
+    button.classList.remove("is-pressed");
+    inputAdapter.emit({ kind: "pointer", action: "release", padIndex: index, pointerId, timestamp: performance.now() });
+  }
 }
 
 function renderPads() {
@@ -1580,7 +1699,8 @@ function renderPads() {
     button.type = "button";
     button.dataset.index = String(index);
     button.style.setProperty("--pad-color", pad.color);
-    button.setAttribute("aria-label", `${getPadName(pad, index)}, keyboard shortcut ${pad.key}, ${pad.mode === "loop" ? "loop" : "one-shot"}`);
+    const performanceSettings = normalizePerformanceSettings(pad);
+    button.setAttribute("aria-label", `${getPadName(pad, index)}, keyboard shortcut ${pad.key}, ${pad.mode === "loop" ? "loop" : "one-shot"}, ${performanceSettings.triggerMode} mode`);
     button.title = `${String(pad.id).padStart(2, "0")}${getVisiblePadLabel(pad, index) ? ` · ${getVisiblePadLabel(pad, index)}` : ""} · ${pad.key}`;
 
     const number = document.createElement("span");
@@ -1628,6 +1748,10 @@ function renderPads() {
       if (event.repeat || (event.key !== "Enter" && event.key !== " ")) return;
       event.preventDefault();
       inputAdapter.emit({ kind: "keyboard", action: "trigger", padIndex: index, timestamp: performance.now() });
+    });
+    button.addEventListener("keyup", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      inputAdapter.emit({ kind: "keyboard", action: "release", padIndex: index, timestamp: performance.now() });
     });
     button.addEventListener("contextmenu", (event) => event.preventDefault());
     padGrid.append(button);
@@ -1758,6 +1882,13 @@ function selectPad(index) {
   padLabelInput.value = getVisiblePadLabel(pad, index);
   padKeyInput.value = pad.key;
   padModeInput.value = pad.mode;
+  const performanceSettings = normalizePerformanceSettings(pad);
+  triggerModeInput.value = performanceSettings.triggerMode;
+  launchQuantizeInput.value = performanceSettings.launchQuantize;
+  stopQuantizeInput.value = performanceSettings.stopQuantize;
+  chokeGroupInput.value = performanceSettings.chokeGroup || "";
+  muteGroupInput.value = performanceSettings.muteGroup || "";
+  linkGroupInput.value = performanceSettings.linkGroup || "";
   updateLoopToggle();
   padVolumeInput.value = String(pad.volume);
   padVolumeValue.textContent = `${Math.round(pad.volume * 100)}%`;
@@ -1843,6 +1974,12 @@ async function saveSelectedPad(event) {
       mode: padModeInput.value === "loop" ? "loop" : "oneshot",
       volume: clamp(Number(padVolumeInput.value), 0, 1),
       sampleId,
+      triggerMode: triggerModeInput.value,
+      launchQuantize: launchQuantizeInput.value,
+      stopQuantize: stopQuantizeInput.value,
+      chokeGroup: chokeGroupInput.value.trim() || null,
+      muteGroup: muteGroupInput.value.trim() || null,
+      linkGroup: linkGroupInput.value.trim() || null,
       ...getSampleEditorValues(),
     };
     renderPads();
@@ -2291,6 +2428,18 @@ function isEditableTarget(target) {
   return target instanceof HTMLElement && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
 }
 
+async function togglePerformanceMode() {
+  const isActive = document.body.classList.toggle("is-performance-mode");
+  performanceModeButton.setAttribute("aria-pressed", String(isActive));
+  performanceModeButton.textContent = isActive ? "Exit perform mode" : "Perform full screen";
+  try {
+    if (isActive && document.documentElement.requestFullscreen && !document.fullscreenElement) await document.documentElement.requestFullscreen();
+    if (!isActive && document.fullscreenElement && document.exitFullscreen) await document.exitFullscreen();
+  } catch {
+    setStatus(isActive ? "Perform mode enabled. Full screen permission was not granted." : "Perform mode closed.", "info");
+  }
+}
+
 function bindEvents() {
   stopAllButton.addEventListener("click", stopAll);
   document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -2326,7 +2475,21 @@ function bindEvents() {
   quantizeInput.addEventListener("change", () => {
     if (!quantizeInput.checked) clearBeatCountdown();
   });
+  metronomeInput.addEventListener("change", () => {
+    if (metronomeInput.checked) void prepareAudio().catch((error) => setStatus(error.message, "error"));
+    else syncMetronome();
+  });
+  tempoInput.addEventListener("change", () => syncMetronome());
   recordButton.addEventListener("click", togglePerformanceRecording);
+  performanceModeButton.addEventListener("click", () => void togglePerformanceMode());
+  document.addEventListener("fullscreenchange", () => {
+    const isActive = document.body.classList.contains("is-performance-mode");
+    if (!document.fullscreenElement && isActive) {
+      document.body.classList.remove("is-performance-mode");
+      performanceModeButton.setAttribute("aria-pressed", "false");
+      performanceModeButton.textContent = "Perform full screen";
+    }
+  });
   saveLayoutButton.addEventListener("click", () => void saveActiveKit());
   exportLayoutButton.addEventListener("click", exportLayout);
   importLayoutInput.addEventListener("change", (event) => void importLayout(event));
@@ -2359,6 +2522,12 @@ function bindEvents() {
     if (padIndex === -1) return;
     event.preventDefault();
     inputAdapter.emit({ kind: "keyboard", action: "trigger", padIndex, timestamp: performance.now() });
+  });
+  document.addEventListener("keyup", (event) => {
+    if (isEditableTarget(event.target)) return;
+    const padIndex = pads.findIndex((pad) => pad.key === event.key.toUpperCase());
+    if (padIndex === -1) return;
+    inputAdapter.emit({ kind: "keyboard", action: "release", padIndex, timestamp: performance.now() });
   });
 
   window.addEventListener("beforeinstallprompt", (event) => {
