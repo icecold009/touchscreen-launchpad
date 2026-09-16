@@ -5,6 +5,16 @@ Reviewed: feature branch `codex/vercel-canonical-hosting-20260914` during the 20
 Release baseline: PR #7 was merged to `main` as `9c214a8`.
 Audit package baseline: `1dde9e9`; the merged release contains the security hardening, release-workflow pinning, and hosted Vercel deployment below.
 
+## Package: Professional roadmap — `codex/launchpad-professional-roadmap-20260916`
+
+- Goal: Make the research actionable without hiding unfinished capabilities behind a generic “professional features” label.
+- Scope: Capability matrix, shipped-package inventory, P0/P1/P2 implementation order, package-level acceptance/evidence rules, and explicit deferred product boundaries.
+- Non-goals: Runtime behavior, hosted mutation, account creation, cloud sync, or copyrighted sample acquisition.
+- Files: `PROFESSIONAL-ROADMAP.md`, README, and this backlog entry.
+- Tests: `git diff --check`, documentation link review, and the existing `npm.cmd run validate` contract.
+- Acceptance: Each remaining gap has an owner package shape, dependencies/risks are visible, and rendered/hosted/device/DAW evidence are not conflated.
+- Evidence: Roadmap added on this feature branch; implementation status is anchored to the completed local branches and their recorded test/browser evidence; `main` remains untouched.
+
 ## Package: Record to perform — `codex/launchpad-record-perform-20260916`
 
 - Goal: Turn a live sound or voice idea into a reusable performance sample without leaving the local-first app.

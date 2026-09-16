@@ -2,6 +2,8 @@
 
 Touchscreen Launchpad is a local-first browser instrument for triggering samples and loops from a laptop, tablet, or touchscreen device. It is designed to feel immediate: touch, mouse, keyboard, and accessible focus controls all reach the same pad interaction, while audio files stay in the current browser.
 
+The feature-by-feature delivery plan, acceptance criteria, and explicit deferred boundaries live in [PROFESSIONAL-ROADMAP.md](PROFESSIONAL-ROADMAP.md).
+
 ## What it supports
 
 - Responsive 4×4 pad grid with touch, mouse, keyboard, and focus states.
