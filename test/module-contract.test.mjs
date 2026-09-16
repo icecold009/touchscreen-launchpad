@@ -42,6 +42,7 @@ test("module URLs share one cache version and remain in the offline shell", () =
   const effectsVersion = app.match(/effects\.js\?version=(\d+)/)?.[1];
   const sampleLibraryVersion = app.match(/sample-library\.js\?version=(\d+)/)?.[1];
   const performanceExportVersion = app.match(/performance-export\.js\?version=(\d+)/)?.[1];
+  const arrangementVersion = app.match(/arrangement\.js\?version=(\d+)/)?.[1];
   const cacheVersion = serviceWorker.match(/touchscreen-launchpad-v(\d+)/)?.[1];
 
   assert.ok(htmlVersion);
@@ -62,6 +63,7 @@ test("module URLs share one cache version and remain in the offline shell", () =
   assert.equal(effectsVersion, htmlVersion);
   assert.equal(sampleLibraryVersion, htmlVersion);
   assert.equal(performanceExportVersion, htmlVersion);
+  assert.equal(arrangementVersion, htmlVersion);
   assert.equal(cacheVersion, htmlVersion);
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/bootstrap\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/app\\.js\\?version=${htmlVersion}"`));
@@ -81,6 +83,7 @@ test("module URLs share one cache version and remain in the offline shell", () =
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/effects\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/sample-library\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/performance-export\\.js\\?version=${htmlVersion}"`));
+  assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/arrangement\\.js\\?version=${htmlVersion}"`));
   for (const moduleName of ["history", "input-adapter", "migrations", "transport", "voice-registry"]) {
     assert.match(app, new RegExp(`${moduleName}\\.js\\?version=${htmlVersion}`));
     assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/${moduleName}\\.js\\?version=${htmlVersion}"`));

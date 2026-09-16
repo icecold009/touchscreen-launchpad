@@ -95,6 +95,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: Export controls expose the selected scene and bounded bar count; event logs are deterministic and inspectable; master/stem files render only within guardrails; repeatable inputs produce repeatable metadata/checksums; failures leave the app usable and report a clear status.
 - Evidence: `npm.cmd run validate` passes 76 tests; fresh local browser render reports `2 deterministic events exported.` for the event log and `Master WAV rendered · 2.00s · SHA-256 6cc68e2b8abd…` for the master render with no console errors or warnings. Large-kit memory stress, long-render cancellation, decoded sample fidelity, delay/reverb inclusion, DAW import, hosted behavior, and `main` publication remain unclaimed.
 
+## Package: Scene launch and arrangement polish — `codex/launchpad-arrangement-polish-20260916`
+
+- Goal: Make the two saved scenes behave like a reliable live arrangement surface without introducing a timeline editor.
+- Scope: Immediate/beat/bar scene launch quantization, persistent scene names, bounded A/B chain input, chain enable/disable, queued launch feedback, one chain advance per bar, kit/launchpack persistence, and safe stop/context-loss cleanup.
+- Non-goals: More than two scenes, phrase-length quantization, piano roll, arbitrary timeline automation, multitrack recording, or cloud collaboration.
+- Files: `index.html`, `style.css`, `app.js`, `src/arrangement.js`, `src/migrations.js`, `src/bootstrap.js`, `sw.js`, `scripts/validate-site.mjs`, `package.json`, `test/arrangement.test.mjs`, `test/site-dom.test.mjs`, module/PWA contracts, README/roadmap, and this backlog entry.
+- Tests: `npm.cmd run validate`, arrangement normalization/chain/quantization tests, DOM/module/cache/PWA contracts, fresh browser scene-name reload smoke, queued scene-launch smoke, chain/stop cleanup, `git diff --check`, and console inspection.
+- Acceptance: A running sequence can queue a scene for the selected grid, apply it at a beat/bar boundary, chain A/B once per bar, and stop without stale pending launches; names and chain settings persist and remain keyboard accessible.
+- Evidence: `npm.cmd run validate` passes 79 tests; fresh local browser render confirms `Intro` survives reload, `Chain on · A → B` is visible, `Scene B queued for the next beat.` is announced during playback, and the browser reports no console errors or warnings. Physical timing tolerance, long-session stress, installed-PWA behavior, and more-than-two-scene workflows remain unclaimed; `main` remains untouched.
+
 ## Package: Record to perform — `codex/launchpad-record-perform-20260916`
 
 - Goal: Turn a live sound or voice idea into a reusable performance sample without leaving the local-first app.

@@ -19,7 +19,7 @@ The current product already covers most of the performance loop. The remaining w
 | Recording | Permission-gated microphone plus app mix, bounded local takes, IndexedDB storage, assign-to-pad, pause/resume, take rename, marker metadata, native review audio, waveform review, and PCM/WAV fallback | Optional overdub design, take-level mix editing, and device-specific recovery proof | P1 |
 | Sample lab | Waveform, trim, loop region, reverse, cents pitch, live-speed fallback, pan, filter, attack/release, delay/reverb send, bounded manual slice markers, per-slice preview, slice-to-pad assignment, zoom, fades, and bounded normalize-on-playback | Automatic transient detection and true time-stretch | P1 |
 | Sample library | Shared local library, search across names/tags, sort, folder/drag-drop import, natural ordering, deduplication, storage bounds, favorites, tags, usage/orphan state, batch assignment, and reversible unused-sample cleanup | Richer repair/preview tools and server indexing (deferred) | P1 |
-| Arrangement | Two persistent A/B scenes, four tracks, 16 steps, swing, editable probability/micro-timing, scene duplication, reversible edits, scene playback | Scene launch quantization, scene chaining, pattern copy/duplicate beyond whole-scene duplication | P1 |
+| Arrangement | Two persistent A/B scenes, four tracks, 16 steps, swing, editable probability/micro-timing, scene duplication, reversible edits, quantized beat/bar launches, persistent scene names, chain/list playback, and queued-state feedback | More than two scenes, phrase-length launch grids, and a full timeline editor | P1 |
 | Live effects | Per-pad delay/reverb sends, bounded master delay/reverb, filter/pan, local diagnostics, effects included in capture, master EQ/compressor/limiter, per-kit snapshots, Warmth/Space/Punch macros, and peak/headroom checks | Output/cue routing, richer metering, and device-specific calibration | P1 |
 | MIDI | Optional Web MIDI input/output, learn mapping, velocity-aware input, gate/hold note-off, outbound note feedback, CC/aftertouch targets, per-kit profiles, clock-in tempo follow, clock-out transport pulses, and reconnect-safe selection | Device-specific LED color protocols, SysEx profiles, and hardware certification | P1 |
 | Export | JSON layout, `.launchpack` audio backup with slice metadata, local take download, deterministic PCM/WAV take export, two-scene MIDI, deterministic event-log export, and guarded offline master/stem WAV render with checksum | DAW import verification, richer offline return rendering, cancel/progress UX beyond bounded status updates | P1/P2 |
@@ -48,6 +48,7 @@ These are complete on local feature branches and are intentionally stacked rathe
 14. MIDI and controller depth: bounded CC/aftertouch mappings, per-kit profiles, learn cancellation/conflict feedback, clock-in tempo following, clock-out sequence pulses, reconnect-safe device selection, and note-state feedback.
 15. Sample library and content polish: drag/drop import, tags/favorites, usage/orphan awareness, bounded batch assignment, reversible cleanup, waveform zoom, fade controls, normalize-on-playback, and a starter-content license manifest.
 16. Rendered audio and event export: deterministic scene event logs, guarded offline master/stem WAV rendering, master EQ/dynamics inclusion, bounded file/memory estimates, and post-export SHA-256 checksums.
+17. Scene launch and arrangement polish: beat/bar-quantized switching, persistent names, bounded A/B chain playback, queued launch feedback, and safe runner/stop cleanup.
 
 Evidence boundary: local contract and rendered browser evidence are current for these packages. Physical hardware, microphone capture, DAW import, hosted production behavior, and installed-PWA behavior remain environment-specific until separately verified.
 
@@ -124,13 +125,13 @@ Evidence boundary: local contract and rendered browser evidence are current for 
 - Acceptance: master/stems use the selected scene and tempo; output is bounded before rendering; repeated renders are deterministic for the same inputs; failed renders leave the app usable; event logs remain inspectable JSON rather than an opaque binary.
 - Verification: `npm.cmd run validate` passes 76 tests; fresh local browser smoke confirms event-log status, master WAV status with duration/checksum, and no console errors or warnings. Decoder coverage, large-kit memory stress, cancellation during a long render, and import checks in a DAW remain environment-specific follow-up evidence.
 
-#### Package I: Scene launch and arrangement polish
+#### Package I: Scene launch and arrangement polish — complete for the bounded A/B live arrangement
 
 - Goal: make A/B scenes behave like a live arrangement tool without becoming a timeline editor.
-- Scope: quantized scene switching, pattern copy/duplicate, scene names, chain/list of scenes, launch-state feedback, safe stop/transition rules.
-- Non-goals: piano roll, arbitrary timeline automation, multitrack recording.
-- Acceptance: scene transitions land on the selected grid; no double scheduling or orphaned voices; scene changes persist and remain keyboard accessible.
-- Verification: transport/runner tests, timing tolerance tests, stop-all stress, rendered transition smoke.
+- Scope: immediate/beat/bar scene switching, persistent scene names, a bounded A/B chain list, visible queued/playing state, chain advance at bar boundaries, and safe stop/context-loss cleanup.
+- Non-goals: more than two scenes, phrase-length launch grids, piano roll, arbitrary timeline automation, or multitrack recording.
+- Acceptance: scene transitions land on the selected grid; chain playback advances once per bar; no double scheduling or orphaned voices; names and arrangement settings persist in the kit and launchpack; controls remain keyboard accessible.
+- Verification: arrangement normalization/chain/quantization tests, `npm.cmd run validate` passes 79 tests, fresh browser reload persistence smoke, running-sequence queued launch smoke, chain/stop cleanup review, and no console errors or warnings. Physical timing tolerance, long-session stress, installed-PWA behavior, and more-than-two-scene workflows remain separate evidence.
 
 ## Deliberately deferred unless the product boundary changes
 
@@ -152,4 +153,4 @@ Every future package must state its goal, scope, non-goals, files, tests, accept
 
 ## Definition of done for the professional milestone
 
-The milestone is complete when Packages A–H are shipped and verified, the production smoke matrix is green, and the remaining deferred list is accepted as a product decision rather than an accidental omission. Package I is the next live-arrangement polish package and is not implied by the render/export milestone.
+The milestone is complete when Packages A–I are shipped and verified, the production smoke matrix is green, and the remaining deferred list is accepted as a product decision rather than an accidental omission.

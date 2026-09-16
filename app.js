@@ -1,26 +1,27 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=47";
-import { createInputAdapter } from "./src/input-adapter.js?version=47";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=47";
-import { createPointerState } from "./src/pointer-state.js?version=47";
-import { attachStorageRequest } from "./src/storage-request.js?version=47";
-import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=47";
-import { getNextQuantizedTime } from "./src/transport.js?version=47";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=47";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=47";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=47";
-import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=47";
-import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=47";
-import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=47";
-import { createMidiFile } from "./src/midi-file.js?version=47";
-import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=47";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=47";
-import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=47";
-import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=47";
-import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=47";
-import { createPerformanceEvents, createPerformanceLog, checksumBytes, estimateRenderBytes, isRenderWithinGuardrails, normalizeRenderOptions } from "./src/performance-export.js?version=47";
-import { encodePcmWav } from "./src/wav.js?version=47";
+import { createHistory } from "./src/history.js?version=50";
+import { createInputAdapter } from "./src/input-adapter.js?version=50";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=50";
+import { createPointerState } from "./src/pointer-state.js?version=50";
+import { attachStorageRequest } from "./src/storage-request.js?version=50";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=50";
+import { getNextQuantizedTime } from "./src/transport.js?version=50";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=50";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=50";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=50";
+import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=50";
+import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=50";
+import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=50";
+import { createMidiFile } from "./src/midi-file.js?version=50";
+import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=50";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=50";
+import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=50";
+import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=50";
+import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=50";
+import { createPerformanceEvents, createPerformanceLog, checksumBytes, estimateRenderBytes, isRenderWithinGuardrails, normalizeRenderOptions } from "./src/performance-export.js?version=50";
+import { createArrangement, formatSceneChain, getNextChainPosition, getSceneName, normalizeArrangement, normalizeSceneId, parseSceneChain, shouldLaunchAtStep } from "./src/arrangement.js?version=50";
+import { encodePcmWav } from "./src/wav.js?version=50";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -71,6 +72,12 @@ const sequencerStepMicroValue = document.querySelector("#sequencer-step-micro-va
 const sequencerStepStatus = document.querySelector("#sequencer-step-status");
 const sceneAButton = document.querySelector("#scene-a");
 const sceneBButton = document.querySelector("#scene-b");
+const sceneANameInput = document.querySelector("#scene-a-name");
+const sceneBNameInput = document.querySelector("#scene-b-name");
+const sceneLaunchQuantizeInput = document.querySelector("#scene-launch-quantize");
+const sceneChainToggle = document.querySelector("#scene-chain-toggle");
+const sceneChainInput = document.querySelector("#scene-chain");
+const sceneChainStatus = document.querySelector("#scene-chain-status");
 const sequencerSwingInput = document.querySelector("#sequencer-swing");
 const sequencerSwingValue = document.querySelector("#sequencer-swing-value");
 const midiConnectButton = document.querySelector("#midi-connect");
@@ -246,11 +253,17 @@ const takeWaveformTokens = new Map();
 let lastTakeId;
 let waveformRenderToken = 0;
 let masterEffects = normalizeMasterEffects();
+let arrangement = createArrangement();
+let arrangementSaveTimer;
+let queuedArrangementSave;
 let metronomeTimer;
 let countInPromise;
 let repeatTimers = new Map();
 const sequencerTimers = new Set();
 let activeSceneId = "scene-a";
+let pendingSceneLaunch;
+let sceneChainPosition = 0;
+let sequencerHasStepped = false;
 let selectedSequencerStep = { trackIndex: 0, stepIndex: 0 };
 let midiAccess;
 let midiInputs = new Map();
@@ -278,8 +291,22 @@ const sequencerRunner = createClockedSequencerRunner({
   getBpm: () => Number(tempoInput.value) || 120,
   getSwing: () => Number(sequencerSwingInput.value) || 0,
   onStep: ({ stepIndex, swingOffset, stepDuration, at }) => {
+    const isFirstStep = !sequencerHasStepped;
+    let switchedAtBoundary = false;
+    if (pendingSceneLaunch && shouldLaunchAtStep(pendingSceneLaunch.quantize, stepIndex)) {
+      activeSceneId = pendingSceneLaunch.sceneId;
+      sceneChainPosition = Math.max(0, arrangement.chain.indexOf(activeSceneId));
+      pendingSceneLaunch = undefined;
+      switchedAtBoundary = true;
+    }
+    if (!isFirstStep && !switchedAtBoundary && stepIndex === 0 && arrangement.chainEnabled && arrangement.chain.length > 1) {
+      sceneChainPosition = getNextChainPosition(arrangement.chain, activeSceneId, sceneChainPosition);
+      activeSceneId = arrangement.chain[sceneChainPosition];
+      setStatus(`${getSceneName(arrangement, activeSceneId)} launched from the scene chain.`, "success");
+    }
+    sequencerHasStepped = true;
     const pattern = getActiveSequencerPattern();
-    sequencerStatus.textContent = `${activeSceneId === "scene-a" ? "Scene A" : "Scene B"} · Step ${stepIndex + 1}/16`;
+    sequencerStatus.textContent = `${getSceneName(arrangement, activeSceneId)} · Step ${stepIndex + 1}/16`;
     for (const event of getStepEvents(pattern, stepIndex)) {
       const targetTime = at + swingOffset + event.microTiming * stepDuration;
       const delay = Math.max(0, (targetTime - (audioContext?.currentTime || targetTime)) * 1000);
@@ -417,6 +444,7 @@ function createKitRecord(slot, kitPads = createDefaultPads(), { name, empty = fa
     transport: undefined,
     patterns: [],
     scenes: [],
+    arrangement: createArrangement(),
     masterEffects: normalizeMasterEffects(),
     masterSnapshots: [],
     midiConfig: normalizeMidiConfig(),
@@ -427,6 +455,7 @@ function normalizeKit(candidate, slot) {
   const normalized = normalizeKitRecord(candidate, slot, normalizePads);
   return {
     ...normalized,
+    arrangement: normalizeArrangement(candidate?.arrangement),
     masterEffects: normalizeMasterEffects(candidate?.masterEffects),
     masterSnapshots: Array.isArray(candidate?.masterSnapshots)
       ? candidate.masterSnapshots.slice(0, 4).map((snapshot, index) => ({
@@ -835,6 +864,38 @@ function getSequencerPattern(sceneId = activeSceneId) {
   return normalizePattern(existing || createPattern());
 }
 
+function getSceneLabel(sceneId = activeSceneId) {
+  return getSceneName(arrangement, sceneId);
+}
+
+function getArrangementDraft() {
+  return queuedArrangementSave || arrangement;
+}
+
+function queueArrangementSave(nextArrangement, message = "Arrangement settings saved locally.") {
+  queuedArrangementSave = normalizeArrangement(nextArrangement);
+  if (arrangementSaveTimer) window.clearTimeout(arrangementSaveTimer);
+  arrangementSaveTimer = window.setTimeout(() => {
+    const next = queuedArrangementSave;
+    queuedArrangementSave = undefined;
+    arrangementSaveTimer = undefined;
+    void persistArrangement(next, message);
+  }, 250);
+}
+
+function renderArrangementControls() {
+  if (!sceneANameInput || !sceneBNameInput || !sceneLaunchQuantizeInput || !sceneChainToggle || !sceneChainInput || !sceneChainStatus) return;
+  sceneANameInput.value = arrangement.names["scene-a"];
+  sceneBNameInput.value = arrangement.names["scene-b"];
+  sceneLaunchQuantizeInput.value = arrangement.launchQuantize;
+  sceneChainToggle.setAttribute("aria-pressed", String(arrangement.chainEnabled));
+  sceneChainToggle.textContent = arrangement.chainEnabled ? "Chain on" : "Chain off";
+  sceneChainInput.value = arrangement.chain.map((sceneId) => sceneId === "scene-a" ? "A" : "B").join(",");
+  sceneChainStatus.textContent = pendingSceneLaunch
+    ? `${getSceneLabel(activeSceneId)} playing · ${getSceneLabel(pendingSceneLaunch.sceneId)} queued for ${pendingSceneLaunch.quantize}`
+    : `${arrangement.chainEnabled ? "Chain on" : "Chain off"} · ${formatSceneChain(arrangement.chain)}`;
+}
+
 function getActiveSequencerPattern() {
   return getSequencerPattern(activeSceneId);
 }
@@ -849,7 +910,7 @@ function updateHistoryControls() {
   redoPadButton.disabled = !layoutHistory.canRedo;
   undoSceneButton.disabled = !getSequencerHistory(activeSceneId).canUndo;
   redoSceneButton.disabled = !getSequencerHistory(activeSceneId).canRedo;
-  duplicateSceneButton.textContent = `Duplicate to ${activeSceneId === "scene-a" ? "Scene B" : "Scene A"}`;
+  duplicateSceneButton.textContent = `Duplicate to ${getSceneName(arrangement, activeSceneId === "scene-a" ? "scene-b" : "scene-a")}`;
 }
 
 async function persistSequencerPattern(pattern, message = "Pattern saved locally.", sceneId = activeSceneId, { recordHistory = true } = {}) {
@@ -859,7 +920,7 @@ async function persistSequencerPattern(pattern, message = "Pattern saved locally
   const nextPattern = normalizePattern(pattern);
   const changed = JSON.stringify(previousPattern) !== JSON.stringify(nextPattern);
   const nextPatterns = Array.isArray(kit.patterns) ? kit.patterns.filter((candidate) => candidate?.id !== sceneId) : [];
-  nextPatterns.push({ id: sceneId, name: sceneId === "scene-a" ? "Scene A" : "Scene B", ...nextPattern });
+  nextPatterns.push({ id: sceneId, name: getSceneName(arrangement, sceneId), ...nextPattern });
   const nextKit = { ...kit, patterns: nextPatterns, updatedAt: new Date().toISOString() };
   if (!(await persistKitRecord(nextKit))) return false;
   if (recordHistory && changed) getSequencerHistory(sceneId).push(previousPattern);
@@ -940,23 +1001,61 @@ function renderSequencer() {
     row.append(label, select, steps);
     sequencerGrid.append(row);
   });
+  sceneAButton.textContent = getSceneLabel("scene-a");
+  sceneBButton.textContent = getSceneLabel("scene-b");
   sceneAButton.setAttribute("aria-pressed", String(activeSceneId === "scene-a"));
   sceneBButton.setAttribute("aria-pressed", String(activeSceneId === "scene-b"));
   sceneAButton.classList.toggle("is-active", activeSceneId === "scene-a");
   sceneBButton.classList.toggle("is-active", activeSceneId === "scene-b");
-  sequencerStatus.textContent = `${activeSceneId === "scene-a" ? "Scene A" : "Scene B"} · ${sequencerRunner.running ? "Playing" : "Ready"}`;
+  sequencerStatus.textContent = `${getSceneLabel(activeSceneId)} · ${sequencerRunner.running ? "Playing" : "Ready"}`;
+  renderArrangementControls();
   renderSequencerStepEditor();
   updateHistoryControls();
 }
 
 function setSequencerScene(sceneId) {
-  activeSceneId = sceneId === "scene-b" ? "scene-b" : "scene-a";
+  const nextSceneId = normalizeSceneId(sceneId);
+  if (nextSceneId === activeSceneId && !pendingSceneLaunch) return;
+  if (sequencerRunner.running && arrangement.launchQuantize !== "immediate") {
+    pendingSceneLaunch = { sceneId: nextSceneId, quantize: arrangement.launchQuantize };
+    setStatus(`${getSceneLabel(nextSceneId)} queued for the next ${arrangement.launchQuantize}.`, "success");
+    renderSequencer();
+    return;
+  }
+  pendingSceneLaunch = undefined;
+  activeSceneId = nextSceneId;
+  sceneChainPosition = Math.max(0, arrangement.chain.indexOf(activeSceneId));
+  setStatus(`${getSceneLabel(activeSceneId)} is ready.`, "success");
   renderSequencer();
+}
+
+async function persistArrangement(nextArrangement, message = "Arrangement settings saved locally.") {
+  const kit = kits.get(currentKitId);
+  if (!kit) return false;
+  if (arrangementSaveTimer) window.clearTimeout(arrangementSaveTimer);
+  arrangementSaveTimer = undefined;
+  queuedArrangementSave = undefined;
+  const normalized = normalizeArrangement(nextArrangement);
+  const previousArrangement = arrangement;
+  arrangement = normalized;
+  sceneChainPosition = Math.max(0, arrangement.chain.indexOf(activeSceneId));
+  const nextKit = { ...kit, arrangement: normalized, updatedAt: new Date().toISOString() };
+  if (!(await persistKitRecord(nextKit))) {
+    arrangement = previousArrangement;
+    sceneChainPosition = Math.max(0, arrangement.chain.indexOf(activeSceneId));
+    renderSequencer();
+    return false;
+  }
+  renderSequencer();
+  setStatus(message, "success");
+  return true;
 }
 
 async function toggleSequencer() {
   if (sequencerRunner.running) {
     sequencerRunner.stop();
+    pendingSceneLaunch = undefined;
+    sequencerHasStepped = false;
     stopMidiClockOutput();
     sequencerPlayButton.textContent = "Play sequence";
     renderSequencer();
@@ -964,6 +1063,9 @@ async function toggleSequencer() {
   }
   try {
     await prepareAudio();
+    pendingSceneLaunch = undefined;
+    sceneChainPosition = Math.max(0, arrangement.chain.indexOf(activeSceneId));
+    sequencerHasStepped = false;
     sequencerRunner.start();
     startMidiClockOutput();
     sequencerPlayButton.textContent = "Stop sequence";
@@ -974,7 +1076,7 @@ async function toggleSequencer() {
 }
 
 async function clearSequencer() {
-  if (!window.confirm(`Clear ${activeSceneId === "scene-a" ? "Scene A" : "Scene B"}?`)) return;
+  if (!window.confirm(`Clear ${getSceneLabel()}?`)) return;
   await persistSequencerPattern(createPattern(), "Scene cleared and saved locally.");
 }
 
@@ -982,7 +1084,7 @@ async function duplicateSequencerScene() {
   const destination = activeSceneId === "scene-a" ? "scene-b" : "scene-a";
   await persistSequencerPattern(
     getActiveSequencerPattern(),
-    `${activeSceneId === "scene-a" ? "Scene A" : "Scene B"} duplicated to ${destination === "scene-a" ? "Scene A" : "Scene B"}.`,
+    `${getSceneLabel()} duplicated to ${getSceneName(arrangement, destination)}.`,
     destination,
   );
 }
@@ -1002,7 +1104,7 @@ async function restoreSequencerHistory(direction) {
 function exportSceneMidi() {
   try {
     const scenes = ["scene-a", "scene-b"].map((sceneId) => ({
-      name: sceneId === "scene-a" ? "Scene A" : "Scene B",
+      name: getSceneName(arrangement, sceneId),
       pattern: getSequencerPattern(sceneId),
     }));
     const padNotes = pads.map((pad, index) => normalizeMidiMapping(pad.midi, 36 + index).note ?? 36 + index);
@@ -1026,7 +1128,7 @@ function getRenderScene() {
   const sceneId = activeSceneId;
   return {
     id: sceneId,
-    name: sceneId === "scene-a" ? "Scene A" : "Scene B",
+    name: getSceneName(arrangement, sceneId),
     pattern: getSequencerPattern(sceneId),
   };
 }
@@ -1522,6 +1624,11 @@ function sendMidiForPad(index, command, velocity = 1) {
 
 function applyKit(kit) {
   pads = kit?.empty ? createDefaultPads() : normalizePads(kit?.pads);
+  arrangement = normalizeArrangement(kit?.arrangement);
+  activeSceneId = "scene-a";
+  pendingSceneLaunch = undefined;
+  sceneChainPosition = 0;
+  sequencerHasStepped = false;
   masterEffects = normalizeMasterEffects(kit?.masterEffects);
   midiConfig = normalizeMidiConfig(kit?.midiConfig);
   syncMasterEffectInputs();
@@ -2605,6 +2712,8 @@ function handleAudioContextStateChange() {
   updateAudioDiagnostics();
   if (state === "running") return;
   clearSequencerTimers();
+  pendingSceneLaunch = undefined;
+  sequencerHasStepped = false;
   if (sequencerRunner.running) {
     sequencerRunner.stop();
     stopMidiClockOutput();
@@ -3088,6 +3197,8 @@ function stopAll({ announce = true } = {}) {
   playbackGeneration += 1;
   clearBeatCountdown();
   clearSequencerTimers();
+  pendingSceneLaunch = undefined;
+  sequencerHasStepped = false;
   if (sequencerRunner.running) {
     sequencerRunner.stop();
     stopMidiClockOutput();
@@ -4237,6 +4348,29 @@ function bindEvents() {
   performanceModeButton.addEventListener("click", () => void togglePerformanceMode());
   sceneAButton.addEventListener("click", () => setSequencerScene("scene-a"));
   sceneBButton.addEventListener("click", () => setSequencerScene("scene-b"));
+  sceneANameInput.addEventListener("input", () => queueArrangementSave({
+    ...getArrangementDraft(),
+    names: { ...getArrangementDraft().names, "scene-a": sceneANameInput.value },
+  }, "Scene names saved locally."));
+  sceneBNameInput.addEventListener("input", () => queueArrangementSave({
+    ...getArrangementDraft(),
+    names: { ...getArrangementDraft().names, "scene-b": sceneBNameInput.value },
+  }, "Scene names saved locally."));
+  sceneLaunchQuantizeInput.addEventListener("change", () => void persistArrangement({
+    ...getArrangementDraft(),
+    launchQuantize: sceneLaunchQuantizeInput.value,
+  }, "Scene launch grid saved locally."));
+  sceneChainToggle.addEventListener("click", () => {
+    const draft = getArrangementDraft();
+    void persistArrangement({
+      ...draft,
+      chainEnabled: !draft.chainEnabled,
+    }, `Scene chain ${draft.chainEnabled ? "disabled" : "enabled"}.`);
+  });
+  sceneChainInput.addEventListener("input", () => queueArrangementSave({
+    ...getArrangementDraft(),
+    chain: parseSceneChain(sceneChainInput.value),
+  }, "Scene chain saved locally."));
   sequencerPlayButton.addEventListener("click", () => void toggleSequencer());
   exportMidiButton.addEventListener("click", exportSceneMidi);
   renderMasterButton.addEventListener("click", () => void renderMasterWav());

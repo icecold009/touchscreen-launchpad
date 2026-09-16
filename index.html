@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=47" />
+    <link rel="stylesheet" href="style.css?version=50" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -111,6 +111,32 @@
               <div class="scene-buttons" role="group" aria-label="Sequencer scenes">
                 <button id="scene-a" class="button button-secondary is-active" type="button" aria-pressed="true">Scene A</button>
                 <button id="scene-b" class="button button-secondary" type="button" aria-pressed="false">Scene B</button>
+              </div>
+              <div class="scene-names" aria-label="Scene names">
+                <label class="compact-control" for="scene-a-name">
+                  <span>Scene A name</span>
+                  <input id="scene-a-name" type="text" maxlength="32" value="Scene A" />
+                </label>
+                <label class="compact-control" for="scene-b-name">
+                  <span>Scene B name</span>
+                  <input id="scene-b-name" type="text" maxlength="32" value="Scene B" />
+                </label>
+              </div>
+              <div class="arrangement-controls" aria-label="Scene launch and chain controls">
+                <label class="compact-control" for="scene-launch-quantize">
+                  <span>Launch</span>
+                  <select id="scene-launch-quantize">
+                    <option value="immediate">Immediate</option>
+                    <option value="beat">Next beat</option>
+                    <option value="bar" selected>Next bar</option>
+                  </select>
+                </label>
+                <button id="scene-chain-toggle" class="button button-secondary" type="button" aria-pressed="false">Chain off</button>
+                <label class="compact-control scene-chain-field" for="scene-chain">
+                  <span>Chain A/B</span>
+                  <input id="scene-chain" type="text" maxlength="32" value="A,B" spellcheck="false" aria-describedby="scene-chain-status" />
+                </label>
+                <span id="scene-chain-status" class="muted" role="status" aria-live="polite">Chain off · A → B</span>
               </div>
               <button id="sequencer-play" class="button button-primary" type="button">Play sequence</button>
               <button id="sequencer-clear" class="button button-quiet" type="button">Clear scene</button>
@@ -661,6 +687,6 @@
       </section>
     </main>
 
-            <script type="module" src="src/bootstrap.js?version=47"></script>
+            <script type="module" src="src/bootstrap.js?version=50"></script>
   </body>
 </html>

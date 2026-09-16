@@ -30,7 +30,7 @@ test("the service worker caches a versioned shell and only falls back to HTML fo
   assert.match(serviceWorker, /caches\.open\(CACHE_NAME\)/);
   assert.match(serviceWorker, /const isNavigationRequest = event\.request\.mode === "navigate"/);
   assert.match(serviceWorker, /isNavigationRequest[\s\S]*caches\.open\(CACHE_NAME\)/);
-  for (const moduleName of ["audio-lifecycle", "clocked-sequencer", "effects", "history", "input-adapter", "midi", "midi-file", "migrations", "performance-engine", "performance-export", "recording", "sample-editor", "sample-library", "sequencer", "slices", "transport", "voice-registry", "wav"]) {
+  for (const moduleName of ["arrangement", "audio-lifecycle", "clocked-sequencer", "effects", "history", "input-adapter", "midi", "midi-file", "migrations", "performance-engine", "performance-export", "recording", "sample-editor", "sample-library", "sequencer", "slices", "transport", "voice-registry", "wav"]) {
     assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/${moduleName}\\.js\\?version=\\d+"`));
   }
 });

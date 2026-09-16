@@ -833,6 +833,40 @@ body.is-performance-mode .pad-grid {
   background: rgba(129, 153, 244, 0.18);
 }
 
+.scene-names,
+.arrangement-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.scene-names .compact-control,
+.arrangement-controls .compact-control {
+  min-width: 8rem;
+}
+
+.scene-names input,
+.arrangement-controls input,
+.arrangement-controls select {
+  min-height: 2.2rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.55rem;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.scene-chain-field {
+  min-width: 8rem;
+}
+
+#scene-chain-status {
+  min-height: 2.2rem;
+  display: inline-flex;
+  align-items: center;
+}
+
 .sequencer-grid {
   display: grid;
   gap: 0.5rem;

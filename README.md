@@ -24,7 +24,7 @@ The feature-by-feature delivery plan, acceptance criteria, and explicit deferred
 - Master low/mid/high EQ, compressor/limiter protection, per-kit effect snapshots, Warmth/Space/Punch macros, and peak/headroom diagnostics.
 - Non-destructive sample slicing with up to 16 editable markers, per-slice preview, and assignment to any pad.
 - Waveform zoom, bounded fade-in/fade-out shaping, and optional normalize-on-playback are saved with the selected pad.
-- Four-track A/B scenes with swing, probability, micro-timing, repeat scheduling, fullscreen performance mode, and deterministic MIDI export.
+- Four-track A/B scenes with swing, probability, micro-timing, repeat scheduling, fullscreen performance mode, beat/bar-quantized launches, persistent names, bounded chain playback, and deterministic MIDI export.
 - Selected-step probability/micro-timing editing, scene duplication, and user-visible pad/scene undo-redo.
 - Audio-clock lookahead sequencing with explicit suspended/closed diagnostics, stale-timer cleanup, and microphone device-loss handling.
 - Optional Web MIDI input/output with learned pad mappings, velocity-aware triggering, CC/aftertouch targets, per-kit profiles, clock policy, reconnect handling, and generic note-state feedback.
@@ -94,4 +94,4 @@ Only load audio you created or have permission to use. Do not commit or redistri
 
 ## Deliberate limits
 
-Cloud accounts, sync, complex time-stretching, automatic slicing, richer offline delay/reverb return rendering, full timeline sequencing, DAW import verification, and native mobile packaging remain deferred. Scene MIDI, event-log, and guarded WAV export are available; audio capture and device access stay permission-gated and browser-local.
+Cloud accounts, sync, complex time-stretching, automatic slicing, richer offline delay/reverb return rendering, more-than-two-scene arrangements, full timeline sequencing, DAW import verification, and native mobile packaging remain deferred. Scene MIDI, event-log, guarded WAV export, and bounded A/B chain playback are available; audio capture and device access stay permission-gated and browser-local.
