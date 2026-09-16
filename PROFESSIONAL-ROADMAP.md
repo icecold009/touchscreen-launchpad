@@ -17,8 +17,8 @@ The current product already covers most of the performance loop. The remaining w
 | Pad playback | One-shot, loop, trigger, gate, hold, retrigger, repeat, echo, quantized launch/stop, attack/release, pitch, live-speed fallback, pan, filter | Complex high-quality time-stretch, layered/chromatic pad modes, per-pad modulation/macros | P1 |
 | Voice safety | Per-pad/global voice caps, oldest-first stealing, de-click fades, choke/mute/link groups, stop-all cleanup, audio-clock lookahead, stale-timer cleanup, explicit context/device-loss handling | AudioWorklet/worker clock and long-session latency/stress profiling | P0 |
 | Recording | Permission-gated microphone plus app mix, bounded local takes, IndexedDB storage, assign-to-pad, pause/resume, take rename, marker metadata, native review audio, waveform review, and PCM/WAV fallback | Optional overdub design, take-level mix editing, and device-specific recovery proof | P1 |
-| Sample lab | Waveform, trim, loop region, reverse, cents pitch, live-speed fallback, pan, filter, attack/release, delay/reverb send, bounded manual slice markers, per-slice preview, and slice-to-pad assignment | Automatic transient detection, fades, normalization, zoom, batch edits, true time-stretch | P1 |
-| Sample library | Shared local library, search, sort, folder import, natural ordering, deduplication, storage bounds | Drag/drop, tags/favorites, orphan cleanup, batch assignment, richer repair/preview tools | P1 |
+| Sample lab | Waveform, trim, loop region, reverse, cents pitch, live-speed fallback, pan, filter, attack/release, delay/reverb send, bounded manual slice markers, per-slice preview, slice-to-pad assignment, zoom, fades, and bounded normalize-on-playback | Automatic transient detection and true time-stretch | P1 |
+| Sample library | Shared local library, search across names/tags, sort, folder/drag-drop import, natural ordering, deduplication, storage bounds, favorites, tags, usage/orphan state, batch assignment, and reversible unused-sample cleanup | Richer repair/preview tools and server indexing (deferred) | P1 |
 | Arrangement | Two persistent A/B scenes, four tracks, 16 steps, swing, editable probability/micro-timing, scene duplication, reversible edits, scene playback | Scene launch quantization, scene chaining, pattern copy/duplicate beyond whole-scene duplication | P1 |
 | Live effects | Per-pad delay/reverb sends, bounded master delay/reverb, filter/pan, local diagnostics, effects included in capture, master EQ/compressor/limiter, per-kit snapshots, Warmth/Space/Punch macros, and peak/headroom checks | Output/cue routing, richer metering, and device-specific calibration | P1 |
 | MIDI | Optional Web MIDI input/output, learn mapping, velocity-aware input, gate/hold note-off, outbound note feedback, CC/aftertouch targets, per-kit profiles, clock-in tempo follow, clock-out transport pulses, and reconnect-safe selection | Device-specific LED color protocols, SysEx profiles, and hardware certification | P1 |
@@ -46,6 +46,7 @@ These are complete on local feature branches and are intentionally stacked rathe
 12. Capture review and WAV fallback: pause/resume state, take rename, local audio review, waveform rendering, marker metadata, and deterministic PCM/WAV export.
 13. Master bus and performance macros: bounded EQ, compressor/limiter protection, per-kit effect snapshots, Warmth/Space/Punch macros, peak/headroom diagnostics, and capture-bus inclusion.
 14. MIDI and controller depth: bounded CC/aftertouch mappings, per-kit profiles, learn cancellation/conflict feedback, clock-in tempo following, clock-out sequence pulses, reconnect-safe device selection, and note-state feedback.
+15. Sample library and content polish: drag/drop import, tags/favorites, usage/orphan awareness, bounded batch assignment, reversible cleanup, waveform zoom, fade controls, normalize-on-playback, and a starter-content license manifest.
 
 Evidence boundary: local contract and rendered browser evidence are current for these packages. Physical hardware, microphone capture, DAW import, hosted production behavior, and installed-PWA behavior remain environment-specific until separately verified.
 
@@ -103,6 +104,14 @@ Evidence boundary: local contract and rendered browser evidence are current for 
 - Non-goals: SysEx scripts for every controller, vendor-specific RGB protocols, multichannel hardware routing, automatic DAW control, or hardware certification.
 - Acceptance: browsers without Web MIDI retain full local operation; learned pad/controller mappings and clock policy persist with the kit and launchpack; duplicate mappings are surfaced instead of silently stealing a control; disconnect/reconnect does not leave gate state or clock timers stuck; outbound feedback remains bounded and errors degrade to a visible reconnect state.
 - Verification: MIDI parser/profile/controller/clock contract tests, module/cache/DOM contracts, fresh browser fallback smoke, learn-cancel smoke, and console inspection. Physical controller matrix, MIDI permission success, device LEDs, long-session clock drift, hosted behavior, and DAW sync remain environment-specific.
+
+#### Package G: Sample library and content polish — complete for local metadata and bounded shaping
+
+- Goal: reduce friction between a sample folder and a playable kit while making content provenance explicit.
+- Scope: drag/drop audio import, favorites, bounded comma-separated tags, tag-aware search/filtering, usage/orphan state, reversible unused-sample cleanup, bounded batch assignment, waveform zoom, fade-in/fade-out metadata, normalize-on-playback, metadata-preserving launchpack export/import, and a starter-content license manifest.
+- Non-goals: automatic transient detection, server indexing, unbounded sample storage, destructive source replacement, complex time-stretch, or copyrighted artist audio/stems.
+- Acceptance: metadata stays bounded and local; batch actions map only within the 16-pad surface; orphan cleanup requires confirmation; import limits and storage state remain visible; shaping controls persist with pad settings; launchpacks retain library metadata; content additions have a source/license record.
+- Verification: sample-library and sample-editor contract tests, module/cache/DOM/PWA contracts, fresh local browser render of the library/dropzone and shaping controls, `git diff --check`, and browser console inspection. Actual audio decoding, drag/drop from a physical file manager, storage-quota failure, hosted behavior, and license clearance for future content remain environment/content-specific.
 
 #### Package F: MIDI and controller depth
 

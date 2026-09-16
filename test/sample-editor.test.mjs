@@ -5,6 +5,8 @@ import {
   createPlaybackPlan,
   createReversedBuffer,
   createWaveformPeaks,
+  getBufferPeak,
+  normalizeSampleProcessing,
   normalizeSampleRegion,
 } from "../src/sample-editor.js";
 
@@ -31,4 +33,11 @@ test("waveform peaks and reverse-buffer helper are deterministic", () => {
   };
   const reversed = createReversedBuffer(context, buffer);
   assert.deepEqual([...reversed.getChannelData()], [0.25, -1, 0.5, 0]);
+  assert.equal(getBufferPeak(buffer, { start: 0.25, end: 0.75 }), 1);
+  assert.deepEqual(normalizeSampleProcessing({ zoom: 20, fadeIn: -1, fadeOut: 2, normalize: true }), {
+    zoom: 8,
+    fadeIn: 0,
+    fadeOut: 1,
+    normalize: true,
+  });
 });

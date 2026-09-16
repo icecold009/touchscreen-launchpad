@@ -1153,6 +1153,43 @@ body.is-performance-mode .effects-panel {
   color: var(--quiet);
 }
 
+.sample-dropzone {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.65rem;
+  padding: 0.65rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: 0.6rem;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.sample-dropzone span {
+  color: var(--quiet);
+  font-size: 0.68rem;
+}
+
+.sample-dropzone.is-dragging,
+.sample-dropzone:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  outline-offset: 2px;
+}
+
+.sample-library-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.sample-library-actions .compact-control {
+  min-width: 8rem;
+}
+
 .sample-list {
   display: grid;
   gap: 0.45rem;
@@ -1165,6 +1202,7 @@ body.is-performance-mode .effects-panel {
 
 .sample-item {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.7rem;
   padding: 0.6rem 0.65rem;
@@ -1172,6 +1210,41 @@ body.is-performance-mode .effects-panel {
   border-radius: 0.55rem;
   color: var(--text);
   font-size: 0.72rem;
+}
+
+.sample-item > input[type="checkbox"] {
+  margin-top: 0.2rem;
+}
+
+.sample-item-details {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
+.sample-item-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.sample-tags {
+  width: min(100%, 18rem);
+  min-height: 1.8rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.68rem;
+}
+
+.sample-favorite {
+  min-width: 2rem;
+  padding-inline: 0.35rem;
+  font-size: 1rem;
 }
 
 .sample-item > span:first-child {

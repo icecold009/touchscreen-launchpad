@@ -16,12 +16,14 @@ The feature-by-feature delivery plan, acceptance criteria, and explicit deferred
 - Versioned layout persistence in local storage with JSON v2 export and v1/v2 import compatibility.
 - Sample persistence in IndexedDB; audio files never leave the browser.
 - Folder or multi-file audio import with natural ordering, first-16 pad mapping, SHA-256 deduplication, and extra-library retention.
+- Sample-library drag/drop, favorites, bounded tags, tag-aware search/filtering, usage/orphan visibility, bounded batch assignment, and confirmed unused-sample cleanup.
 - Portable `.launchpack` backup/restore containing all five kit definitions and their referenced audio, with validation and transactional rollback.
 - Local performance capture with microphone-plus-app mix, saved takes, take assignment, and direct take download.
 - Take review with pause/resume, waveform/duration display, timestamped markers, rename, and deterministic PCM/WAV export when the browser can decode the source codec.
 - Waveform/sample shaping with trim, loop regions, reverse, pitch, live-speed fallback, pan, filter, envelope, and per-pad delay/reverb sends.
 - Master low/mid/high EQ, compressor/limiter protection, per-kit effect snapshots, Warmth/Space/Punch macros, and peak/headroom diagnostics.
 - Non-destructive sample slicing with up to 16 editable markers, per-slice preview, and assignment to any pad.
+- Waveform zoom, bounded fade-in/fade-out shaping, and optional normalize-on-playback are saved with the selected pad.
 - Four-track A/B scenes with swing, probability, micro-timing, repeat scheduling, fullscreen performance mode, and deterministic MIDI export.
 - Selected-step probability/micro-timing editing, scene duplication, and user-visible pad/scene undo-redo.
 - Audio-clock lookahead sequencing with explicit suspended/closed diagnostics, stale-timer cleanup, and microphone device-loss handling.

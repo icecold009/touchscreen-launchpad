@@ -2,6 +2,15 @@ function clamp(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
 }
 
+export function normalizeSampleProcessing(candidate = {}) {
+  return {
+    zoom: clamp(Number.isFinite(Number(candidate.zoom)) ? Number(candidate.zoom) : 1, 1, 8),
+    fadeIn: clamp(Number.isFinite(Number(candidate.fadeIn)) ? Number(candidate.fadeIn) : 0.005, 0, 1),
+    fadeOut: clamp(Number.isFinite(Number(candidate.fadeOut)) ? Number(candidate.fadeOut) : 0.015, 0, 1),
+    normalize: candidate.normalize === true,
+  };
+}
+
 export function normalizeSampleRegion(region = {}) {
   const start = clamp(Number(region.start) || 0, 0, 1);
   const end = Math.max(start, clamp(Number.isFinite(Number(region.end)) ? Number(region.end) : 1, 0, 1));
@@ -51,7 +60,18 @@ export function createWaveformPeaks(buffer, pointCount = 160) {
   return peaks;
 }
 
-export function drawWaveform(canvas, buffer, region = {}) {
+export function getBufferPeak(buffer, region = {}) {
+  if (!buffer || typeof buffer.getChannelData !== "function") return 1;
+  const normalized = normalizeSampleRegion(region);
+  const data = buffer.getChannelData(0);
+  const start = Math.floor(data.length * normalized.start);
+  const end = Math.max(start + 1, Math.ceil(data.length * normalized.end));
+  let peak = 0;
+  for (let index = start; index < Math.min(data.length, end); index += 1) peak = Math.max(peak, Math.abs(data[index]));
+  return Math.max(0.0001, peak);
+}
+
+export function drawWaveform(canvas, buffer, region = {}, processing = {}) {
   if (!canvas?.getContext) return false;
   const context = canvas.getContext("2d");
   const width = canvas.width;
@@ -59,21 +79,26 @@ export function drawWaveform(canvas, buffer, region = {}) {
   context.clearRect(0, 0, width, height);
   context.fillStyle = "#f3f4f8";
   context.fillRect(0, 0, width, height);
-  const peaks = createWaveformPeaks(buffer, width);
+  const normalizedProcessing = normalizeSampleProcessing(processing);
+  const visibleStart = (1 - 1 / normalizedProcessing.zoom) / 2;
+  const visibleEnd = visibleStart + 1 / normalizedProcessing.zoom;
+  const fullPeaks = createWaveformPeaks(buffer, Math.max(width, Math.ceil(width * normalizedProcessing.zoom)));
+  const firstPeak = Math.floor(fullPeaks.length * visibleStart);
   context.fillStyle = "#7891e8";
   const midpoint = height / 2;
-  peaks.forEach((peak, index) => {
+  Array.from({ length: width }, (_, index) => fullPeaks[Math.min(fullPeaks.length - 1, firstPeak + index)] || 0).forEach((peak, index) => {
     const barHeight = Math.max(1, peak * height * 0.85);
     context.fillRect(index, midpoint - barHeight / 2, 1, barHeight);
   });
   const normalized = normalizeSampleRegion(region);
+  const visiblePosition = (position) => (position - visibleStart) / (visibleEnd - visibleStart);
   context.fillStyle = "rgba(48, 69, 128, 0.12)";
-  context.fillRect(0, 0, width * normalized.start, height);
-  context.fillRect(width * normalized.end, 0, width * (1 - normalized.end), height);
+  context.fillRect(0, 0, width * clamp(visiblePosition(normalized.start), 0, 1), height);
+  context.fillRect(width * clamp(visiblePosition(normalized.end), 0, 1), 0, width * clamp(1 - visiblePosition(normalized.end), 0, 1), height);
   context.strokeStyle = "#304580";
   context.lineWidth = 2;
   for (const position of [normalized.start, normalized.end]) {
-    const x = Math.round(width * position) + 0.5;
+    const x = Math.round(width * clamp(visiblePosition(position), 0, 1)) + 0.5;
     context.beginPath();
     context.moveTo(x, 0);
     context.lineTo(x, height);

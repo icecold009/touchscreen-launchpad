@@ -9,6 +9,8 @@ const QUANTIZE_GRIDS = new Set(["off", "beat", "eighth", "sixteenth", "thirtysec
 const TRIGGER_MODES = new Set(["trigger", "gate", "hold", "loop", "retrigger", "repeat", "echo"]);
 const MAPPING_MODES = new Set(["single", "velocity16", "chromatic16"]);
 import { normalizeSliceDefinitions } from "./slices.js";
+import { normalizeSampleLibraryMetadata } from "./sample-library.js";
+import { normalizeSampleProcessing } from "./sample-editor.js";
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -51,6 +53,7 @@ export function createDefaultPad(index, { padColors = DEFAULT_COLORS, keyboardKe
     pan: 0,
     filter: { type: "lowpass", frequency: 20000, q: 0 },
     effectSends: { reverb: 0, delay: 0 },
+    sampleProcessing: normalizeSampleProcessing(),
   };
 }
 
@@ -115,6 +118,7 @@ export function normalizePadDefinition(candidate, index, options = {}) {
       reverb: Number.isFinite(Number(sends.reverb)) ? clamp(Number(sends.reverb), 0, 1) : fallback.effectSends.reverb,
       delay: Number.isFinite(Number(sends.delay)) ? clamp(Number(sends.delay), 0, 1) : fallback.effectSends.delay,
     },
+    sampleProcessing: normalizeSampleProcessing(value.sampleProcessing),
   };
 }
 
@@ -125,6 +129,7 @@ export function normalizeSampleRecord(candidate) {
     sourceId: typeof candidate?.sourceId === "string" ? candidate.sourceId : null,
     editRecipe: Array.isArray(candidate?.editRecipe) ? candidate.editRecipe.slice(0, 64) : [],
     slices: normalizeSliceDefinitions(candidate?.slices),
+    libraryMeta: normalizeSampleLibraryMetadata(candidate?.libraryMeta),
   };
 }
 

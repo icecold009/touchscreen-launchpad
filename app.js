@@ -1,24 +1,25 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=44";
-import { createInputAdapter } from "./src/input-adapter.js?version=44";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=44";
-import { createPointerState } from "./src/pointer-state.js?version=44";
-import { attachStorageRequest } from "./src/storage-request.js?version=44";
-import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=44";
-import { getNextQuantizedTime } from "./src/transport.js?version=44";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=44";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=44";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=44";
-import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=44";
-import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=44";
-import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=44";
-import { createMidiFile } from "./src/midi-file.js?version=44";
-import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=44";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=44";
-import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=44";
-import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=44";
-import { encodePcmWav } from "./src/wav.js?version=44";
+import { createHistory } from "./src/history.js?version=45";
+import { createInputAdapter } from "./src/input-adapter.js?version=45";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=45";
+import { createPointerState } from "./src/pointer-state.js?version=45";
+import { attachStorageRequest } from "./src/storage-request.js?version=45";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=45";
+import { getNextQuantizedTime } from "./src/transport.js?version=45";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=45";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=45";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=45";
+import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=45";
+import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=45";
+import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=45";
+import { createMidiFile } from "./src/midi-file.js?version=45";
+import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=45";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=45";
+import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=45";
+import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=45";
+import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=45";
+import { encodePcmWav } from "./src/wav.js?version=45";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -106,6 +107,13 @@ const sampleEndInput = document.querySelector("#sample-end");
 const sampleLoopStartInput = document.querySelector("#sample-loop-start");
 const sampleLoopEndInput = document.querySelector("#sample-loop-end");
 const sampleReverseInput = document.querySelector("#sample-reverse");
+const sampleZoomInput = document.querySelector("#sample-zoom");
+const sampleZoomValue = document.querySelector("#sample-zoom-value");
+const sampleFadeInInput = document.querySelector("#sample-fade-in");
+const sampleFadeInValue = document.querySelector("#sample-fade-in-value");
+const sampleFadeOutInput = document.querySelector("#sample-fade-out");
+const sampleFadeOutValue = document.querySelector("#sample-fade-out-value");
+const sampleNormalizeInput = document.querySelector("#sample-normalize");
 const sliceCountInput = document.querySelector("#slice-count");
 const createSlicesButton = document.querySelector("#create-slices");
 const clearSlicesButton = document.querySelector("#clear-slices");
@@ -170,6 +178,14 @@ const sampleList = document.querySelector("#sample-list");
 const sampleCount = document.querySelector("#sample-count");
 const sampleSearchInput = document.querySelector("#sample-search");
 const sampleSortInput = document.querySelector("#sample-sort");
+const sampleFavoritesOnlyInput = document.querySelector("#sample-favorites-only");
+const sampleTagFilterInput = document.querySelector("#sample-tag-filter");
+const sampleDropzone = document.querySelector("#sample-dropzone");
+const sampleDropInput = document.querySelector("#import-pack");
+const sampleSelectionStatus = document.querySelector("#sample-selection-status");
+const assignSelectedSamplesButton = document.querySelector("#assign-selected-samples");
+const removeOrphansButton = document.querySelector("#remove-orphans");
+const selectedSampleIds = new Set();
 const kitSelect = document.querySelector("#kit-select");
 const kitNameInput = document.querySelector("#kit-name");
 const kitCount = document.querySelector("#kit-count");
@@ -1543,6 +1559,7 @@ async function persistSample(file) {
     hash,
     createdAt: new Date().toISOString(),
     slices: [],
+    libraryMeta: normalizeSampleLibraryMetadata(),
   });
 
   if (storageMode === "persistent") setStorageState("saving", "Saving sample…");
@@ -1874,50 +1891,177 @@ async function resetSampleStorage() {
   }
 }
 
+function renderSampleTagFilter(allSamples) {
+  if (!sampleTagFilterInput) return;
+  const current = sampleTagFilterInput.value;
+  const tags = [...new Set(allSamples.flatMap((sample) => normalizeSampleLibraryMetadata(sample.libraryMeta).tags))]
+    .sort((left, right) => left.localeCompare(right));
+  sampleTagFilterInput.replaceChildren(new Option("All tags", ""), ...tags.map((tag) => new Option(tag, tag)));
+  sampleTagFilterInput.value = tags.includes(current) ? current : "";
+}
+
+function updateSampleSelectionControls() {
+  const orphanCount = getOrphanSampleIds([...samples.values()], [...kits.values()]).length;
+  if (sampleSelectionStatus) sampleSelectionStatus.textContent = selectedSampleIds.size ? `${selectedSampleIds.size} selected` : "Select samples for batch assignment.";
+  if (assignSelectedSamplesButton) assignSelectedSamplesButton.disabled = !selectedSampleIds.size;
+  if (removeOrphansButton) {
+    removeOrphansButton.disabled = !orphanCount;
+    removeOrphansButton.textContent = orphanCount ? `Remove ${orphanCount} unused` : "Remove unused";
+  }
+}
+
+async function persistSampleLibraryMetadata(sample, message = "Sample metadata saved locally.") {
+  if (!sample) return false;
+  const previous = sample.libraryMeta;
+  sample.libraryMeta = normalizeSampleLibraryMetadata(sample.libraryMeta);
+  if (storageMode === "memory") {
+    renderSampleLibrary();
+    setStatus(`${message} Memory-only mode: a reload may discard changes.`, "error");
+    return true;
+  }
+  try {
+    await writeSample(getPersistedSampleRecord(sample));
+    setStorageState("saved");
+    renderSampleLibrary();
+    setStatus(message, "success");
+    return true;
+  } catch (error) {
+    sample.libraryMeta = previous;
+    markMemoryOnlyMode("Sample metadata could not be saved; this change remains session-only.", isQuotaError(error) ? "quota" : "unavailable");
+    renderSampleLibrary();
+    setStatus(error instanceof Error ? error.message : "Sample metadata could not be saved.", "error");
+    return false;
+  }
+}
+
+function toggleSampleFavorite(sample) {
+  sample.libraryMeta = normalizeSampleLibraryMetadata({ ...sample.libraryMeta, favorite: !normalizeSampleLibraryMetadata(sample.libraryMeta).favorite });
+  void persistSampleLibraryMetadata(sample, `${sample.name} favorite state saved locally.`);
+}
+
+async function assignSelectedSamples() {
+  const ids = [...selectedSampleIds].filter((sampleId) => samples.has(sampleId));
+  if (!ids.length) return;
+  const assignments = createBatchAssignments(ids, PAD_COUNT, selectedPadIndex);
+  const previousPads = clonePads();
+  const assignedByPad = new Map(assignments.map((assignment) => [assignment.padIndex, assignment.sampleId]));
+  pads = pads.map((pad, index) => assignedByPad.has(index) ? { ...pad, sampleId: assignedByPad.get(index), sliceId: null } : pad);
+  renderPads();
+  selectPad(selectedPadIndex);
+  if (!(await saveActiveKit(`${assignments.length} samples assigned starting at Pad ${selectedPadIndex + 1}.`))) {
+    pads = previousPads;
+    renderPads();
+    selectPad(selectedPadIndex);
+    return;
+  }
+  selectedSampleIds.clear();
+  renderSampleLibrary();
+}
+
+async function removeOrphanSamples() {
+  const orphanIds = getOrphanSampleIds([...samples.values()], [...kits.values()]);
+  if (!orphanIds.length) return;
+  if (!window.confirm(`Remove ${orphanIds.length} unused samples from this browser? Export a backup first if you may need them later.`)) return;
+  await deleteSamples(orphanIds);
+  for (const sampleId of orphanIds) {
+    samples.delete(sampleId);
+    selectedSampleIds.delete(sampleId);
+  }
+  if (orphanIds.includes(draftSampleId)) {
+    draftSampleId = null;
+    draftSliceId = null;
+    updateSampleName();
+  }
+  renderSampleLibrary();
+  setStatus(`${orphanIds.length} unused sample${orphanIds.length === 1 ? "" : "s"} removed.`, "success");
+}
+
+function handleSampleDrop(event) {
+  event.preventDefault();
+  sampleDropzone?.classList.remove("is-dragging");
+  const files = [...(event.dataTransfer?.files || [])];
+  if (!files.length) return;
+  void importSampleFiles(files).catch((error) => setStatus(error instanceof Error ? error.message : "Audio import failed; existing samples were preserved.", "error"));
+}
+
 function renderSampleLibrary() {
-  const query = sampleSearchInput.value.trim().toLocaleLowerCase();
   const allSamples = [...samples.values()];
-  const storedSamples = allSamples
-    .filter((sample) => !query || sample.name.toLocaleLowerCase().includes(query))
-    .sort((left, right) => {
-      if (sampleSortInput.value === "newest") return right.createdAt.localeCompare(left.createdAt);
-      if (sampleSortInput.value === "largest") return right.size - left.size;
-      return left.name.localeCompare(right.name);
-    });
-  sampleCount.textContent = query
-    ? `${storedSamples.length}/${allSamples.length} matches`
-    : `${storedSamples.length} ${storedSamples.length === 1 ? "file" : "files"}`;
+  renderSampleTagFilter(allSamples);
+  const storedSamples = filterSampleRecords(allSamples, {
+    query: sampleSearchInput.value,
+    favoritesOnly: sampleFavoritesOnlyInput?.checked,
+    tag: sampleTagFilterInput?.value,
+    sort: sampleSortInput.value,
+  });
+  sampleCount.textContent = storedSamples.length === allSamples.length
+    ? `${storedSamples.length} ${storedSamples.length === 1 ? "file" : "files"}`
+    : `${storedSamples.length}/${allSamples.length} matches`;
   sampleList.replaceChildren();
 
   if (!storedSamples.length) {
     const emptyItem = document.createElement("li");
     emptyItem.className = "empty-state";
-    emptyItem.textContent = query ? "No samples match this search." : "No local samples yet. Load audio on a pad or import a folder.";
+    emptyItem.textContent = allSamples.length ? "No samples match these filters." : "No local samples yet. Load audio or drop a folder here.";
     sampleList.append(emptyItem);
+    updateSampleSelectionControls();
     return;
   }
 
+  const kitsList = [...kits.values()];
   for (const sample of storedSamples) {
+    const metadata = normalizeSampleLibraryMetadata(sample.libraryMeta);
+    const usage = getSampleUsage(sample.id, kitsList);
     const item = document.createElement("li");
     item.className = "sample-item";
     item.dataset.sampleId = sample.id;
+    const selection = document.createElement("input");
+    selection.type = "checkbox";
+    selection.className = "sample-select";
+    selection.checked = selectedSampleIds.has(sample.id);
+    selection.setAttribute("aria-label", `Select ${sample.name} for batch assignment`);
+    selection.addEventListener("change", () => {
+      if (selection.checked) selectedSampleIds.add(sample.id);
+      else selectedSampleIds.delete(sample.id);
+      updateSampleSelectionControls();
+    });
     const details = document.createElement("div");
     details.className = "sample-item-details";
     const name = document.createElement("span");
     name.textContent = sample.name;
     const size = document.createElement("span");
     size.className = "muted";
-    size.textContent = formatBytes(sample.size);
-    details.append(name, size);
+    size.textContent = `${formatBytes(sample.size)} · ${usage.length ? `${usage.length} pad${usage.length === 1 ? "" : "s"}` : "unused"}`;
+    const tags = document.createElement("input");
+    tags.className = "sample-tags";
+    tags.type = "text";
+    tags.value = metadata.tags.join(", ");
+    tags.placeholder = "tags, comma separated";
+    tags.setAttribute("aria-label", `${sample.name} tags`);
+    tags.addEventListener("change", () => {
+      sample.libraryMeta = normalizeSampleLibraryMetadata({ ...metadata, tags: tags.value });
+      void persistSampleLibraryMetadata(sample);
+    });
+    details.append(name, size, tags);
+    const actions = document.createElement("div");
+    actions.className = "sample-item-actions";
+    const favoriteButton = document.createElement("button");
+    favoriteButton.className = "button button-quiet sample-favorite";
+    favoriteButton.type = "button";
+    favoriteButton.textContent = metadata.favorite ? "★" : "☆";
+    favoriteButton.setAttribute("aria-label", `${metadata.favorite ? "Unfavorite" : "Favorite"} ${sample.name}`);
+    favoriteButton.setAttribute("aria-pressed", String(metadata.favorite));
+    favoriteButton.addEventListener("click", () => toggleSampleFavorite(sample));
     const assignButton = document.createElement("button");
     assignButton.className = "button button-secondary sample-assign";
     assignButton.type = "button";
     assignButton.textContent = "Assign";
     assignButton.setAttribute("aria-label", `Assign ${sample.name} to the selected pad`);
     assignButton.addEventListener("click", () => assignSampleToSelectedPad(sample.id));
-    item.append(details, assignButton);
+    actions.append(favoriteButton, assignButton);
+    item.append(selection, details, actions);
     sampleList.append(item);
   }
+  updateSampleSelectionControls();
 }
 
 function assignSampleToSelectedPad(sampleId) {
@@ -2823,9 +2967,9 @@ async function getSampleBuffer(sample, context) {
   return sample.bufferPromise;
 }
 
-function createVoiceGain(context, pad, velocity = 1) {
+function createVoiceGain(context, pad, velocity = 1, gainMultiplier = 1) {
   const gain = context.createGain();
-  gain.gain.value = clamp((Number(pad.volume) || 0) * clamp(Number(velocity) || 1, 0, 1), 0, 1);
+  gain.gain.value = clamp((Number(pad.volume) || 0) * clamp(Number(velocity) || 1, 0, 1) * clamp(Number(gainMultiplier) || 1, 0.25, 4), 0, 1);
   if (typeof context.createBiquadFilter !== "function") {
     gain.connect(masterGain);
     return gain;
@@ -2881,7 +3025,9 @@ async function playSample(index, pad, sample, context, generation, velocity = 1)
   const buffer = await getSampleBuffer(sample, context);
   if (generation !== playbackGeneration) return false;
   const source = context.createBufferSource();
-  const gain = createVoiceGain(context, pad, velocity);
+  const processing = normalizeSampleProcessing(pad.sampleProcessing);
+  const normalizationGain = processing.normalize ? Math.min(4, 1 / getBufferPeak(buffer, pad.sampleRegion)) : 1;
+  const gain = createVoiceGain(context, pad, velocity, normalizationGain);
   const isLoop = pad.mode === "loop";
   const settings = normalizePerformanceSettings(pad);
   const launchGrid = settings.launchQuantize === "off" && isLoop && quantizeInput.checked ? "beat" : settings.launchQuantize;
@@ -2902,11 +3048,19 @@ async function playSample(index, pad, sample, context, generation, velocity = 1)
   source.detune.setValueAtTime(plan.detune, startAt);
   source.connect(gain);
   const voice = registerVoice(index, source, startAt, { isLoop, gainNode: gain });
-  const attack = clamp(Number(pad.attack) || 0, 0, 1);
+  const attack = Math.max(clamp(Number(pad.attack) || 0, 0, 1), processing.fadeIn);
+  const baseGain = clamp((Number(pad.volume) || 0.8) * clamp(Number(velocity) || 1, 0, 1) * normalizationGain, 0.0001, 1);
+  const stopAt = isLoop ? undefined : startAt + plan.duration;
+  const fadeDuration = stopAt === undefined ? 0 : Math.min(processing.fadeOut, Math.max(0, plan.duration - attack));
   gain.gain.cancelScheduledValues(startAt);
   gain.gain.setValueAtTime(0.0001, startAt);
-  gain.gain.linearRampToValueAtTime(Math.max(0.0001, (Number(pad.volume) || 0.8) * clamp(Number(velocity) || 1, 0, 1)), startAt + attack);
-  startRegisteredVoice(index, voice, startAt, isLoop ? undefined : startAt + plan.duration);
+  gain.gain.linearRampToValueAtTime(baseGain, startAt + attack);
+  if (stopAt !== undefined && fadeDuration > 0) {
+    const fadeStart = Math.max(startAt + attack, stopAt - fadeDuration);
+    gain.gain.setValueAtTime(baseGain, fadeStart);
+    gain.gain.linearRampToValueAtTime(0.0001, stopAt);
+  }
+  startRegisteredVoice(index, voice, startAt, stopAt);
 
   if (isLoop && startAt > context.currentTime + 0.02) {
     setPlaybackStatus(`${getPadName(pad, index)} loop queued for the next beat.`, "info", { force: true });
@@ -3117,6 +3271,15 @@ function getSampleRegionFromEditor() {
   });
 }
 
+function getSampleProcessingFromEditor() {
+  return normalizeSampleProcessing({
+    zoom: Number(sampleZoomInput.value),
+    fadeIn: Number(sampleFadeInInput.value),
+    fadeOut: Number(sampleFadeOutInput.value),
+    normalize: sampleNormalizeInput.checked,
+  });
+}
+
 function drawEmptyWaveform(message = "Load audio to see its waveform") {
   if (!sampleWaveform?.getContext) return;
   const context = sampleWaveform.getContext("2d");
@@ -3138,9 +3301,12 @@ function updateSampleEditorLabels() {
   releaseValue.textContent = `${Math.round(Number(releaseInput.value) * 1000)} ms`;
   padDelaySendValue.textContent = `${Math.round(Number(padDelaySendInput.value) * 100)}%`;
   padReverbSendValue.textContent = `${Math.round(Number(padReverbSendInput.value) * 100)}%`;
+  sampleZoomValue.textContent = `${Number(sampleZoomInput.value).toFixed(1)}×`;
+  sampleFadeInValue.textContent = `${Math.round(Number(sampleFadeInInput.value) * 1000)} ms`;
+  sampleFadeOutValue.textContent = `${Math.round(Number(sampleFadeOutInput.value) * 1000)} ms`;
   const region = getSampleRegionFromEditor();
   sampleEditStatus.textContent = `Region ${Math.round(region.start * 100)}–${Math.round(region.end * 100)}% · loop ${Math.round(region.loopStart * 100)}–${Math.round(region.loopEnd * 100)}%`;
-  if (waveformBuffer) drawWaveform(sampleWaveform, waveformBuffer, region);
+  if (waveformBuffer) drawWaveform(sampleWaveform, waveformBuffer, region, getSampleProcessingFromEditor());
 }
 
 function getSampleEditorValues() {
@@ -3163,6 +3329,7 @@ function getSampleEditorValues() {
       delay: Number(padDelaySendInput.value),
       reverb: Number(padReverbSendInput.value),
     },
+    sampleProcessing: getSampleProcessingFromEditor(),
   };
 }
 
@@ -3174,6 +3341,11 @@ async function renderSampleEditor() {
   sampleLoopStartInput.value = String(region.loopStart);
   sampleLoopEndInput.value = String(region.loopEnd);
   sampleReverseInput.checked = region.reverse;
+  const processing = normalizeSampleProcessing(pad.sampleProcessing);
+  sampleZoomInput.value = String(processing.zoom);
+  sampleFadeInInput.value = String(processing.fadeIn);
+  sampleFadeOutInput.value = String(processing.fadeOut);
+  sampleNormalizeInput.checked = processing.normalize;
   pitchInput.value = String(pad.pitchCents);
   stretchInput.value = String(pad.timeStretch);
   panInput.value = String(pad.pan);
@@ -3196,7 +3368,7 @@ async function renderSampleEditor() {
     const buffer = await getSampleBuffer(sample, getAudioContext());
     if (renderToken !== waveformRenderToken) return;
     waveformBuffer = buffer;
-    drawWaveform(sampleWaveform, buffer, getSampleRegionFromEditor());
+    drawWaveform(sampleWaveform, buffer, getSampleRegionFromEditor(), getSampleProcessingFromEditor());
     sampleEditStatus.textContent = `${buffer.duration.toFixed(2)}s source · edit is saved with this pad`;
   } catch {
     if (renderToken === waveformRenderToken) drawEmptyWaveform("Waveform preview unavailable");
@@ -3504,6 +3676,7 @@ async function exportLaunchpack() {
         hash,
         createdAt: sample.createdAt,
         slices: normalizeSliceDefinitions(sample.slices),
+        libraryMeta: normalizeSampleLibraryMetadata(sample.libraryMeta),
         data: toBase64(bytes),
       });
     }
@@ -3593,6 +3766,7 @@ function validateLaunchpack(parsedPack) {
       blob: new Blob([bytes], { type: candidate.mime }),
       createdAt: typeof candidate.createdAt === "string" ? candidate.createdAt : new Date().toISOString(),
       slices: normalizeSliceDefinitions(candidate.slices),
+      libraryMeta: normalizeSampleLibraryMetadata(candidate.libraryMeta),
     };
   });
 
@@ -3851,7 +4025,7 @@ function bindEvents() {
     renderSliceEditor(null);
     markEditorDirty();
   });
-  [sampleStartInput, sampleEndInput, sampleLoopStartInput, sampleLoopEndInput, sampleReverseInput, pitchInput, stretchInput, panInput, filterTypeInput, filterFrequencyInput, padDelaySendInput, padReverbSendInput, attackInput, releaseInput]
+  [sampleStartInput, sampleEndInput, sampleLoopStartInput, sampleLoopEndInput, sampleReverseInput, sampleZoomInput, sampleFadeInInput, sampleFadeOutInput, sampleNormalizeInput, pitchInput, stretchInput, panInput, filterTypeInput, filterFrequencyInput, padDelaySendInput, padReverbSendInput, attackInput, releaseInput]
     .forEach((input) => input.addEventListener("input", updateSampleEditorLabels));
   [sampleStartInput, sampleEndInput, sampleLoopStartInput, sampleLoopEndInput, sampleReverseInput].forEach((input) => input.addEventListener("change", () => {
     draftSliceId = null;
@@ -3994,6 +4168,23 @@ function bindEvents() {
   resetStorageButton.addEventListener("click", () => void resetSampleStorage());
   sampleSearchInput.addEventListener("input", renderSampleLibrary);
   sampleSortInput.addEventListener("change", renderSampleLibrary);
+  sampleFavoritesOnlyInput.addEventListener("change", renderSampleLibrary);
+  sampleTagFilterInput.addEventListener("change", renderSampleLibrary);
+  assignSelectedSamplesButton.addEventListener("click", () => void assignSelectedSamples());
+  removeOrphansButton.addEventListener("click", () => void removeOrphanSamples());
+  sampleDropzone.addEventListener("click", () => sampleDropInput.click());
+  sampleDropzone.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      sampleDropInput.click();
+    }
+  });
+  sampleDropzone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    sampleDropzone.classList.add("is-dragging");
+  });
+  sampleDropzone.addEventListener("dragleave", () => sampleDropzone.classList.remove("is-dragging"));
+  sampleDropzone.addEventListener("drop", handleSampleDrop);
   editorToggle.addEventListener("click", () => {
     const isCollapsed = editorPanel.classList.toggle("is-collapsed");
     editorToggle.setAttribute("aria-expanded", String(!isCollapsed));

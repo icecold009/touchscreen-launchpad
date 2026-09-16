@@ -79,6 +79,17 @@ test("the launchpad DOM exposes its primary interaction surface", () => {
     "create-slices",
     "clear-slices",
     "slice-list",
+    "sample-dropzone",
+    "sample-favorites-only",
+    "sample-tag-filter",
+    "sample-selection-status",
+    "assign-selected-samples",
+    "remove-orphans",
+    "sample-list",
+    "sample-zoom",
+    "sample-fade-in",
+    "sample-fade-out",
+    "sample-normalize",
   ];
 
   for (const id of requiredIds) {

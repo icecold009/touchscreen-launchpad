@@ -75,6 +75,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: Browsers without Web MIDI retain full local operation; mappings and clock policy persist per kit and in `.launchpack`; conflicts are visible; reconnect does not leave a gate or clock timer stuck; outbound note feedback is bounded and degrades visibly when a device disappears.
 - Evidence: `npm.cmd run validate` passes 73 tests; fresh local browser render exposes the MIDI profile, clock, controller target, mapping list, and cancel controls; no-MIDI Connect reports `MIDI permission was not granted. The launchpad still works locally.`; Learn CC / aftertouch enables Cancel learn and cancellation restores the idle state; no console errors or warnings. Physical controller I/O, device LEDs, long-session clock drift, hosted behavior, and DAW sync remain unclaimed; `main` remains untouched.
 
+## Package: Sample library and content polish — `codex/launchpad-sample-library-polish-20260916`
+
+- Goal: Reduce the distance between an imported sample folder and a playable kit while making content provenance explicit.
+- Scope: Drag/drop import, favorites, bounded tags, tag-aware search/filtering, usage/orphan state, confirmed unused-sample cleanup, bounded batch assignment, waveform zoom, fade-in/fade-out controls, normalize-on-playback, launchpack metadata preservation, and `CONTENT-LICENSES.md`.
+- Non-goals: Automatic transient detection, server indexing, unbounded storage, destructive source replacement, complex time-stretch, or copyrighted artist audio/stems.
+- Files: `index.html`, `style.css`, `app.js`, `src/sample-library.js`, `src/sample-editor.js`, `src/migrations.js`, `src/bootstrap.js`, `sw.js`, `scripts/validate-site.mjs`, `package.json`, `test/sample-library.test.mjs`, `test/sample-editor.test.mjs`, `test/site-dom.test.mjs`, module/PWA contracts, README, and `CONTENT-LICENSES.md`.
+- Tests: `npm.cmd run validate`, metadata/filter/usage/batch tests, shaping bounds/peak tests, DOM/module/cache/PWA contracts, fresh browser library/dropzone/shaping smoke, `git diff --check`, and console inspection.
+- Acceptance: Metadata stays bounded and local; batch assignment remains within the 16 pads; orphan cleanup is confirmation-gated; shaping settings persist with the pad and launchpacks retain library metadata; any future starter audio has a source/license row.
+- Evidence: `npm.cmd run validate` passes 75 tests; fresh local render at `http://localhost:4181/?cachebust=45` exposes Drop audio here, Favorites only, Tag, Assign selected, Remove unused, Waveform zoom, Normalize on playback, Fade in, and Fade out; setting zoom to `8.0×` and enabling normalization updates the rendered editor with no console errors or warnings. Physical file-manager drag/drop, actual decoder behavior, storage quota recovery, hosted behavior, and future content clearance remain unclaimed; `main` remains untouched.
+
 ## Package: Record to perform — `codex/launchpad-record-perform-20260916`
 
 - Goal: Turn a live sound or voice idea into a reusable performance sample without leaving the local-first app.

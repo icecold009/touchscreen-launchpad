@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=44" />
+    <link rel="stylesheet" href="style.css?version=45" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -493,6 +493,26 @@
                 <span>Reverse playback</span>
               </label>
               <div class="field-grid sample-shape-grid">
+                <label class="field" for="sample-zoom">
+                  <span>Waveform zoom <output id="sample-zoom-value" for="sample-zoom">1.0×</output></span>
+                  <input id="sample-zoom" type="range" min="1" max="8" step="0.1" value="1" />
+                </label>
+                <label class="check-control" for="sample-normalize">
+                  <input id="sample-normalize" type="checkbox" />
+                  <span>Normalize on playback</span>
+                </label>
+              </div>
+              <div class="field-grid sample-shape-grid">
+                <label class="field" for="sample-fade-in">
+                  <span>Fade in <output id="sample-fade-in-value" for="sample-fade-in">5 ms</output></span>
+                  <input id="sample-fade-in" type="range" min="0" max="1" step="0.005" value="0.005" />
+                </label>
+                <label class="field" for="sample-fade-out">
+                  <span>Fade out <output id="sample-fade-out-value" for="sample-fade-out">15 ms</output></span>
+                  <input id="sample-fade-out" type="range" min="0" max="1" step="0.005" value="0.015" />
+                </label>
+              </div>
+              <div class="field-grid sample-shape-grid">
                 <label class="field" for="pad-pitch">
                   <span>Pitch <output id="pad-pitch-value" for="pad-pitch">0¢</output></span>
                   <input id="pad-pitch" type="range" min="-2400" max="2400" step="1" value="0" />
@@ -604,7 +624,25 @@
                   <option value="name">Name A–Z</option>
                   <option value="newest">Newest first</option>
                   <option value="largest">Largest first</option>
+                  <option value="favorite">Favorites first</option>
                 </select>
+              </div>
+              <div id="sample-dropzone" class="sample-dropzone" role="button" tabindex="0" aria-label="Drop audio files here or choose an import">
+                <strong>Drop audio here</strong>
+                <span>Folder imports stay local, deduplicate by hash, and keep extras in the library.</span>
+              </div>
+              <div class="sample-library-actions">
+                <label class="check-control" for="sample-favorites-only">
+                  <input id="sample-favorites-only" type="checkbox" />
+                  <span>Favorites only</span>
+                </label>
+                <label class="compact-control" for="sample-tag-filter">
+                  <span>Tag</span>
+                  <select id="sample-tag-filter"><option value="">All tags</option></select>
+                </label>
+                <span id="sample-selection-status" class="muted" role="status" aria-live="polite">Select samples for batch assignment.</span>
+                <button id="assign-selected-samples" class="button button-secondary" type="button" disabled>Assign selected</button>
+                <button id="remove-orphans" class="button button-quiet" type="button" disabled>Remove unused</button>
               </div>
               <ul id="sample-list" class="sample-list">
                 <li class="empty-state">No local samples yet.</li>
@@ -615,6 +653,6 @@
       </section>
     </main>
 
-            <script type="module" src="src/bootstrap.js?version=44"></script>
+            <script type="module" src="src/bootstrap.js?version=45"></script>
   </body>
 </html>
