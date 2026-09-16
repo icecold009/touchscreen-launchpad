@@ -18,6 +18,7 @@ const requiredFiles = [
   "src/performance-engine.js",
   "src/recording.js",
   "src/sample-editor.js",
+  "src/sequencer.js",
   "src/transport.js",
   "src/voice-registry.js",
   "manifest.webmanifest",

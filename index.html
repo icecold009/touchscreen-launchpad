@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=34" />
+    <link rel="stylesheet" href="style.css?version=35" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -95,6 +95,31 @@
               <li class="empty-state">No takes yet. Record a voice, room sound, or pad performance.</li>
             </ul>
             <span id="take-count" class="sr-only">0 takes</span>
+          </section>
+
+          <section id="sequencer-panel" class="sequencer-panel" aria-labelledby="sequencer-title">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Live arrangement</p>
+                <h3 id="sequencer-title">Scenes</h3>
+                <p class="section-subtitle">Four tracks · 16 steps · performance-first.</p>
+              </div>
+              <span id="sequencer-status" class="muted" role="status" aria-live="polite">Scene A · Ready</span>
+            </div>
+            <div class="sequencer-toolbar">
+              <div class="scene-buttons" role="group" aria-label="Sequencer scenes">
+                <button id="scene-a" class="button button-secondary is-active" type="button" aria-pressed="true">Scene A</button>
+                <button id="scene-b" class="button button-secondary" type="button" aria-pressed="false">Scene B</button>
+              </div>
+              <button id="sequencer-play" class="button button-primary" type="button">Play sequence</button>
+              <button id="sequencer-clear" class="button button-quiet" type="button">Clear scene</button>
+              <label class="compact-control" for="sequencer-swing">
+                <span>Swing</span>
+                <input id="sequencer-swing" type="range" min="0" max="0.5" step="0.01" value="0" />
+                <output id="sequencer-swing-value" for="sequencer-swing">0%</output>
+              </label>
+            </div>
+            <div id="sequencer-grid" class="sequencer-grid" aria-label="Four-track 16-step sequencer"></div>
           </section>
 
           <div class="pad-performance">
@@ -385,6 +410,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/bootstrap.js?version=34"></script>
+    <script type="module" src="src/bootstrap.js?version=35"></script>
   </body>
 </html>

@@ -35,6 +35,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: Pad settings persist and remain accessible; gate/hold release cannot leave a voice stuck; group actions stop/link the intended pads; repeat timers are bounded and cleaned up; perform mode exposes the grid without editing chrome.
 - Evidence: `npm.cmd run validate` passes 56 tests; fresh local render exposes trigger modes, launch/stop grids, group fields, metronome/count-in, and fullscreen perform mode; perform mode hides the editor and kit chrome while preserving controls and pads; `main` remains untouched.
 
+## Package: Four-track scenes and step sequencing — `codex/launchpad-scenes-sequencer-20260916`
+
+- Goal: Coordinate pads into repeatable musical scenes without becoming a timeline DAW.
+- Scope: Two switchable A/B scenes, four independent tracks, 16-step pattern editing, per-step probability and micro-timing data, swing, pad assignment, scene persistence inside kit records, play/stop clock, and stop-all cleanup.
+- Non-goals: Timeline arrangement, piano roll, audio warping, multitrack recording, MIDI file export, or cloud collaboration.
+- Files: `index.html`, `style.css`, `app.js`, `src/sequencer.js`, `sw.js`, `src/bootstrap.js`, `scripts/validate-site.mjs`, `package.json`, and sequencer contract tests.
+- Tests: `npm.cmd run validate`, normalized pattern/probability/swing tests, runner lifecycle tests, rendered step-toggle persistence smoke, scene switching, and perform-mode interaction review.
+- Acceptance: A user can assign four pads, toggle 16 steps, set swing, save either scene, switch A/B, play the scene, and stop it without leaving repeat timers or pad voices behind.
+- Evidence: `npm.cmd run validate` passes 58 tests; fresh local render exposes four tracks, 16 steps per track, A/B scene controls, swing, and play/stop controls; a step toggled to on and Scene B switched cleanly; `main` remains untouched.
+
 ## Package: Professional audio foundation — `codex/launchpad-professional-foundation-20260916`
 
 - Goal: Establish versioned audio, transport, input, voice, migration, and bounded-history contracts for professional performance features.

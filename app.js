@@ -1,16 +1,17 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=34";
-import { createInputAdapter } from "./src/input-adapter.js?version=34";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=34";
-import { createPointerState } from "./src/pointer-state.js?version=34";
-import { attachStorageRequest } from "./src/storage-request.js?version=34";
-import { downloadText as triggerTextDownload } from "./src/download.js?version=34";
-import { getNextQuantizedTime } from "./src/transport.js?version=34";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=34";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=34";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=34";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=34";
+import { createHistory } from "./src/history.js?version=35";
+import { createInputAdapter } from "./src/input-adapter.js?version=35";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=35";
+import { createPointerState } from "./src/pointer-state.js?version=35";
+import { attachStorageRequest } from "./src/storage-request.js?version=35";
+import { downloadText as triggerTextDownload } from "./src/download.js?version=35";
+import { getNextQuantizedTime } from "./src/transport.js?version=35";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord } from "./src/recording.js?version=35";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=35";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=35";
+import { createPattern, createSequencerRunner, getStepEvents, normalizePattern, toggleStep } from "./src/sequencer.js?version=35";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=35";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -38,6 +39,14 @@ const recordingTimer = document.querySelector("#recording-timer");
 const recordingState = document.querySelector("#recording-state");
 const takeList = document.querySelector("#take-list");
 const takeCount = document.querySelector("#take-count");
+const sequencerPanel = document.querySelector("#sequencer-panel");
+const sequencerGrid = document.querySelector("#sequencer-grid");
+const sequencerStatus = document.querySelector("#sequencer-status");
+const sequencerPlayButton = document.querySelector("#sequencer-play");
+const sceneAButton = document.querySelector("#scene-a");
+const sceneBButton = document.querySelector("#scene-b");
+const sequencerSwingInput = document.querySelector("#sequencer-swing");
+const sequencerSwingValue = document.querySelector("#sequencer-swing-value");
 const sampleWaveform = document.querySelector("#sample-waveform");
 const sampleEditStatus = document.querySelector("#sample-edit-status");
 const sampleStartInput = document.querySelector("#sample-start");
@@ -141,6 +150,19 @@ let waveformRenderToken = 0;
 let metronomeTimer;
 let countInPromise;
 let repeatTimers = new Map();
+let activeSceneId = "scene-a";
+const sequencerRunner = createSequencerRunner({
+  getBpm: () => Number(tempoInput.value) || 120,
+  getSwing: () => Number(sequencerSwingInput.value) || 0,
+  onStep: ({ stepIndex, swingOffset }) => {
+    const pattern = getActiveSequencerPattern();
+    sequencerStatus.textContent = `${activeSceneId === "scene-a" ? "Scene A" : "Scene B"} · Step ${stepIndex + 1}/16`;
+    for (const event of getStepEvents(pattern, stepIndex)) {
+      window.setTimeout(() => void triggerPad(event.padIndex, { linked: true, bypassCountIn: true, fromRepeat: true }), Math.max(0, (swingOffset + event.microTiming * (60 / (Number(tempoInput.value) || 120) / 4)) * 1000));
+    }
+    renderSequencer();
+  },
+});
 let databasePromise;
 let sampleDatabase;
 let deferredInstallPrompt;
@@ -653,11 +675,110 @@ function renderKitControls() {
   deleteKitButton.disabled = !currentKit || currentKit.empty;
 }
 
+function getActiveSequencerPattern() {
+  const kit = kits.get(currentKitId);
+  if (!kit) return createPattern();
+  const existing = Array.isArray(kit.patterns) ? kit.patterns.find((pattern) => pattern?.id === activeSceneId) : null;
+  return normalizePattern(existing || createPattern());
+}
+
+async function persistSequencerPattern(pattern, message = "Pattern saved locally.") {
+  const kit = kits.get(currentKitId);
+  if (!kit) return false;
+  const nextPatterns = Array.isArray(kit.patterns) ? kit.patterns.filter((candidate) => candidate?.id !== activeSceneId) : [];
+  nextPatterns.push({ id: activeSceneId, name: activeSceneId === "scene-a" ? "Scene A" : "Scene B", ...normalizePattern(pattern) });
+  const nextKit = { ...kit, patterns: nextPatterns, updatedAt: new Date().toISOString() };
+  if (!(await persistKitRecord(nextKit))) return false;
+  renderSequencer();
+  setStatus(message, "success");
+  return true;
+}
+
+function renderSequencer() {
+  const pattern = getActiveSequencerPattern();
+  sequencerSwingInput.value = String(pattern.swing);
+  sequencerSwingValue.textContent = `${Math.round(pattern.swing * 100)}%`;
+  sequencerGrid.replaceChildren();
+  pattern.tracks.forEach((track, trackIndex) => {
+    const row = document.createElement("div");
+    row.className = "sequencer-track";
+    const label = document.createElement("label");
+    label.className = "sequencer-track-label";
+    label.textContent = `Track ${trackIndex + 1}`;
+    const select = document.createElement("select");
+    select.className = "sequencer-pad-select";
+    select.setAttribute("aria-label", `Scene pad for track ${trackIndex + 1}`);
+    pads.forEach((pad, padIndex) => {
+      const option = document.createElement("option");
+      option.value = String(padIndex);
+      option.textContent = `${String(padIndex + 1).padStart(2, "0")} ${getPadName(pad, padIndex)}`;
+      option.selected = padIndex === track.padIndex;
+      select.append(option);
+    });
+    select.addEventListener("change", () => {
+      const next = normalizePattern(getActiveSequencerPattern());
+      next.tracks[trackIndex].padIndex = Number(select.value);
+      void persistSequencerPattern(next, "Track pad saved locally.");
+    });
+    const steps = document.createElement("div");
+    steps.className = "sequencer-steps";
+    track.steps.forEach((step, stepIndex) => {
+      const button = document.createElement("button");
+      button.className = "sequencer-step";
+      button.type = "button";
+      button.textContent = String(stepIndex + 1);
+      button.setAttribute("aria-label", `Track ${trackIndex + 1}, step ${stepIndex + 1}`);
+      button.setAttribute("aria-pressed", String(step.on));
+      button.classList.toggle("is-on", step.on);
+      button.addEventListener("click", () => {
+        const next = toggleStep(getActiveSequencerPattern(), trackIndex, stepIndex);
+        void persistSequencerPattern(next, "Step saved locally.");
+      });
+      steps.append(button);
+    });
+    row.append(label, select, steps);
+    sequencerGrid.append(row);
+  });
+  sceneAButton.setAttribute("aria-pressed", String(activeSceneId === "scene-a"));
+  sceneBButton.setAttribute("aria-pressed", String(activeSceneId === "scene-b"));
+  sceneAButton.classList.toggle("is-active", activeSceneId === "scene-a");
+  sceneBButton.classList.toggle("is-active", activeSceneId === "scene-b");
+  sequencerStatus.textContent = `${activeSceneId === "scene-a" ? "Scene A" : "Scene B"} · ${sequencerRunner.running ? "Playing" : "Ready"}`;
+}
+
+function setSequencerScene(sceneId) {
+  activeSceneId = sceneId === "scene-b" ? "scene-b" : "scene-a";
+  renderSequencer();
+}
+
+async function toggleSequencer() {
+  if (sequencerRunner.running) {
+    sequencerRunner.stop();
+    sequencerPlayButton.textContent = "Play sequence";
+    renderSequencer();
+    return;
+  }
+  try {
+    await prepareAudio();
+    sequencerRunner.start();
+    sequencerPlayButton.textContent = "Stop sequence";
+    renderSequencer();
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "The sequence could not start.", "error");
+  }
+}
+
+async function clearSequencer() {
+  if (!window.confirm(`Clear ${activeSceneId === "scene-a" ? "Scene A" : "Scene B"}?`)) return;
+  await persistSequencerPattern(createPattern(), "Scene cleared and saved locally.");
+}
+
 function applyKit(kit) {
   pads = kit?.empty ? createDefaultPads() : normalizePads(kit?.pads);
   setKitDirty(false);
   renderPads();
   selectPad(0);
+  renderSequencer();
 }
 
 async function persistKitRecord(record) {
@@ -1468,6 +1589,11 @@ function stopPad(index, { quantized = false, announce = false } = {}) {
 function stopAll({ announce = true } = {}) {
   playbackGeneration += 1;
   clearBeatCountdown();
+  if (sequencerRunner.running) {
+    sequencerRunner.stop();
+    sequencerPlayButton.textContent = "Play sequence";
+    renderSequencer();
+  }
   for (const index of repeatTimers.keys()) stopRepeat(index);
   for (const [index, voices] of activeVoices) {
     for (const voice of voices) {
@@ -2482,6 +2608,18 @@ function bindEvents() {
   tempoInput.addEventListener("change", () => syncMetronome());
   recordButton.addEventListener("click", togglePerformanceRecording);
   performanceModeButton.addEventListener("click", () => void togglePerformanceMode());
+  sceneAButton.addEventListener("click", () => setSequencerScene("scene-a"));
+  sceneBButton.addEventListener("click", () => setSequencerScene("scene-b"));
+  sequencerPlayButton.addEventListener("click", () => void toggleSequencer());
+  document.querySelector("#sequencer-clear").addEventListener("click", () => void clearSequencer());
+  sequencerSwingInput.addEventListener("input", () => {
+    sequencerSwingValue.textContent = `${Math.round(Number(sequencerSwingInput.value) * 100)}%`;
+  });
+  sequencerSwingInput.addEventListener("change", () => {
+    const next = getActiveSequencerPattern();
+    next.swing = Number(sequencerSwingInput.value) || 0;
+    void persistSequencerPattern(next, "Swing saved locally.");
+  });
   document.addEventListener("fullscreenchange", () => {
     const isActive = document.body.classList.contains("is-performance-mode");
     if (!document.fullscreenElement && isActive) {
