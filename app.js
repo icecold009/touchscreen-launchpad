@@ -1,27 +1,27 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=52";
-import { createInputAdapter } from "./src/input-adapter.js?version=52";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=52";
-import { createPointerState } from "./src/pointer-state.js?version=52";
-import { attachStorageRequest } from "./src/storage-request.js?version=52";
-import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=52";
-import { getNextQuantizedTime } from "./src/transport.js?version=52";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=52";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=52";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=52";
-import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=52";
-import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=52";
-import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=52";
-import { createMidiFile } from "./src/midi-file.js?version=52";
-import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=52";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=52";
-import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=52";
-import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=52";
-import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=52";
-import { createPerformanceEvents, createPerformanceLog, checksumBytes, estimateRenderBytes, isRenderWithinGuardrails, normalizeRenderOptions } from "./src/performance-export.js?version=52";
-import { createArrangement, formatSceneChain, getNextChainPosition, getSceneName, normalizeArrangement, normalizeSceneId, parseSceneChain, shouldLaunchAtStep } from "./src/arrangement.js?version=52";
-import { encodePcmWav } from "./src/wav.js?version=52";
+import { createHistory } from "./src/history.js?version=57";
+import { createInputAdapter } from "./src/input-adapter.js?version=57";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=57";
+import { createPointerState } from "./src/pointer-state.js?version=57";
+import { attachStorageRequest } from "./src/storage-request.js?version=57";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=57";
+import { getNextQuantizedTime } from "./src/transport.js?version=57";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=57";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=57";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=57";
+import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=57";
+import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=57";
+import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=57";
+import { createMidiFile } from "./src/midi-file.js?version=57";
+import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=57";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=57";
+import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=57";
+import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=57";
+import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=57";
+import { createPerformanceEvents, createPerformanceLog, checksumBytes, estimateRenderBytes, isRenderWithinGuardrails, normalizeRenderOptions } from "./src/performance-export.js?version=57";
+import { createArrangement, formatSceneChain, getNextChainPosition, getSceneName, normalizeArrangement, normalizeSceneId, parseSceneChain, shouldLaunchAtStep } from "./src/arrangement.js?version=57";
+import { encodePcmWav } from "./src/wav.js?version=57";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -215,11 +215,25 @@ const repairStorageButton = document.querySelector("#repair-storage");
 const resetStorageButton = document.querySelector("#reset-storage");
 
 const padColors = [
-  "#f7b7bd", "#f8c6aa", "#f4e6a8", "#b7e3d0",
-  "#f8dcaa", "#c6e6c8", "#bce4e3", "#c5c6ed",
-  "#bde9c5", "#b9dced", "#d4c9ed", "#e0c8ec",
-  "#c1cef2", "#d6cbed", "#e4d0ea", "#e7c8df",
+  "#262626", "#2e2e2e", "#363636", "#3e3e3e",
+  "#464646", "#4e4e4e", "#565656", "#5e5e5e",
+  "#666666", "#6e6e6e", "#767676", "#7e7e7e",
+  "#868686", "#8e8e8e", "#969696", "#9e9e9e",
 ];
+
+function updateRangeProgress(input) {
+  const min = Number(input.min || 0);
+  const max = Number(input.max || 100);
+  const value = Number(input.value);
+  const progress = Number.isFinite(value) && max > min
+    ? Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100))
+    : 0;
+  input.style.setProperty("--range-progress", `${progress}%`);
+}
+
+function syncRangeProgress(input) {
+  updateRangeProgress(input);
+}
 
 const keyboardKeys = ["Q", "W", "E", "R", "A", "S", "D", "F", "Z", "X", "C", "V", "1", "2", "3", "4"];
 const voiceRegistry = createVoiceRegistry({ maxVoices: 32, maxVoicesPerPad: 4 });
@@ -1955,6 +1969,7 @@ function renderSliceEditor(sample) {
     startInput.max = "1";
     startInput.step = "0.001";
     startInput.value = String(slice.start);
+    syncRangeProgress(startInput);
     startInput.setAttribute("aria-label", `${slice.label} start`);
     startInput.addEventListener("change", () => {
       void persistSampleSlices(sample, updateSliceDefinition(sample.slices, index, { start: startInput.value }), `${sample.name} slice ${index + 1} updated.`);
@@ -1968,6 +1983,7 @@ function renderSliceEditor(sample) {
     endInput.max = "1";
     endInput.step = "0.001";
     endInput.value = String(slice.end);
+    syncRangeProgress(endInput);
     endInput.setAttribute("aria-label", `${slice.label} end`);
     endInput.addEventListener("change", () => {
       void persistSampleSlices(sample, updateSliceDefinition(sample.slices, index, { end: endInput.value }), `${sample.name} slice ${index + 1} updated.`);
@@ -4285,6 +4301,12 @@ async function togglePerformanceMode() {
 }
 
 function bindEvents() {
+  document.querySelectorAll("input[type=\"range\"]").forEach(syncRangeProgress);
+  document.addEventListener("input", (event) => {
+    if (event.target instanceof HTMLInputElement && event.target.type === "range") {
+      updateRangeProgress(event.target);
+    }
+  });
   stopAllButton.addEventListener("click", stopAll);
   document.addEventListener("visibilitychange", handleVisibilityChange);
   window.addEventListener("blur", clearPointerState);

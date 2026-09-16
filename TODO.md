@@ -15,6 +15,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: Every major feature has a visible keyboard/touch-accessible jump target; the first viewport is dark and readable; the editor can be collapsed and restored; stale PWA assets are invalidated; no existing feature control disappears.
 - Evidence: Local browser at `http://localhost:4181/?cachebust=52` renders the dark workspace map and feature cards; Samples navigation reaches `#sample-library`; editor collapse reports `aria-expanded=false` and restores to `true`; computed `color-scheme` is `dark` with zero light surface matches; `npm.cmd run validate` passes 79 tests.
 
+## Package: Monochrome controls and typography — `codex-minimal-black-gray-20260916`
+
+- Goal: Refine the dark workspace into a minimalist black-and-grey instrument with calmer typography and professional range controls.
+- Scope: Monochrome surface tokens and pad defaults, flat card/button treatment, shared Segoe UI Variable/system type stack, grayscale focus/status states, synchronized slider progress, slim horizontal/vertical tracks, and service-worker/module cache version.
+- Non-goals: New audio behavior, theme switching, sample-library behavior, or changes to stored kit data beyond the default pad color palette.
+- Files: `style.css`, `app.js`, `index.html`, `src/bootstrap.js`, `sw.js`, and this backlog entry.
+- Tests: `npm.cmd run validate`, `git diff --check`, fresh localhost desktop render, range progress inspection, and slider/editor interaction smoke.
+- Acceptance: The visible product chrome is black/grey without blue/purple surfaces; all range inputs share a slim filled track and clear thumb state; vertical master volume remains usable; typography is consistent and restrained; existing controls remain present and functional.
+- Evidence: Local browser at `http://localhost:4181/?cachebust=57` renders the black/grey workspace; a full computed-color audit found zero colorful non-pad surfaces and all 16 pads use grayscale presentation; 32 range inputs expose synchronized progress, Feedback moved from 22% to 23% with its output updating, the system font is `Segoe UI Variable` with system fallbacks, and the browser reported no warnings or errors.
+
 ## Package: Professional roadmap — `codex/launchpad-professional-roadmap-20260916`
 
 - Goal: Make the research actionable without hiding unfinished capabilities behind a generic “professional features” label.

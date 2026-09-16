@@ -1,5 +1,7 @@
 :root {
   color-scheme: dark;
+  background: var(--page);
+  color: var(--text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: #080c17;
   color: #f4f7ff;
@@ -2836,5 +2838,559 @@ body.is-performance-mode .feature-nav {
     right: 0.4rem;
     padding: 0.2rem 0.3rem;
     font-size: 0.5rem;
+  }
+}
+
+/* Monochrome refinement: quiet surfaces, precise controls, and one calm type system. */
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --page: #080808;
+  --surface: #111111;
+  --surface-raised: #181818;
+  --surface-soft: #141414;
+  --surface-strong: #222222;
+  --line: #292929;
+  --line-strong: #414141;
+  --text: #eeeeee;
+  --muted: #a2a2a2;
+  --quiet: #737373;
+  --accent: #dedede;
+  --accent-strong: #ffffff;
+  --success: #c8c8c8;
+  --danger: #bdbdbd;
+  --warning: #bdbdbd;
+  --range-fill: #d8d8d8;
+  --range-track: #303030;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+html,
+body {
+  background: var(--page);
+}
+
+html {
+  background: #080808 !important;
+  color: #eeeeee !important;
+}
+
+body {
+  color: var(--text);
+  background: var(--page);
+  font-family: inherit;
+  letter-spacing: 0;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  color-scheme: dark;
+  font-family: inherit;
+}
+
+a {
+  color: var(--accent);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--text);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 3.8rem);
+  line-height: 0.96;
+}
+
+.eyebrow {
+  color: var(--quiet);
+  font-weight: 650;
+  letter-spacing: 0.12em;
+}
+
+.subtitle,
+.status-message,
+.feature-nav-hint,
+.feature-nav-link small {
+  color: var(--muted);
+}
+
+.status-badge,
+.selected-indicator {
+  border-color: var(--line-strong);
+  background: var(--surface-soft);
+  color: var(--success);
+  box-shadow: none;
+}
+
+.feature-nav,
+.stage,
+.editor-panel,
+.controls,
+.performance-capture,
+.sequencer-panel,
+.midi-panel,
+.effects-panel,
+.kit-dock,
+.sample-lab,
+.backup-card,
+.sample-library,
+.sequencer-step-editor,
+.sample-picker,
+.master-macro-group,
+.volume-rail {
+  border-color: var(--line);
+  background: var(--surface);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.feature-nav {
+  background: rgba(17, 17, 17, 0.96);
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.28);
+}
+
+.feature-nav-heading {
+  border-color: var(--line);
+}
+
+.feature-nav-heading .eyebrow,
+.feature-nav-link.is-current .feature-nav-number {
+  color: var(--accent);
+}
+
+.feature-nav-link {
+  background: #171717;
+  color: var(--muted);
+  transition: transform 150ms var(--ease-out), border-color 150ms ease, background 150ms ease, color 150ms ease;
+}
+
+.feature-nav-link strong {
+  color: var(--text);
+  font-weight: 650;
+}
+
+.feature-nav-link:hover,
+.feature-nav-link:focus-visible,
+.feature-nav-link.is-current {
+  border-color: #bdbdbd;
+  background: #d7d7d7;
+  color: #0b0b0b;
+}
+
+.feature-nav-link:hover strong,
+.feature-nav-link:focus-visible strong,
+.feature-nav-link.is-current strong,
+.feature-nav-link:hover small,
+.feature-nav-link:focus-visible small,
+.feature-nav-link.is-current small,
+.feature-nav-link:hover .feature-nav-number,
+.feature-nav-link:focus-visible .feature-nav-number {
+  color: #0b0b0b;
+}
+
+.control-row > .button,
+.compact-control,
+.check-control,
+.range-control {
+  border-color: var(--line);
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
+.button {
+  min-height: 2.65rem;
+  border-color: var(--line-strong);
+  border-radius: 0.62rem;
+  background: #1b1b1b;
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: none;
+  transition: transform 150ms var(--ease-out), border-color 150ms ease, background 150ms ease, color 150ms ease;
+}
+
+.button:hover {
+  border-color: #6b6b6b;
+  background: #252525;
+}
+
+.button-primary,
+.sequencer-step.is-on {
+  border-color: #e3e3e3;
+  background: #e3e3e3;
+  color: #0a0a0a;
+  box-shadow: none;
+}
+
+.button-secondary {
+  border-color: #4b4b4b;
+  background: #202020;
+  color: var(--text);
+}
+
+.button-danger,
+.button.is-recording {
+  border-color: #646464;
+  background: #292929;
+  color: #eeeeee;
+}
+
+.button-quiet {
+  border-color: var(--line);
+  background: transparent;
+  color: var(--muted);
+}
+
+.button-loop,
+.button-loop.is-on {
+  border-color: #575757;
+  background: #242424;
+  color: #eeeeee;
+}
+
+.button-loop.is-on {
+  border-color: #dedede;
+  background: #dedede;
+  color: #0a0a0a;
+}
+
+.scene-buttons .is-active,
+.button-secondary.is-active {
+  border-color: #dedede;
+  background: #dedede;
+  color: #0a0a0a;
+}
+
+input:not([type="range"]):not([type="checkbox"]),
+select,
+textarea,
+#kit-select,
+#kit-name,
+.scene-names input,
+.arrangement-controls input,
+.arrangement-controls select,
+.sequencer-pad-select,
+.midi-controls select,
+.midi-profile-controls input[type="text"],
+.midi-controller-controls select,
+.sample-tags {
+  border-color: var(--line-strong);
+  border-radius: 0.52rem;
+  background: #0f0f0f;
+  color: var(--text);
+}
+
+.panel-heading,
+.control-field,
+.sample-waveform,
+.take-waveform {
+  background: #151515;
+}
+
+.dirty-indicator {
+  color: #c8c8c8;
+}
+
+.button-primary,
+.file-button.button-primary {
+  background: #e3e3e3;
+  color: #0a0a0a;
+}
+
+.backup-card .button-primary,
+.backup-card .button-secondary {
+  border-color: var(--line-strong);
+  background: #1b1b1b;
+  color: var(--text);
+}
+
+.backup-card .button-primary {
+  border-color: #e3e3e3;
+  background: #e3e3e3;
+  color: #0a0a0a;
+}
+
+input::placeholder,
+textarea::placeholder,
+.field,
+.compact-control,
+.check-control,
+.recording-state {
+  color: var(--muted);
+}
+
+input[type="checkbox"] {
+  accent-color: #d0d0d0;
+  filter: grayscale(1);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid #cfcfcf;
+  outline-offset: 3px;
+}
+
+/* One range treatment for transport, effects, macros, sample shaping, and the master rail. */
+input[type="range"] {
+  --range-progress: 0%;
+  --range-fill: #d8d8d8;
+  --range-track: #303030;
+  width: 100%;
+  min-width: 5rem;
+  height: 1.35rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  accent-color: var(--range-fill);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 0.3rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--range-fill) 0 var(--range-progress), var(--range-track) var(--range-progress) 100%);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 0.3rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--range-track);
+}
+
+input[type="range"]::-moz-range-progress {
+  height: 0.3rem;
+  border-radius: 999px;
+  background: var(--range-fill);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-top: -0.3rem;
+  border: 2px solid #0b0b0b;
+  border-radius: 50%;
+  background: #ededed;
+  box-shadow: 0 0 0 1px #787878, 0 0.15rem 0.4rem rgba(0, 0, 0, 0.45);
+  -webkit-appearance: none;
+  appearance: none;
+  transition: transform 150ms var(--ease-out), background 150ms ease;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid #0b0b0b;
+  border-radius: 50%;
+  background: #ededed;
+  box-shadow: 0 0 0 1px #787878, 0 0.15rem 0.4rem rgba(0, 0, 0, 0.45);
+  transition: transform 150ms var(--ease-out), background 150ms ease;
+}
+
+input[type="range"]:active::-webkit-slider-thumb,
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+  background: #ffffff;
+  transform: scale(1.12);
+}
+
+input[type="range"]:active::-moz-range-thumb,
+input[type="range"]:focus-visible::-moz-range-thumb {
+  background: #ffffff;
+  transform: scale(1.12);
+}
+
+.range-control {
+  display: grid;
+  grid-template-columns: auto minmax(5rem, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 2.7rem;
+  padding: 0.42rem 0.65rem;
+  border-radius: 0.62rem;
+}
+
+.range-control > span:first-child,
+.field > span:first-child {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 550;
+}
+
+.range-control output,
+.field output,
+.effects-controls output,
+.volume-rail output {
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.field {
+  font-weight: 500;
+}
+
+.field > span:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.compact-control input[type="range"] {
+  flex: 1 1 7rem;
+  min-width: 5rem;
+}
+
+.volume-rail {
+  border-color: var(--line);
+  background: #121212;
+}
+
+.volume-rail-title,
+.volume-rail-control {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.volume-rail input[type="range"] {
+  width: 1.45rem;
+  height: min(19rem, 24vw);
+  min-height: 10rem;
+  writing-mode: vertical-lr;
+  direction: rtl;
+}
+
+.volume-rail input[type="range"]::-webkit-slider-runnable-track {
+  width: 0.3rem;
+  height: 100%;
+  background: linear-gradient(to top, var(--range-fill) 0 var(--range-progress), var(--range-track) var(--range-progress) 100%);
+}
+
+.volume-rail input[type="range"]::-moz-range-track {
+  width: 0.3rem;
+  height: 100%;
+}
+
+.volume-rail input[type="range"]::-moz-range-progress {
+  width: 0.3rem;
+  height: 100%;
+}
+
+.editor-nav,
+.editor-nav-link:hover,
+.editor-nav-link:focus-visible,
+.editor-nav-link.is-current {
+  background: #151515;
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.editor-nav-link {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.editor-nav-link:hover,
+.editor-nav-link:focus-visible,
+.editor-nav-link.is-current {
+  background: #d7d7d7;
+  color: #0a0a0a;
+}
+
+.sequencer-step,
+.midi-mapping-item,
+.sample-item,
+.sample-dropzone {
+  border-color: var(--line);
+  background: #151515;
+}
+
+.sequencer-step.is-selected {
+  outline-color: #d0d0d0;
+}
+
+.recording-state[data-state="recording"],
+.recording-state[data-state="paused"],
+.status-message[data-type="success"],
+.status-message[data-type="error"],
+.beat-indicator,
+.persistence-note {
+  color: #c8c8c8;
+}
+
+.sample-dropzone.is-dragging,
+.sample-dropzone:focus-visible {
+  border-color: #d0d0d0;
+  outline-color: #858585;
+}
+
+.pad {
+  filter: grayscale(1);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 -0.42rem 0 rgba(0, 0, 0, 0.22), 0 0.7rem 1.4rem rgba(0, 0, 0, 0.26);
+}
+
+.pad.is-playing,
+.pad.is-selected,
+.pad.is-queued {
+  border-color: #eeeeee;
+  box-shadow: 0 0 0 2px #bdbdbd, inset 0 -0.42rem 0 rgba(0, 0, 0, 0.22), 0 0.7rem 1.4rem rgba(0, 0, 0, 0.26);
+}
+
+.pad.is-queued {
+  border-color: #8c8c8c;
+}
+
+.pad:hover,
+.pad:focus-visible,
+.pad:active,
+.pad.is-pressed,
+.pad.is-playing,
+.pad.is-selected,
+.pad.is-queued {
+  filter: grayscale(1);
+}
+
+.pad-label,
+.pad-number,
+.pad-key,
+.pad-mode {
+  font-weight: 650;
+}
+
+.pad-mode {
+  border-color: rgba(255, 255, 255, 0.46);
+  background: rgba(0, 0, 0, 0.48);
+  color: #f4f4f4;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  input[type="range"]:hover::-webkit-slider-thumb {
+    transform: scale(1.08);
+  }
+
+  input[type="range"]:hover::-moz-range-thumb {
+    transform: scale(1.08);
+  }
+}
+
+@media (max-width: 560px) {
+  .range-control {
+    grid-template-columns: minmax(4.25rem, auto) minmax(4rem, 1fr) auto;
+    gap: 0.45rem;
   }
 }
