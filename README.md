@@ -20,6 +20,7 @@ The feature-by-feature delivery plan, acceptance criteria, and explicit deferred
 - Local performance capture with microphone-plus-app mix, saved takes, take assignment, and direct take download.
 - Take review with pause/resume, waveform/duration display, timestamped markers, rename, and deterministic PCM/WAV export when the browser can decode the source codec.
 - Waveform/sample shaping with trim, loop regions, reverse, pitch, live-speed fallback, pan, filter, envelope, and per-pad delay/reverb sends.
+- Master low/mid/high EQ, compressor/limiter protection, per-kit effect snapshots, Warmth/Space/Punch macros, and peak/headroom diagnostics.
 - Non-destructive sample slicing with up to 16 editable markers, per-slice preview, and assignment to any pad.
 - Four-track A/B scenes with swing, probability, micro-timing, repeat scheduling, fullscreen performance mode, and deterministic MIDI export.
 - Selected-step probability/micro-timing editing, scene duplication, and user-visible pad/scene undo-redo.

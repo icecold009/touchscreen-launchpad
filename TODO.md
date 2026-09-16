@@ -55,6 +55,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: Saved takes remain local and bounded; pause/resume never counts paused time; review exposes audio and waveform/duration; markers and names persist; WAV export is deterministic or gives an actionable decode fallback; permission/device failures preserve previous takes.
 - Evidence: `npm.cmd run validate` passes 70 tests; fresh local browser render at `http://localhost:4181/` exposes Record performance and Pause recording, keeps Pause disabled while idle, exposes the saved-take review surface, and reports no console errors or warnings. Actual microphone permission, codec matrix, WAV download, device switching, hosted behavior, and DAW import remain unclaimed; `main` remains untouched.
 
+## Package: Master bus and performance macros — `codex/launchpad-master-macros-20260916`
+
+- Goal: Add useful master polish and repeatable performance states without turning the browser app into an unbounded plugin host.
+- Scope: Master low/mid/high EQ, compressor and limiter safety, bounded delay/reverb persistence, per-kit snapshots, Warmth/Space/Punch macros, peak/headroom checks, capture-bus inclusion, and browser-module/cache contracts.
+- Non-goals: Third-party plugins, arbitrary WebAssembly DSP, multichannel cue routing, loudness certification, or device-specific output calibration.
+- Files: `index.html`, `style.css`, `app.js`, `src/effects.js`, `src/bootstrap.js`, `sw.js`, `scripts/validate-site.mjs`, `package.json`, and effects/DOM/module/PWA tests.
+- Tests: `npm.cmd run validate`, bounded EQ/dynamics/peak tests, rendered master-control smoke, audio diagnostics and level-check smoke, `git diff --check`, and browser console inspection.
+- Acceptance: Master processing is bounded and ordered before destination/capture output; snapshots persist per kit; macros map to safe parameters; level checks label headroom/clipping; unsupported graph pieces degrade without breaking local pads.
+- Evidence: `npm.cmd run validate` passes 71 tests; fresh local browser render at `http://localhost:4181/` exposes EQ, compressor, limiter, macro, snapshot, and level controls; after Check audio it reports `running · 48000 Hz · 10 ms latency`, and Check levels reports `Peak 0% · headroom available` with no console errors or warnings. Physical output, long-session loudness, hosted behavior, and cue-device routing remain unclaimed; `main` remains untouched.
+
 ## Package: Record to perform — `codex/launchpad-record-perform-20260916`
 
 - Goal: Turn a live sound or voice idea into a reusable performance sample without leaving the local-first app.

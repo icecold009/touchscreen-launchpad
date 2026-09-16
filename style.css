@@ -1007,6 +1007,23 @@ body.is-performance-mode .midi-panel {
   text-align: right;
 }
 
+.master-macro-group {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+}
+
+.master-macro-group .effects-controls {
+  justify-content: space-between;
+}
+
+.master-macro-group .range-control {
+  flex: 1 1 10rem;
+}
+
 body.is-performance-mode .effects-panel {
   display: none;
 }

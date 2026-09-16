@@ -1,24 +1,24 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=42";
-import { createInputAdapter } from "./src/input-adapter.js?version=42";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=42";
-import { createPointerState } from "./src/pointer-state.js?version=42";
-import { attachStorageRequest } from "./src/storage-request.js?version=42";
-import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=42";
-import { getNextQuantizedTime } from "./src/transport.js?version=42";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=42";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=42";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=42";
-import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=42";
-import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=42";
-import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=42";
-import { createMidiFile } from "./src/midi-file.js?version=42";
-import { createImpulseResponse, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=42";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=42";
-import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=42";
-import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=42";
-import { encodePcmWav } from "./src/wav.js?version=42";
+import { createHistory } from "./src/history.js?version=43";
+import { createInputAdapter } from "./src/input-adapter.js?version=43";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=43";
+import { createPointerState } from "./src/pointer-state.js?version=43";
+import { attachStorageRequest } from "./src/storage-request.js?version=43";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=43";
+import { getNextQuantizedTime } from "./src/transport.js?version=43";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=43";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, normalizeSampleRegion } from "./src/sample-editor.js?version=43";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=43";
+import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=43";
+import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=43";
+import { createMidiLearnState, createMidiNoteMessage, getPadIndexForMidiNote, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=43";
+import { createMidiFile } from "./src/midi-file.js?version=43";
+import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=43";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=43";
+import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=43";
+import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=43";
+import { encodePcmWav } from "./src/wav.js?version=43";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -74,6 +74,20 @@ const midiOutputSelect = document.querySelector("#midi-output");
 const delayTimeInput = document.querySelector("#delay-time");
 const delayFeedbackInput = document.querySelector("#delay-feedback");
 const reverbDecayInput = document.querySelector("#reverb-decay");
+const masterEqLowInput = document.querySelector("#master-eq-low");
+const masterEqMidInput = document.querySelector("#master-eq-mid");
+const masterEqHighInput = document.querySelector("#master-eq-high");
+const compressorThresholdInput = document.querySelector("#compressor-threshold");
+const compressorRatioInput = document.querySelector("#compressor-ratio");
+const limiterThresholdInput = document.querySelector("#limiter-threshold");
+const macroWarmthInput = document.querySelector("#macro-warmth");
+const macroSpaceInput = document.querySelector("#macro-space");
+const macroPunchInput = document.querySelector("#macro-punch");
+const masterSnapshotSelect = document.querySelector("#master-snapshot");
+const saveMasterSnapshotButton = document.querySelector("#save-master-snapshot");
+const recallMasterSnapshotButton = document.querySelector("#recall-master-snapshot");
+const masterLevelStatus = document.querySelector("#master-level-status");
+const masterLevelCheckButton = document.querySelector("#master-level-check");
 const audioDiagnosticsButton = document.querySelector("#audio-diagnostics");
 const audioDiagnostics = document.querySelector("#audio-diagnostics-status");
 const sampleWaveform = document.querySelector("#sample-waveform");
@@ -185,6 +199,12 @@ let delayFeedbackGain;
 let delayReturnGain;
 let reverbNode;
 let reverbReturnGain;
+let masterEqLow;
+let masterEqMid;
+let masterEqHigh;
+let masterCompressor;
+let masterLimiter;
+let masterAnalyser;
 let recordingDestination;
 let recordingMicStream;
 let recordingMicSource;
@@ -353,11 +373,24 @@ function createKitRecord(slot, kitPads = createDefaultPads(), { name, empty = fa
     transport: undefined,
     patterns: [],
     scenes: [],
+    masterEffects: normalizeMasterEffects(),
+    masterSnapshots: [],
   };
 }
 
 function normalizeKit(candidate, slot) {
-  return normalizeKitRecord(candidate, slot, normalizePads);
+  const normalized = normalizeKitRecord(candidate, slot, normalizePads);
+  return {
+    ...normalized,
+    masterEffects: normalizeMasterEffects(candidate?.masterEffects),
+    masterSnapshots: Array.isArray(candidate?.masterSnapshots)
+      ? candidate.masterSnapshots.slice(0, 4).map((snapshot, index) => ({
+        id: typeof snapshot?.id === "string" ? snapshot.id.slice(0, 80) : `snapshot-${index + 1}`,
+        name: typeof snapshot?.name === "string" && snapshot.name.trim() ? snapshot.name.trim().slice(0, 40) : `Snapshot ${index + 1}`,
+        effects: normalizeMasterEffects(snapshot?.effects),
+      }))
+      : [],
+  };
 }
 
 function isValidStoredKit(kit) {
@@ -1042,6 +1075,10 @@ function sendMidiForPad(index, command, velocity = 1) {
 
 function applyKit(kit) {
   pads = kit?.empty ? createDefaultPads() : normalizePads(kit?.pads);
+  masterEffects = normalizeMasterEffects(kit?.masterEffects);
+  syncMasterEffectInputs();
+  renderMasterSnapshots();
+  if (audioContext) configureMasterEffects();
   layoutHistory.clear();
   for (const history of sequencerHistories.values()) history.clear();
   setKitDirty(false);
@@ -2032,8 +2069,38 @@ function getAudioContext() {
       ? audioContext.createMediaStreamDestination()
       : undefined;
     masterGain.gain.value = Number(masterVolumeInput.value);
-    masterGain.connect(audioContext.destination);
-    if (recordingDestination) masterGain.connect(recordingDestination);
+    let masterOutput = masterGain;
+    if (typeof audioContext.createBiquadFilter === "function") {
+      masterEqLow = audioContext.createBiquadFilter();
+      masterEqMid = audioContext.createBiquadFilter();
+      masterEqHigh = audioContext.createBiquadFilter();
+      masterEqLow.type = "lowshelf";
+      masterEqMid.type = "peaking";
+      masterEqHigh.type = "highshelf";
+      masterEqLow.frequency.value = 180;
+      masterEqMid.frequency.value = 1000;
+      masterEqMid.Q.value = 0.7;
+      masterEqHigh.frequency.value = 5000;
+      masterOutput.connect(masterEqLow);
+      masterEqLow.connect(masterEqMid);
+      masterEqMid.connect(masterEqHigh);
+      masterOutput = masterEqHigh;
+    }
+    if (typeof audioContext.createDynamicsCompressor === "function") {
+      masterCompressor = audioContext.createDynamicsCompressor();
+      masterLimiter = audioContext.createDynamicsCompressor();
+      masterOutput.connect(masterCompressor);
+      masterCompressor.connect(masterLimiter);
+      masterOutput = masterLimiter;
+    }
+    if (typeof audioContext.createAnalyser === "function") {
+      masterAnalyser = audioContext.createAnalyser();
+      masterAnalyser.fftSize = 256;
+      masterOutput.connect(masterAnalyser);
+      masterOutput = masterAnalyser;
+    }
+    masterOutput.connect(audioContext.destination);
+    if (recordingDestination) masterOutput.connect(recordingDestination);
     delayNode = audioContext.createDelay(1);
     delayFeedbackGain = audioContext.createGain();
     delayReturnGain = audioContext.createGain();
@@ -2069,24 +2136,165 @@ async function prepareAudio() {
 
 function configureMasterEffects() {
   if (!audioContext) return;
-  masterEffects = normalizeMasterEffects({
-    delayTime: delayTimeInput.value,
-    delayFeedback: delayFeedbackInput.value,
-    reverbDecay: reverbDecayInput.value,
-  });
+  masterEffects = normalizeMasterEffects(masterEffects);
   if (delayNode) delayNode.delayTime.setTargetAtTime(masterEffects.delayTime, audioContext.currentTime, 0.01);
   if (delayFeedbackGain) delayFeedbackGain.gain.setTargetAtTime(masterEffects.delayFeedback, audioContext.currentTime, 0.01);
   if (reverbNode) reverbNode.buffer = createImpulseResponse(audioContext, masterEffects.reverbDecay);
+  if (masterEqLow) masterEqLow.gain.setTargetAtTime(masterEffects.eqLowDb, audioContext.currentTime, 0.01);
+  if (masterEqMid) masterEqMid.gain.setTargetAtTime(masterEffects.eqMidDb, audioContext.currentTime, 0.01);
+  if (masterEqHigh) masterEqHigh.gain.setTargetAtTime(masterEffects.eqHighDb, audioContext.currentTime, 0.01);
+  if (masterCompressor) {
+    masterCompressor.threshold.setTargetAtTime(masterEffects.compressorThreshold, audioContext.currentTime, 0.01);
+    masterCompressor.ratio.setTargetAtTime(masterEffects.compressorRatio, audioContext.currentTime, 0.01);
+    masterCompressor.attack.setTargetAtTime(0.003, audioContext.currentTime, 0.01);
+    masterCompressor.release.setTargetAtTime(0.15, audioContext.currentTime, 0.01);
+  }
+  if (masterLimiter) {
+    masterLimiter.threshold.setTargetAtTime(masterEffects.limiterThreshold, audioContext.currentTime, 0.01);
+    masterLimiter.ratio.setTargetAtTime(20, audioContext.currentTime, 0.01);
+    masterLimiter.attack.setTargetAtTime(0.001, audioContext.currentTime, 0.01);
+    masterLimiter.release.setTargetAtTime(0.08, audioContext.currentTime, 0.01);
+  }
+  syncMasterEffectInputs();
   updateMasterEffectLabels();
+}
+
+function syncMasterEffectInputs() {
+  if (!masterEqLowInput) return;
+  masterEqLowInput.value = String(masterEffects.eqLowDb);
+  masterEqMidInput.value = String(masterEffects.eqMidDb);
+  masterEqHighInput.value = String(masterEffects.eqHighDb);
+  compressorThresholdInput.value = String(masterEffects.compressorThreshold);
+  compressorRatioInput.value = String(masterEffects.compressorRatio);
+  limiterThresholdInput.value = String(masterEffects.limiterThreshold);
+  delayTimeInput.value = String(masterEffects.delayTime);
+  delayFeedbackInput.value = String(masterEffects.delayFeedback);
+  reverbDecayInput.value = String(masterEffects.reverbDecay);
+  updateMasterEffectLabels();
+}
+
+function readMasterEffectsFromInputs() {
+  return normalizeMasterEffects({
+    delayTime: delayTimeInput.value,
+    delayFeedback: delayFeedbackInput.value,
+    reverbDecay: reverbDecayInput.value,
+    eqLowDb: masterEqLowInput.value,
+    eqMidDb: masterEqMidInput.value,
+    eqHighDb: masterEqHighInput.value,
+    compressorThreshold: compressorThresholdInput.value,
+    compressorRatio: compressorRatioInput.value,
+    limiterThreshold: limiterThresholdInput.value,
+  });
+}
+
+async function persistMasterEffects(message = "Master state saved locally.") {
+  const kit = kits.get(currentKitId);
+  if (!kit) return false;
+  const nextKit = { ...kit, masterEffects: normalizeMasterEffects(masterEffects), updatedAt: new Date().toISOString() };
+  if (!(await persistKitRecord(nextKit))) return false;
+  setKitDirty(false);
+  renderKitControls();
+  setStatus(storageMode === "memory" ? `${message} Memory-only mode: a reload may discard changes.` : message, storageMode === "memory" ? "error" : "success");
+  return true;
+}
+
+function renderMasterSnapshots() {
+  if (!masterSnapshotSelect) return;
+  const snapshots = kits.get(currentKitId)?.masterSnapshots || [];
+  masterSnapshotSelect.replaceChildren();
+  if (!snapshots.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No snapshots";
+    masterSnapshotSelect.append(option);
+  } else {
+    for (const snapshot of snapshots) {
+      const option = document.createElement("option");
+      option.value = snapshot.id;
+      option.textContent = snapshot.name;
+      masterSnapshotSelect.append(option);
+    }
+  }
+  recallMasterSnapshotButton.disabled = !snapshots.length;
+}
+
+async function saveMasterSnapshot() {
+  const kit = kits.get(currentKitId);
+  if (!kit) return;
+  const name = window.prompt("Name this master snapshot", `Snapshot ${(kit.masterSnapshots?.length || 0) + 1}`);
+  if (name === null) return;
+  const safeName = name.trim().slice(0, 40) || `Snapshot ${(kit.masterSnapshots?.length || 0) + 1}`;
+  const snapshots = [...(kit.masterSnapshots || [])];
+  const snapshot = { id: makeId(), name: safeName, effects: normalizeMasterEffects(masterEffects) };
+  if (snapshots.length >= 4) snapshots.shift();
+  snapshots.push(snapshot);
+  const nextKit = { ...kit, masterSnapshots: snapshots, updatedAt: new Date().toISOString() };
+  if (!(await persistKitRecord(nextKit))) return;
+  renderMasterSnapshots();
+  masterSnapshotSelect.value = snapshot.id;
+  setStatus(`${safeName} saved locally.`, "success");
+}
+
+async function recallMasterSnapshot() {
+  const snapshot = (kits.get(currentKitId)?.masterSnapshots || []).find((candidate) => candidate.id === masterSnapshotSelect.value);
+  if (!snapshot) return;
+  masterEffects = normalizeMasterEffects(snapshot.effects);
+  syncMasterEffectInputs();
+  configureMasterEffects();
+  await persistMasterEffects(`${snapshot.name} recalled.`);
+}
+
+function applyMasterMacro() {
+  const warmth = clamp(Number(macroWarmthInput.value) || 0, 0, 1);
+  const space = clamp(Number(macroSpaceInput.value) || 0, 0, 1);
+  const punch = clamp(Number(macroPunchInput.value) || 0, 0, 1);
+  masterEffects = normalizeMasterEffects({
+    ...masterEffects,
+    eqLowDb: (warmth - 0.5) * 12,
+    eqHighDb: (0.5 - warmth) * 6,
+    delayFeedback: space * 0.6,
+    reverbDecay: 0.2 + space * 3.8,
+    compressorThreshold: -30 + punch * 24,
+    compressorRatio: 1 + punch * 11,
+  });
+  syncMasterEffectInputs();
+  configureMasterEffects();
+  setKitDirty(true);
+}
+
+function checkMasterLevels() {
+  if (!masterAnalyser || !masterLevelStatus) {
+    masterLevelStatus.textContent = "Start audio before checking levels.";
+    return;
+  }
+  const data = new Float32Array(masterAnalyser.fftSize);
+  masterAnalyser.getFloatTimeDomainData(data);
+  const { peak, clipping } = detectPeak(data);
+  masterLevelStatus.textContent = clipping ? `Clipping risk · peak ${Math.round(peak * 100)}%` : `Peak ${Math.round(peak * 100)}% · headroom available`;
+  masterLevelStatus.dataset.type = clipping ? "warning" : "ready";
+  setStatus(clipping ? "Master level is near clipping. Lower pad/master gain or increase compression." : "Master level check passed with headroom.", clipping ? "error" : "success");
 }
 
 function updateMasterEffectLabels() {
   const delayOutput = document.querySelector("output[for=delay-time]");
   const feedbackOutput = document.querySelector("output[for=delay-feedback]");
   const reverbOutput = document.querySelector("output[for=reverb-decay]");
+  const formatDb = (value) => `${Number(value) > 0 ? "+" : ""}${Number(value).toFixed(1)} dB`;
   if (delayOutput) delayOutput.textContent = `${Math.round(Number(delayTimeInput.value) * 1000)} ms`;
   if (feedbackOutput) feedbackOutput.textContent = `${Math.round(Number(delayFeedbackInput.value) * 100)}%`;
   if (reverbOutput) reverbOutput.textContent = `${Number(reverbDecayInput.value).toFixed(1)} s`;
+  const outputValues = {
+    "master-eq-low": formatDb(masterEqLowInput.value),
+    "master-eq-mid": formatDb(masterEqMidInput.value),
+    "master-eq-high": formatDb(masterEqHighInput.value),
+    "compressor-threshold": `${Number(compressorThresholdInput.value) > 0 ? "+" : "−"}${Math.abs(Number(compressorThresholdInput.value)).toFixed(0)} dB`,
+    "compressor-ratio": `${Number(compressorRatioInput.value).toFixed(1)}:1`,
+    "limiter-threshold": `${Number(limiterThresholdInput.value) > 0 ? "+" : "−"}${Math.abs(Number(limiterThresholdInput.value)).toFixed(1)} dB`,
+  };
+  for (const [id, value] of Object.entries(outputValues)) {
+    const output = document.querySelector(`output[for="${id}"]`);
+    if (output) output.textContent = value;
+  }
 }
 
 async function showAudioDiagnostics() {
@@ -3450,10 +3658,23 @@ function bindEvents() {
   midiLearnButton.addEventListener("click", learnMidiForSelectedPad);
   midiInputSelect.addEventListener("change", (event) => selectMidiInput(event.target.value));
   midiOutputSelect.addEventListener("change", (event) => selectMidiOutput(event.target.value));
-  [delayTimeInput, delayFeedbackInput, reverbDecayInput].forEach((input) => input.addEventListener("input", () => {
-    updateMasterEffectLabels();
-    if (audioContext) configureMasterEffects();
-  }));
+  const masterEffectInputs = [delayTimeInput, delayFeedbackInput, reverbDecayInput, masterEqLowInput, masterEqMidInput, masterEqHighInput, compressorThresholdInput, compressorRatioInput, limiterThresholdInput];
+  masterEffectInputs.forEach((input) => {
+    input.addEventListener("input", () => {
+      masterEffects = readMasterEffectsFromInputs();
+      updateMasterEffectLabels();
+      if (audioContext) configureMasterEffects();
+      setKitDirty(true);
+    });
+    input.addEventListener("change", () => void persistMasterEffects());
+  });
+  [macroWarmthInput, macroSpaceInput, macroPunchInput].forEach((input) => {
+    input.addEventListener("input", applyMasterMacro);
+    input.addEventListener("change", () => void persistMasterEffects("Master macro state saved locally."));
+  });
+  saveMasterSnapshotButton.addEventListener("click", () => void saveMasterSnapshot());
+  recallMasterSnapshotButton.addEventListener("click", () => void recallMasterSnapshot());
+  masterLevelCheckButton.addEventListener("click", checkMasterLevels);
   audioDiagnosticsButton.addEventListener("click", () => void showAudioDiagnostics());
   document.addEventListener("fullscreenchange", () => {
     const isActive = document.body.classList.contains("is-performance-mode");

@@ -20,7 +20,7 @@ The current product already covers most of the performance loop. The remaining w
 | Sample lab | Waveform, trim, loop region, reverse, cents pitch, live-speed fallback, pan, filter, attack/release, delay/reverb send, bounded manual slice markers, per-slice preview, and slice-to-pad assignment | Automatic transient detection, fades, normalization, zoom, batch edits, true time-stretch | P1 |
 | Sample library | Shared local library, search, sort, folder import, natural ordering, deduplication, storage bounds | Drag/drop, tags/favorites, orphan cleanup, batch assignment, richer repair/preview tools | P1 |
 | Arrangement | Two persistent A/B scenes, four tracks, 16 steps, swing, editable probability/micro-timing, scene duplication, reversible edits, scene playback | Scene launch quantization, scene chaining, pattern copy/duplicate beyond whole-scene duplication | P1 |
-| Live effects | Per-pad delay/reverb sends, bounded master delay/reverb, filter/pan, local diagnostics, effects included in capture | Master EQ, compressor/limiter, safer feedback protection, effect snapshots/macros, output/cue routing | P1 |
+| Live effects | Per-pad delay/reverb sends, bounded master delay/reverb, filter/pan, local diagnostics, effects included in capture, master EQ/compressor/limiter, per-kit snapshots, Warmth/Space/Punch macros, and peak/headroom checks | Output/cue routing, richer metering, and device-specific calibration | P1 |
 | MIDI | Optional Web MIDI input/output, learn mapping, velocity-aware input, gate/hold note-off, outbound note feedback | CC/aftertouch mapping, clock sync, LED color/state feedback, multi-device profiles, robust reconnect/fallback | P1 |
 | Export | JSON layout, `.launchpack` audio backup with slice metadata, local take download, deterministic PCM/WAV take export, and two-scene MIDI | Offline rendered master/stem audio, event/performance export, import verification in a DAW | P1/P2 |
 | Persistence | Local storage + IndexedDB v3, versioned pad/sample migration, five kits, user-visible pad/scene undo-redo, non-destructive slice metadata, offline PWA | Autosave checkpoints, launchpack v2 migration, conflict/repair UX | P1 |
@@ -44,6 +44,7 @@ These are complete on local feature branches and are intentionally stacked rathe
 10. Audio clock and device resilience: audio-clock lookahead scheduling, explicit suspended/closed/unavailable diagnostics, stale sequencer-timer cleanup, and microphone device-loss handling.
 11. Slice-to-pads foundation: bounded non-destructive slice metadata, editable In/Out markers, per-slice preview, slice assignment to pads, and launchpack preservation.
 12. Capture review and WAV fallback: pause/resume state, take rename, local audio review, waveform rendering, marker metadata, and deterministic PCM/WAV export.
+13. Master bus and performance macros: bounded EQ, compressor/limiter protection, per-kit effect snapshots, Warmth/Space/Punch macros, peak/headroom diagnostics, and capture-bus inclusion.
 
 Evidence boundary: local contract and rendered browser evidence are current for these packages. Physical hardware, microphone capture, DAW import, hosted production behavior, and installed-PWA behavior remain environment-specific until separately verified.
 
@@ -86,13 +87,13 @@ Evidence boundary: local contract and rendered browser evidence are current for 
 - Acceptance: a supported browser can review and rename a bounded local take, pause/resume where the recorder exposes it, add markers, export deterministic PCM WAV, and retain the source codec when decode is unavailable; a failed permission/device path preserves existing takes.
 - Verification: encoder byte tests, bounded marker/session tests, MediaRecorder pause state tests, rendered capture-card smoke, mic permission/device-loss review, and download/import smoke. Actual microphone permission, codec support, and device recovery remain environment-specific.
 
-#### Package E: Master bus and performance macros
+#### Package E: Master bus and performance macros — complete for browser-local routing
 
 - Goal: add useful polish without turning the app into a plugin host.
-- Scope: bounded EQ, compressor/limiter safety, master snapshots, macro controls, per-kit FX persistence, clear clipping/latency warnings.
+- Scope: bounded low/mid/high EQ, compressor and limiter safety, bounded delay/reverb feedback, per-kit master snapshots, Warmth/Space/Punch macro controls, capture-bus inclusion, and peak/headroom diagnostics.
 - Non-goals: third-party plugins, arbitrary WebAssembly DSP, multichannel cue mixing.
-- Acceptance: feedback and output levels remain bounded; effects can be reset; capture includes the selected master state; diagnostics distinguish browser limitation from source failure.
-- Verification: parameter-bound tests, impulse/feedback tests, suspended-context tests, rendered controls and capture-bus review.
+- Acceptance: feedback and output levels remain bounded; effects can be reset; snapshots persist with the kit; macros map only to safe parameters; capture includes the selected master state; diagnostics distinguish browser limitation from source failure.
+- Verification: parameter-bound and peak tests, rendered EQ/dynamics/macro/snapshot controls, audio diagnostics and level-check smoke, capture-bus review, `git diff --check`, and `npm.cmd run validate` (71 tests). Browser-local evidence is current; physical output, long-session loudness, hosted behavior, and cue-device routing remain separate.
 
 #### Package F: MIDI and controller depth
 

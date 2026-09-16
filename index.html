@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=42" />
+    <link rel="stylesheet" href="style.css?version=43" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -211,7 +211,60 @@
                 <input id="reverb-decay" type="range" min="0.2" max="4" step="0.1" value="1.4" />
                 <output for="reverb-decay">1.4 s</output>
               </label>
+              <label class="compact-control" for="master-eq-low">
+                <span>Low EQ</span>
+                <input id="master-eq-low" type="range" min="-12" max="12" step="0.5" value="0" />
+                <output for="master-eq-low">0 dB</output>
+              </label>
+              <label class="compact-control" for="master-eq-mid">
+                <span>Mid EQ</span>
+                <input id="master-eq-mid" type="range" min="-12" max="12" step="0.5" value="0" />
+                <output for="master-eq-mid">0 dB</output>
+              </label>
+              <label class="compact-control" for="master-eq-high">
+                <span>High EQ</span>
+                <input id="master-eq-high" type="range" min="-12" max="12" step="0.5" value="0" />
+                <output for="master-eq-high">0 dB</output>
+              </label>
+              <label class="compact-control" for="compressor-threshold">
+                <span>Comp threshold</span>
+                <input id="compressor-threshold" type="range" min="-60" max="0" step="1" value="-18" />
+                <output for="compressor-threshold">−18 dB</output>
+              </label>
+              <label class="compact-control" for="compressor-ratio">
+                <span>Comp ratio</span>
+                <input id="compressor-ratio" type="range" min="1" max="20" step="0.5" value="4" />
+                <output for="compressor-ratio">4:1</output>
+              </label>
+              <label class="compact-control" for="limiter-threshold">
+                <span>Limiter ceiling</span>
+                <input id="limiter-threshold" type="range" min="-12" max="0" step="0.5" value="-1" />
+                <output for="limiter-threshold">−1 dB</output>
+              </label>
+              <div class="master-macro-group" role="group" aria-label="Master macros">
+                <span class="master-macro-title">Macros</span>
+                <label class="compact-control" for="macro-warmth">
+                  <span>Warmth</span>
+                  <input id="macro-warmth" type="range" min="0" max="1" step="0.01" value="0.5" />
+                </label>
+                <label class="compact-control" for="macro-space">
+                  <span>Space</span>
+                  <input id="macro-space" type="range" min="0" max="1" step="0.01" value="0.35" />
+                </label>
+                <label class="compact-control" for="macro-punch">
+                  <span>Punch</span>
+                  <input id="macro-punch" type="range" min="0" max="1" step="0.01" value="0.5" />
+                </label>
+              </div>
+              <label class="compact-control" for="master-snapshot">
+                <span>Snapshot</span>
+                <select id="master-snapshot"><option value="">No snapshots</option></select>
+              </label>
+              <button id="save-master-snapshot" class="button button-secondary" type="button">Save snapshot</button>
+              <button id="recall-master-snapshot" class="button button-secondary" type="button" disabled>Recall snapshot</button>
+              <span id="master-level-status" class="muted" role="status" aria-live="polite">Level check available after audio starts.</span>
               <button id="audio-diagnostics" class="button button-secondary" type="button">Check audio</button>
+              <button id="master-level-check" class="button button-quiet" type="button">Check levels</button>
             </div>
           </section>
 
@@ -531,6 +584,6 @@
       </section>
     </main>
 
-            <script type="module" src="src/bootstrap.js?version=42"></script>
+            <script type="module" src="src/bootstrap.js?version=43"></script>
   </body>
 </html>
