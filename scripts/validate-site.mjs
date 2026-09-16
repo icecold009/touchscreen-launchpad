@@ -24,6 +24,7 @@ const requiredFiles = [
   "src/recording.js",
   "src/sample-editor.js",
   "src/sample-library.js",
+  "src/performance-export.js",
   "src/sequencer.js",
   "src/slices.js",
   "src/transport.js",

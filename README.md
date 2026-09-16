@@ -28,6 +28,7 @@ The feature-by-feature delivery plan, acceptance criteria, and explicit deferred
 - Selected-step probability/micro-timing editing, scene duplication, and user-visible pad/scene undo-redo.
 - Audio-clock lookahead sequencing with explicit suspended/closed diagnostics, stale-timer cleanup, and microphone device-loss handling.
 - Optional Web MIDI input/output with learned pad mappings, velocity-aware triggering, CC/aftertouch targets, per-kit profiles, clock policy, reconnect handling, and generic note-state feedback.
+- Deterministic scene event-log export plus bounded offline master/stem WAV render with master EQ/dynamics and post-export checksum reporting when `OfflineAudioContext` is available.
 - Offline application shell through a service worker.
 - Preview tones for pads without an assigned sample.
 
@@ -60,7 +61,7 @@ This checks application and service-worker syntax, required static assets and PW
 4. Trigger it by touch, mouse, or the displayed keyboard shortcut.
 5. Use **Save kit** for an explicit local save, or switch among the five named kit slots.
 6. Use **Export .launchpack** for a portable backup of all kits and referenced audio. **Import Pack** accepts a folder or multiple audio files; the first 16 natural-sorted files map to pads and any remaining files stay in the shared library.
-7. Record a local take, assign it to a pad, or download it. In Sample lab, create a bounded slice bank, adjust In/Out markers, preview a slice, and assign it to the selected pad before saving. Build Scene A/B patterns and use **Export MIDI** to move the arrangement into a DAW or hardware sequencer.
+7. Record a local take, assign it to a pad, or download it. In Sample lab, create a bounded slice bank, adjust In/Out markers, preview a slice, and assign it to the selected pad before saving. Build Scene A/B patterns, export a deterministic event log or bounded master/stems WAV, and use **Export MIDI** to move the arrangement into a DAW or hardware sequencer.
 
 Exported JSON contains pad assignments and settings, not audio bytes. An imported layout may therefore show missing samples until those files are assigned again in the current browser. `.launchpack` backups include the referenced audio bytes and never upload them to the hosted app.
 
@@ -93,4 +94,4 @@ Only load audio you created or have permission to use. Do not commit or redistri
 
 ## Deliberate limits
 
-Cloud accounts, sync, complex time-stretching, automatic slicing, rendered stems, full timeline sequencing, and native mobile packaging remain deferred. Scene MIDI export is available; audio capture and device access stay permission-gated and browser-local.
+Cloud accounts, sync, complex time-stretching, automatic slicing, richer offline delay/reverb return rendering, full timeline sequencing, DAW import verification, and native mobile packaging remain deferred. Scene MIDI, event-log, and guarded WAV export are available; audio capture and device access stay permission-gated and browser-local.

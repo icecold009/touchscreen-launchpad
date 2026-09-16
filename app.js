@@ -1,25 +1,26 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=45";
-import { createInputAdapter } from "./src/input-adapter.js?version=45";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=45";
-import { createPointerState } from "./src/pointer-state.js?version=45";
-import { attachStorageRequest } from "./src/storage-request.js?version=45";
-import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=45";
-import { getNextQuantizedTime } from "./src/transport.js?version=45";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=45";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=45";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=45";
-import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=45";
-import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=45";
-import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=45";
-import { createMidiFile } from "./src/midi-file.js?version=45";
-import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=45";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=45";
-import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=45";
-import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=45";
-import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=45";
-import { encodePcmWav } from "./src/wav.js?version=45";
+import { createHistory } from "./src/history.js?version=47";
+import { createInputAdapter } from "./src/input-adapter.js?version=47";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=47";
+import { createPointerState } from "./src/pointer-state.js?version=47";
+import { attachStorageRequest } from "./src/storage-request.js?version=47";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=47";
+import { getNextQuantizedTime } from "./src/transport.js?version=47";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=47";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=47";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=47";
+import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=47";
+import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=47";
+import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=47";
+import { createMidiFile } from "./src/midi-file.js?version=47";
+import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=47";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=47";
+import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=47";
+import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=47";
+import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=47";
+import { createPerformanceEvents, createPerformanceLog, checksumBytes, estimateRenderBytes, isRenderWithinGuardrails, normalizeRenderOptions } from "./src/performance-export.js?version=47";
+import { encodePcmWav } from "./src/wav.js?version=47";
 
 const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
 const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
@@ -53,6 +54,11 @@ const sequencerGrid = document.querySelector("#sequencer-grid");
 const sequencerStatus = document.querySelector("#sequencer-status");
 const sequencerPlayButton = document.querySelector("#sequencer-play");
 const exportMidiButton = document.querySelector("#export-midi");
+const renderBarsInput = document.querySelector("#render-bars");
+const renderMasterButton = document.querySelector("#render-master-wav");
+const renderStemsButton = document.querySelector("#render-stems-wav");
+const exportPerformanceLogButton = document.querySelector("#export-performance-log");
+const renderStatus = document.querySelector("#render-status");
 const duplicateSceneButton = document.querySelector("#sequencer-duplicate");
 const undoSceneButton = document.querySelector("#sequencer-undo");
 const redoSceneButton = document.querySelector("#sequencer-redo");
@@ -1009,6 +1015,171 @@ function exportSceneMidi() {
     setStatus("Scene MIDI exported. Open it in a DAW or hardware sequencer.", "success");
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "Scene MIDI export failed. Check browser download permissions and try again.", "error");
+  }
+}
+
+function getRenderOptions() {
+  return normalizeRenderOptions({ bpm: Number(tempoInput.value) || 120, bars: Number(renderBarsInput.value) || 1, sampleRate: 44100, channels: 2 });
+}
+
+function getRenderScene() {
+  const sceneId = activeSceneId;
+  return {
+    id: sceneId,
+    name: sceneId === "scene-a" ? "Scene A" : "Scene B",
+    pattern: getSequencerPattern(sceneId),
+  };
+}
+
+function createOfflineMasterOutput(context) {
+  const gain = context.createGain();
+  gain.gain.value = clamp(Number(masterVolumeInput.value) || 0.8, 0, 1);
+  let output = gain;
+  if (typeof context.createBiquadFilter === "function") {
+    const low = context.createBiquadFilter();
+    const mid = context.createBiquadFilter();
+    const high = context.createBiquadFilter();
+    low.type = "lowshelf";
+    mid.type = "peaking";
+    high.type = "highshelf";
+    low.frequency.value = 180;
+    mid.frequency.value = 1000;
+    mid.Q.value = 0.7;
+    high.frequency.value = 5000;
+    low.gain.value = masterEffects.eqLowDb;
+    mid.gain.value = masterEffects.eqMidDb;
+    high.gain.value = masterEffects.eqHighDb;
+    output.connect(low);
+    low.connect(mid);
+    mid.connect(high);
+    output = high;
+  }
+  if (typeof context.createDynamicsCompressor === "function") {
+    const compressor = context.createDynamicsCompressor();
+    const limiter = context.createDynamicsCompressor();
+    compressor.threshold.value = masterEffects.compressorThreshold;
+    compressor.ratio.value = masterEffects.compressorRatio;
+    limiter.threshold.value = masterEffects.limiterThreshold;
+    limiter.ratio.value = 20;
+    output.connect(compressor);
+    compressor.connect(limiter);
+    output = limiter;
+  }
+  output.connect(context.destination);
+  return gain;
+}
+
+async function renderSceneBuffer(trackIndex = null) {
+  const options = getRenderOptions();
+  if (!isRenderWithinGuardrails(options)) throw new Error("This render exceeds the 64 MB safety limit. Reduce bars or sample rate.");
+  const OfflineAudioContextClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!OfflineAudioContextClass) throw new Error("This browser does not expose OfflineAudioContext. Export MIDI or the event log instead.");
+  const frameCount = Math.ceil(options.seconds * options.sampleRate);
+  const context = new OfflineAudioContextClass(options.channels, frameCount, options.sampleRate);
+  const output = createOfflineMasterOutput(context);
+  const scene = getRenderScene();
+  const events = createPerformanceEvents({ scene, bpm: options.bpm, bars: options.bars, trackIndex });
+  for (const event of events) {
+    const pad = pads[event.padIndex] || createDefaultPads()[event.padIndex];
+    const gain = context.createGain();
+    const processing = normalizeSampleProcessing(pad.sampleProcessing);
+    let source;
+    let isBufferSource = false;
+    let duration = event.duration;
+    let offset = 0;
+    let normalizationGain = 1;
+    if (pad.sampleId && samples.has(pad.sampleId)) {
+      const sample = samples.get(pad.sampleId);
+      const buffer = await getSampleBuffer(sample, context);
+      const plan = createPlaybackPlan({ duration: buffer.duration, region: pad.sampleRegion, timeStretch: pad.timeStretch, pitchCents: pad.pitchCents });
+      source = context.createBufferSource();
+      isBufferSource = true;
+      source.buffer = plan.reverse ? createReversedBuffer(context, buffer) || buffer : buffer;
+      source.playbackRate.value = plan.playbackRate;
+      source.detune.value = plan.detune;
+      offset = plan.offset;
+      duration = Math.min(plan.duration, options.seconds - event.at);
+      if (processing.normalize) normalizationGain = Math.min(4, 1 / getBufferPeak(buffer, pad.sampleRegion));
+    } else {
+      source = context.createOscillator();
+      source.type = "triangle";
+      source.frequency.value = 180 * Math.pow(2, (event.padIndex % 8) / 8);
+      duration = Math.min(0.48, options.seconds - event.at);
+    }
+    if (duration <= 0 || event.at >= options.seconds) continue;
+    const level = clamp((Number(pad.volume) || 0.8) * event.velocity * normalizationGain, 0.0001, 1);
+    const fadeIn = Math.min(Math.max(processing.fadeIn, Number(pad.attack) || 0), duration * 0.5);
+    const fadeOut = Math.min(processing.fadeOut, Math.max(0, duration - fadeIn));
+    gain.gain.setValueAtTime(0.0001, event.at);
+    gain.gain.linearRampToValueAtTime(level, event.at + fadeIn);
+    if (fadeOut > 0) {
+      gain.gain.setValueAtTime(level, event.at + duration - fadeOut);
+      gain.gain.linearRampToValueAtTime(0.0001, event.at + duration);
+    }
+    source.connect(gain);
+    gain.connect(output);
+    if (isBufferSource) source.start(event.at, offset, duration);
+    else {
+      source.start(event.at);
+      source.stop(event.at + duration);
+    }
+  }
+  return { buffer: await context.startRendering(), options, scene, trackIndex };
+}
+
+async function renderMasterWav() {
+  renderMasterButton.disabled = true;
+  try {
+    renderStatus.textContent = "Rendering master WAV…";
+    const rendered = await renderSceneBuffer();
+    const bytes = encodePcmWav(rendered.buffer);
+    const checksum = await checksumBytes(bytes);
+    triggerBlobDownload({ documentRef: document, windowRef: window }, `touchscreen-launchpad-${rendered.scene.id}-master.wav`, new Blob([bytes], { type: "audio/wav" }));
+    renderStatus.textContent = `Master WAV rendered · ${rendered.options.seconds.toFixed(2)}s · SHA-256 ${checksum.slice(0, 12)}…`;
+    setStatus("Master WAV rendered from the active scene.", "success");
+  } catch (error) {
+    renderStatus.textContent = error instanceof Error ? error.message : "Master render failed.";
+    setStatus(renderStatus.textContent, "error");
+  } finally {
+    renderMasterButton.disabled = false;
+  }
+}
+
+async function renderStemWavs() {
+  renderStemsButton.disabled = true;
+  try {
+    const checksums = [];
+    for (let trackIndex = 0; trackIndex < 4; trackIndex += 1) {
+      renderStatus.textContent = `Rendering stem ${trackIndex + 1}/4…`;
+      const rendered = await renderSceneBuffer(trackIndex);
+      const bytes = encodePcmWav(rendered.buffer);
+      checksums.push(await checksumBytes(bytes));
+      triggerBlobDownload({ documentRef: document, windowRef: window }, `touchscreen-launchpad-${rendered.scene.id}-stem-${trackIndex + 1}.wav`, new Blob([bytes], { type: "audio/wav" }));
+    }
+    renderStatus.textContent = `4 stems rendered · ${checksums.map((checksum) => checksum.slice(0, 8)).join(" · ")}`;
+    setStatus("Scene stems rendered from the active scene.", "success");
+  } catch (error) {
+    renderStatus.textContent = error instanceof Error ? error.message : "Stem render failed.";
+    setStatus(renderStatus.textContent, "error");
+  } finally {
+    renderStemsButton.disabled = false;
+  }
+}
+
+function exportPerformanceLog() {
+  try {
+    const scenes = ["scene-a", "scene-b"].map((sceneId) => ({
+      id: sceneId,
+      name: sceneId === "scene-a" ? "Scene A" : "Scene B",
+      pattern: getSequencerPattern(sceneId),
+    }));
+    const log = createPerformanceLog({ scenes, pads, bpm: Number(tempoInput.value) || 120, bars: Number(renderBarsInput.value) || 1, masterEffects });
+    triggerTextDownload({ documentRef: document, windowRef: window }, "touchscreen-launchpad-performance.json", `${JSON.stringify(log, null, 2)}\n`, "application/json");
+    renderStatus.textContent = `${log.scenes.reduce((total, scene) => total + scene.events.length, 0)} deterministic events exported.`;
+    setStatus("Performance event log exported for review or tooling.", "success");
+  } catch (error) {
+    renderStatus.textContent = error instanceof Error ? error.message : "Performance log export failed.";
+    setStatus(renderStatus.textContent, "error");
   }
 }
 
@@ -4068,6 +4239,9 @@ function bindEvents() {
   sceneBButton.addEventListener("click", () => setSequencerScene("scene-b"));
   sequencerPlayButton.addEventListener("click", () => void toggleSequencer());
   exportMidiButton.addEventListener("click", exportSceneMidi);
+  renderMasterButton.addEventListener("click", () => void renderMasterWav());
+  renderStemsButton.addEventListener("click", () => void renderStemWavs());
+  exportPerformanceLogButton.addEventListener("click", exportPerformanceLog);
   duplicateSceneButton.addEventListener("click", () => void duplicateSequencerScene());
   undoSceneButton.addEventListener("click", () => void restoreSequencerHistory("undo"));
   redoSceneButton.addEventListener("click", () => void restoreSequencerHistory("redo"));

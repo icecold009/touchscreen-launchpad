@@ -90,6 +90,11 @@ test("the launchpad DOM exposes its primary interaction surface", () => {
     "sample-fade-in",
     "sample-fade-out",
     "sample-normalize",
+    "render-bars",
+    "render-master-wav",
+    "render-stems-wav",
+    "export-performance-log",
+    "render-status",
   ];
 
   for (const id of requiredIds) {

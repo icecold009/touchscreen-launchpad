@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=45" />
+    <link rel="stylesheet" href="style.css?version=47" />
     <title>Touchscreen Launchpad</title>
   </head>
   <body>
@@ -115,6 +115,13 @@
               <button id="sequencer-play" class="button button-primary" type="button">Play sequence</button>
               <button id="sequencer-clear" class="button button-quiet" type="button">Clear scene</button>
               <button id="export-midi" class="button button-secondary" type="button">Export MIDI</button>
+              <label class="compact-control" for="render-bars">
+                <span>Render bars</span>
+                <input id="render-bars" type="number" min="1" max="16" step="1" value="1" inputmode="numeric" />
+              </label>
+              <button id="render-master-wav" class="button button-secondary" type="button">Render master WAV</button>
+              <button id="render-stems-wav" class="button button-secondary" type="button">Render stems</button>
+              <button id="export-performance-log" class="button button-quiet" type="button">Export event log</button>
               <button id="sequencer-duplicate" class="button button-secondary" type="button">Duplicate to Scene B</button>
               <button id="sequencer-undo" class="button button-quiet" type="button">Undo scene</button>
               <button id="sequencer-redo" class="button button-quiet" type="button">Redo scene</button>
@@ -124,6 +131,7 @@
                 <output id="sequencer-swing-value" for="sequencer-swing">0%</output>
               </label>
             </div>
+            <p id="render-status" class="muted" role="status" aria-live="polite">Offline render is bounded to 16 bars and 64 MB per file.</p>
             <div id="sequencer-grid" class="sequencer-grid" aria-label="Four-track 16-step sequencer"></div>
             <div class="sequencer-step-editor" aria-labelledby="sequencer-step-title">
               <div class="section-heading">
@@ -653,6 +661,6 @@
       </section>
     </main>
 
-            <script type="module" src="src/bootstrap.js?version=45"></script>
+            <script type="module" src="src/bootstrap.js?version=47"></script>
   </body>
 </html>

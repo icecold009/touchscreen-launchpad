@@ -22,7 +22,7 @@ The current product already covers most of the performance loop. The remaining w
 | Arrangement | Two persistent A/B scenes, four tracks, 16 steps, swing, editable probability/micro-timing, scene duplication, reversible edits, scene playback | Scene launch quantization, scene chaining, pattern copy/duplicate beyond whole-scene duplication | P1 |
 | Live effects | Per-pad delay/reverb sends, bounded master delay/reverb, filter/pan, local diagnostics, effects included in capture, master EQ/compressor/limiter, per-kit snapshots, Warmth/Space/Punch macros, and peak/headroom checks | Output/cue routing, richer metering, and device-specific calibration | P1 |
 | MIDI | Optional Web MIDI input/output, learn mapping, velocity-aware input, gate/hold note-off, outbound note feedback, CC/aftertouch targets, per-kit profiles, clock-in tempo follow, clock-out transport pulses, and reconnect-safe selection | Device-specific LED color protocols, SysEx profiles, and hardware certification | P1 |
-| Export | JSON layout, `.launchpack` audio backup with slice metadata, local take download, deterministic PCM/WAV take export, and two-scene MIDI | Offline rendered master/stem audio, event/performance export, import verification in a DAW | P1/P2 |
+| Export | JSON layout, `.launchpack` audio backup with slice metadata, local take download, deterministic PCM/WAV take export, two-scene MIDI, deterministic event-log export, and guarded offline master/stem WAV render with checksum | DAW import verification, richer offline return rendering, cancel/progress UX beyond bounded status updates | P1/P2 |
 | Persistence | Local storage + IndexedDB v3, versioned pad/sample migration, five kits, user-visible pad/scene undo-redo, non-destructive slice metadata, offline PWA | Autosave checkpoints, launchpack v2 migration, conflict/repair UX | P1 |
 | Accessibility | Semantic controls, keyboard/focus path, labeled step editor, live status messages, reduced-motion styling, fallback when MIDI/mic are unavailable | High-contrast/focus audit at performance distance, rate-limited announcements, screen-reader export feedback | P1 |
 | Delivery | Static no-build app, Vercel canonical deployment, secondary Pages workflow, service-worker cache contract | Release smoke matrix, hosted offline/update proof after each release, device matrix, optional observability | P0 |
@@ -47,6 +47,7 @@ These are complete on local feature branches and are intentionally stacked rathe
 13. Master bus and performance macros: bounded EQ, compressor/limiter protection, per-kit effect snapshots, Warmth/Space/Punch macros, peak/headroom diagnostics, and capture-bus inclusion.
 14. MIDI and controller depth: bounded CC/aftertouch mappings, per-kit profiles, learn cancellation/conflict feedback, clock-in tempo following, clock-out sequence pulses, reconnect-safe device selection, and note-state feedback.
 15. Sample library and content polish: drag/drop import, tags/favorites, usage/orphan awareness, bounded batch assignment, reversible cleanup, waveform zoom, fade controls, normalize-on-playback, and a starter-content license manifest.
+16. Rendered audio and event export: deterministic scene event logs, guarded offline master/stem WAV rendering, master EQ/dynamics inclusion, bounded file/memory estimates, and post-export SHA-256 checksums.
 
 Evidence boundary: local contract and rendered browser evidence are current for these packages. Physical hardware, microphone capture, DAW import, hosted production behavior, and installed-PWA behavior remain environment-specific until separately verified.
 
@@ -113,31 +114,15 @@ Evidence boundary: local contract and rendered browser evidence are current for 
 - Acceptance: metadata stays bounded and local; batch actions map only within the 16-pad surface; orphan cleanup requires confirmation; import limits and storage state remain visible; shaping controls persist with pad settings; launchpacks retain library metadata; content additions have a source/license record.
 - Verification: sample-library and sample-editor contract tests, module/cache/DOM/PWA contracts, fresh local browser render of the library/dropzone and shaping controls, `git diff --check`, and browser console inspection. Actual audio decoding, drag/drop from a physical file manager, storage-quota failure, hosted behavior, and license clearance for future content remain environment/content-specific.
 
-#### Package F: MIDI and controller depth
-
-- Goal: make optional hardware integration reliable for repeat performances.
-- Scope: CC/aftertouch mapping, clock in/out decision, controller profiles, reconnect behavior, pad LED feedback where exposed, learn cancellation and conflict UI.
-- Non-goals: SysEx scripts for every controller, hardware-specific guarantees, MIDI becoming a requirement.
-- Acceptance: no-MIDI browsers retain full local operation; learned mappings are bounded and portable; disconnect/reconnect cannot leave a gate stuck.
-- Verification: fake Web MIDI access tests, permission denial, hot-plug/reconnect, controller matrix on available hardware.
-
-#### Package G: Sample library and content polish
-
-- Goal: reduce friction between a sample folder and a playable kit.
-- Scope: drag/drop, tags/favorites, batch assignment, orphan detection/repair, waveform zoom/fades/normalization, starter-kit license manifest.
-- Non-goals: copyrighted artist audio, server indexing, unbounded sample storage.
-- Acceptance: all batch actions are previewable or reversible; licensing metadata ships with any starter content; limits are shown before persistence.
-- Verification: import/storage quota tests, repair/reset tests, accessibility/overflow smoke, source/license audit.
-
 ### P2 — Portable production workflows
 
-#### Package H: Rendered audio and event export
+#### Package H: Rendered audio and event export — complete for guarded browser-local render
 
 - Goal: bridge the gap between browser performance and production software.
-- Scope: deterministic offline WAV render, master plus per-track stems, event/performance log export, render progress/cancel state, file-size/memory guardrails, post-export checksum.
-- Non-goals: live cloud rendering, project files for every DAW, unlimited track counts.
-- Acceptance: master/stems match the selected scene and tempo; cancellation leaves no corrupt download; a render can be repeated byte-for-byte under the same inputs.
-- Verification: golden PCM tests, memory stress, large-kit tests, import checks in at least one DAW when available.
+- Scope: deterministic event/performance log export; offline master plus per-track WAV stems; selected-scene and tempo controls; master volume, EQ, compressor, and limiter inclusion; bounded 16-bar/64 MB guardrails; and post-export SHA-256 checksum reporting.
+- Non-goals: live cloud rendering, project files for every DAW, unlimited track counts, and offline inclusion of delay/reverb returns that are not represented in the current renderer.
+- Acceptance: master/stems use the selected scene and tempo; output is bounded before rendering; repeated renders are deterministic for the same inputs; failed renders leave the app usable; event logs remain inspectable JSON rather than an opaque binary.
+- Verification: `npm.cmd run validate` passes 76 tests; fresh local browser smoke confirms event-log status, master WAV status with duration/checksum, and no console errors or warnings. Decoder coverage, large-kit memory stress, cancellation during a long render, and import checks in a DAW remain environment-specific follow-up evidence.
 
 #### Package I: Scene launch and arrangement polish
 
@@ -167,4 +152,4 @@ Every future package must state its goal, scope, non-goals, files, tests, accept
 
 ## Definition of done for the professional milestone
 
-The milestone is complete when Packages A–G are shipped and verified, Package H has deterministic master/stem export or an explicit user-approved deferral, the production smoke matrix is green, and the remaining deferred list is accepted as a product decision rather than an accidental omission.
+The milestone is complete when Packages A–H are shipped and verified, the production smoke matrix is green, and the remaining deferred list is accepted as a product decision rather than an accidental omission. Package I is the next live-arrangement polish package and is not implied by the render/export milestone.

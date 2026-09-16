@@ -85,6 +85,16 @@ Audit package baseline: `1dde9e9`; the merged release contains the security hard
 - Acceptance: Metadata stays bounded and local; batch assignment remains within the 16 pads; orphan cleanup is confirmation-gated; shaping settings persist with the pad and launchpacks retain library metadata; any future starter audio has a source/license row.
 - Evidence: `npm.cmd run validate` passes 75 tests; fresh local render at `http://localhost:4181/?cachebust=45` exposes Drop audio here, Favorites only, Tag, Assign selected, Remove unused, Waveform zoom, Normalize on playback, Fade in, and Fade out; setting zoom to `8.0×` and enabling normalization updates the rendered editor with no console errors or warnings. Physical file-manager drag/drop, actual decoder behavior, storage quota recovery, hosted behavior, and future content clearance remain unclaimed; `main` remains untouched.
 
+## Package: Rendered audio and event export — `codex/launchpad-render-export-20260916`
+
+- Goal: Bridge browser performance work into production software with deterministic, bounded local exports.
+- Scope: Deterministic event/performance JSON; offline master and four-track stem WAV rendering; selected scene, tempo, and bar-count controls; master volume/EQ/compressor/limiter inclusion; 16-bar and 64 MB guardrails; and SHA-256 checksum reporting.
+- Non-goals: Cloud rendering, unlimited-length exports, DAW project generation, DAW import certification, and delay/reverb return rendering that the current offline graph cannot reproduce faithfully.
+- Files: `index.html`, `style.css`, `app.js`, `src/performance-export.js`, `src/sample-editor.js`, `src/bootstrap.js`, `sw.js`, `scripts/validate-site.mjs`, `package.json`, `test/performance-export.test.mjs`, DOM/module/PWA contracts, README, and this backlog entry.
+- Tests: `npm.cmd run validate`, deterministic event/render-option/guardrail/checksum tests, DOM/module/cache/PWA contracts, fresh local event-log and master-WAV browser smoke, `git diff --check`, and console inspection.
+- Acceptance: Export controls expose the selected scene and bounded bar count; event logs are deterministic and inspectable; master/stem files render only within guardrails; repeatable inputs produce repeatable metadata/checksums; failures leave the app usable and report a clear status.
+- Evidence: `npm.cmd run validate` passes 76 tests; fresh local browser render reports `2 deterministic events exported.` for the event log and `Master WAV rendered · 2.00s · SHA-256 6cc68e2b8abd…` for the master render with no console errors or warnings. Large-kit memory stress, long-render cancellation, decoded sample fidelity, delay/reverb inclusion, DAW import, hosted behavior, and `main` publication remain unclaimed.
+
 ## Package: Record to perform — `codex/launchpad-record-perform-20260916`
 
 - Goal: Turn a live sound or voice idea into a reusable performance sample without leaving the local-first app.
