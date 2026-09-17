@@ -106,6 +106,9 @@ const limiterThresholdInput = document.querySelector("#limiter-threshold");
 const macroWarmthInput = document.querySelector("#macro-warmth");
 const macroSpaceInput = document.querySelector("#macro-space");
 const macroPunchInput = document.querySelector("#macro-punch");
+const macroWarmthValue = document.querySelector("#macro-warmth-value");
+const macroSpaceValue = document.querySelector("#macro-space-value");
+const macroPunchValue = document.querySelector("#macro-punch-value");
 const masterSnapshotSelect = document.querySelector("#master-snapshot");
 const saveMasterSnapshotButton = document.querySelector("#save-master-snapshot");
 const recallMasterSnapshotButton = document.querySelector("#recall-master-snapshot");
@@ -183,6 +186,9 @@ const redoPadButton = document.querySelector("#redo-pad");
 const editorPanel = document.querySelector(".editor-panel");
 const editorToggle = document.querySelector("#editor-toggle");
 const editorNavLinks = [...document.querySelectorAll(".editor-nav-link")];
+const featureNav = document.querySelector(".feature-nav");
+const featureNavToggle = document.querySelector("#feature-nav-toggle");
+const featureNavGroups = document.querySelector("#feature-nav-groups");
 const featureNavLinks = [...document.querySelectorAll(".feature-nav-link")];
 const saveLayoutButton = document.querySelector("#save-layout");
 const exportLayoutButton = document.querySelector("#export-layout");
@@ -229,10 +235,134 @@ function updateRangeProgress(input) {
     ? Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100))
     : 0;
   input.style.setProperty("--range-progress", `${progress}%`);
+  input.style.setProperty("--knob-fill-deg", `${(progress / 100) * 270}deg`);
+  input.style.setProperty("--knob-angle", `${225 + (progress / 100) * 270}deg`);
+  const knobControl = input.closest?.(".knob-control");
+  if (knobControl) {
+    knobControl.style.setProperty("--knob-fill-deg", `${(progress / 100) * 270}deg`);
+    knobControl.style.setProperty("--knob-angle", `${225 + (progress / 100) * 270}deg`);
+  }
 }
 
 function syncRangeProgress(input) {
   updateRangeProgress(input);
+}
+
+const enhancedRangeInputs = new WeakSet();
+const activeRangePointers = new Map();
+const RANGE_DRAG_PIXELS = 160;
+
+function getRangeModel(input) {
+  const min = Number.isFinite(Number(input.min)) ? Number(input.min) : 0;
+  const max = Number.isFinite(Number(input.max)) ? Number(input.max) : 100;
+  const configuredStep = Number(input.step);
+  const step = Number.isFinite(configuredStep) && configuredStep > 0 ? configuredStep : (max - min) / 100;
+  return { min, max: Math.max(min, max), step: step > 0 ? step : 1 };
+}
+
+function decimalPlaces(value) {
+  const stringValue = String(value);
+  if (stringValue.includes("e-")) return Number(stringValue.split("e-")[1]);
+  return stringValue.split(".")[1]?.length || 0;
+}
+
+function normalizeRangeValue(input, value) {
+  const { min, max, step } = getRangeModel(input);
+  const numericValue = Number(value);
+  const clamped = Number.isFinite(numericValue) ? Math.min(max, Math.max(min, numericValue)) : min;
+  const stepped = min + Math.round((clamped - min) / step) * step;
+  const precision = Math.min(8, Math.max(decimalPlaces(step), decimalPlaces(min)));
+  return Number(Math.min(max, Math.max(min, stepped)).toFixed(precision));
+}
+
+function setRangeValue(input, value, { announceChange = false } = {}) {
+  if (input.disabled) return false;
+  const nextValue = normalizeRangeValue(input, value);
+  const changed = Number(input.value) !== nextValue;
+  input.value = String(nextValue);
+  updateRangeProgress(input);
+  if (changed) input.dispatchEvent(new Event("input", { bubbles: true }));
+  if (announceChange && changed) input.dispatchEvent(new Event("change", { bubbles: true }));
+  return changed;
+}
+
+function enhanceRangeInput(input) {
+  if (!(input instanceof HTMLInputElement) || input.type !== "range" || enhancedRangeInputs.has(input)) return;
+  enhancedRangeInputs.add(input);
+  input.classList.add("knob-range");
+  input.setAttribute("aria-keyshortcuts", "PageUp PageDown");
+  const knobControl = document.createElement("span");
+  knobControl.className = "knob-control";
+  knobControl.setAttribute("data-knob-for", input.id || "range-control");
+  const knobFace = document.createElement("span");
+  knobFace.className = "knob-face";
+  knobFace.setAttribute("aria-hidden", "true");
+  input.before(knobControl);
+  knobControl.append(knobFace, input);
+  syncRangeProgress(input);
+}
+
+function enhanceRangeInputs(root = document) {
+  root.querySelectorAll?.('input[type="range"]').forEach(enhanceRangeInput);
+}
+
+function syncRangeKnobs() {
+  enhanceRangeInputs();
+  document.querySelectorAll('input[type="range"]').forEach(syncRangeProgress);
+}
+
+function handleRangePointerDown(event) {
+  const input = event.target instanceof HTMLInputElement
+    ? event.target
+    : event.target instanceof Element
+      ? event.target.closest(".knob-control")?.querySelector('input[type="range"]')
+      : null;
+  if (!(input instanceof HTMLInputElement) || input.type !== "range" || input.disabled) return;
+  if (event.button !== undefined && event.button !== 0 && event.pointerType !== "touch") return;
+  enhanceRangeInput(input);
+  event.preventDefault();
+  activeRangePointers.set(event.pointerId, {
+    input,
+    startY: event.clientY,
+    startValue: Number(input.value),
+    moved: false,
+  });
+  input.classList.add("is-dragging");
+  input.closest(".knob-control")?.classList.add("is-dragging");
+  input.focus({ preventScroll: true });
+  input.setPointerCapture?.(event.pointerId);
+}
+
+function handleRangePointerMove(event) {
+  const state = activeRangePointers.get(event.pointerId);
+  if (!state) return;
+  event.preventDefault();
+  const { min, max } = getRangeModel(state.input);
+  const deltaY = state.startY - event.clientY;
+  state.moved ||= Math.abs(deltaY) > 2;
+  setRangeValue(state.input, state.startValue + (deltaY / RANGE_DRAG_PIXELS) * (max - min));
+}
+
+function finishRangePointer(event) {
+  const state = activeRangePointers.get(event.pointerId);
+  if (!state) return;
+  event.preventDefault();
+  activeRangePointers.delete(event.pointerId);
+  state.input.classList.remove("is-dragging");
+  state.input.closest(".knob-control")?.classList.remove("is-dragging");
+  if (state.moved) state.input.dispatchEvent(new Event("change", { bubbles: true }));
+  if (state.input.hasPointerCapture?.(event.pointerId)) state.input.releasePointerCapture(event.pointerId);
+}
+
+function handleRangeKeydown(event) {
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement) || input.type !== "range" || input.disabled) return;
+  if (event.key !== "PageUp" && event.key !== "PageDown") return;
+  const { min, max } = getRangeModel(input);
+  const pageIncrement = Math.max(getRangeModel(input).step, (max - min) / 10);
+  event.preventDefault();
+  event.stopPropagation();
+  setRangeValue(input, Number(input.value) + (event.key === "PageUp" ? pageIncrement : -pageIncrement), { announceChange: true });
 }
 
 const keyboardKeys = ["Q", "W", "E", "R", "A", "S", "D", "F", "Z", "X", "C", "V", "1", "2", "3", "4"];
@@ -961,6 +1091,7 @@ function renderSequencerStepEditor() {
   sequencerStepProbabilityValue.textContent = `${Math.round(step.probability * 100)}%`;
   sequencerStepMicroInput.value = String(step.microTiming);
   sequencerStepMicroValue.textContent = formatMicroTiming(step.microTiming);
+  syncRangeKnobs();
   sequencerStepStatus.textContent = `Track ${trackIndex + 1}, step ${stepIndex + 1} · ${step.on ? "On" : "Off"}`;
 }
 
@@ -973,6 +1104,7 @@ function renderSequencer() {
   const pattern = getActiveSequencerPattern();
   sequencerSwingInput.value = String(pattern.swing);
   sequencerSwingValue.textContent = `${Math.round(pattern.swing * 100)}%`;
+  syncRangeKnobs();
   sequencerGrid.replaceChildren();
   pattern.tracks.forEach((track, trackIndex) => {
     const row = document.createElement("div");
@@ -2875,6 +3007,7 @@ function syncMasterEffectInputs() {
   delayTimeInput.value = String(masterEffects.delayTime);
   delayFeedbackInput.value = String(masterEffects.delayFeedback);
   reverbDecayInput.value = String(masterEffects.reverbDecay);
+  syncRangeKnobs();
   updateMasterEffectLabels();
 }
 
@@ -2953,6 +3086,9 @@ function applyMasterMacro() {
   const warmth = clamp(Number(macroWarmthInput.value) || 0, 0, 1);
   const space = clamp(Number(macroSpaceInput.value) || 0, 0, 1);
   const punch = clamp(Number(macroPunchInput.value) || 0, 0, 1);
+  if (macroWarmthValue) macroWarmthValue.textContent = `${Math.round(warmth * 100)}%`;
+  if (macroSpaceValue) macroSpaceValue.textContent = `${Math.round(space * 100)}%`;
+  if (macroPunchValue) macroPunchValue.textContent = `${Math.round(punch * 100)}%`;
   masterEffects = normalizeMasterEffects({
     ...masterEffects,
     eqLowDb: (warmth - 0.5) * 12,
@@ -3654,6 +3790,7 @@ async function renderSampleEditor() {
   releaseInput.value = String(pad.release);
   padDelaySendInput.value = String(pad.effectSends?.delay || 0);
   padReverbSendInput.value = String(pad.effectSends?.reverb || 0);
+  syncRangeKnobs();
   updateSampleEditorLabels();
   waveformBuffer = undefined;
   const sample = getEditorSample();
@@ -3702,6 +3839,7 @@ function selectPad(index) {
   linkGroupInput.value = performanceSettings.linkGroup || "";
   updateLoopToggle();
   padVolumeInput.value = String(pad.volume);
+  syncRangeProgress(padVolumeInput);
   padVolumeValue.textContent = `${Math.round(pad.volume * 100)}%`;
   sampleFileInput.value = "";
   draftSampleCleared = false;
@@ -3739,6 +3877,7 @@ function updatePadVolumeLabel() {
 
 function updateMasterVolume() {
   const volume = Number(masterVolumeInput.value);
+  syncRangeProgress(masterVolumeInput);
   masterVolumeValue.textContent = `${Math.round(volume * 100)}%`;
   if (masterGain) masterGain.gain.setTargetAtTime(volume, audioContext.currentTime, 0.01);
 }
@@ -4300,8 +4439,24 @@ async function togglePerformanceMode() {
   }
 }
 
+function toggleFeatureNav() {
+  if (!featureNavToggle || !featureNavGroups) return;
+  const isExpanded = featureNavToggle.getAttribute("aria-expanded") !== "false";
+  featureNavGroups.hidden = isExpanded;
+  featureNavToggle.setAttribute("aria-expanded", String(!isExpanded));
+  featureNavToggle.textContent = isExpanded ? "Expand map" : "Collapse map";
+  featureNav?.classList.toggle("is-collapsed", isExpanded);
+}
+
 function bindEvents() {
-  document.querySelectorAll("input[type=\"range\"]").forEach(syncRangeProgress);
+  enhanceRangeInputs();
+  const rangeKnobObserver = new MutationObserver(() => enhanceRangeInputs());
+  rangeKnobObserver.observe(document.body, { childList: true, subtree: true });
+  document.addEventListener("pointerdown", handleRangePointerDown, true);
+  document.addEventListener("pointermove", handleRangePointerMove, true);
+  document.addEventListener("pointerup", finishRangePointer, true);
+  document.addEventListener("pointercancel", finishRangePointer, true);
+  document.addEventListener("keydown", handleRangeKeydown, true);
   document.addEventListener("input", (event) => {
     if (event.target instanceof HTMLInputElement && event.target.type === "range") {
       updateRangeProgress(event.target);
@@ -4526,6 +4681,7 @@ function bindEvents() {
       editorNavLinks.forEach((navLink) => navLink.classList.toggle("is-current", navLink === link));
     });
   });
+  featureNavToggle?.addEventListener("click", toggleFeatureNav);
   featureNavLinks.forEach((link) => {
     link.addEventListener("click", () => {
       featureNavLinks.forEach((navLink) => navLink.classList.toggle("is-current", navLink === link));

@@ -24,13 +24,16 @@
         </div>
       </header>
 
-      <nav class="feature-nav" aria-label="Workspace sections">
+      <nav class="feature-nav is-collapsed" aria-label="Workspace sections">
         <div class="feature-nav-heading">
-          <span class="eyebrow">Workspace map</span>
-          <strong>Start here</strong>
-          <span class="feature-nav-hint">Choose a section, then open a focused tool.</span>
+          <div class="feature-nav-heading-copy">
+            <span class="eyebrow">Workspace map</span>
+            <strong>Start here</strong>
+            <span class="feature-nav-hint">Choose a section, then open a focused tool.</span>
+          </div>
+          <button id="feature-nav-toggle" class="button button-quiet feature-nav-toggle" type="button" aria-expanded="false" aria-controls="feature-nav-groups">Expand map</button>
         </div>
-        <div class="feature-nav-groups">
+        <div id="feature-nav-groups" class="feature-nav-groups" hidden>
           <section class="feature-nav-group" aria-labelledby="feature-nav-perform">
             <div class="feature-nav-group-heading" id="feature-nav-perform">
               <span class="feature-nav-number">01</span>
@@ -123,8 +126,8 @@
             <div id="persistence-note" class="persistence-note" role="status" hidden>
               <span id="persistence-message"></span>
               <span class="storage-actions">
-                <button id="repair-storage" class="text-button" type="button" hidden>Repair storage</button>
-                <button id="reset-storage" class="text-button" type="button" hidden>Reset saved samples</button>
+                <button id="repair-storage" class="button button-quiet text-button" type="button" hidden>Repair storage</button>
+                <button id="reset-storage" class="button button-quiet text-button" type="button" hidden>Reset saved samples</button>
               </span>
             </div>
           </section>
@@ -362,14 +365,17 @@
                 <label class="compact-control" for="macro-warmth">
                   <span>Warmth</span>
                   <input id="macro-warmth" type="range" min="0" max="1" step="0.01" value="0.5" />
+                  <output id="macro-warmth-value" for="macro-warmth">50%</output>
                 </label>
                 <label class="compact-control" for="macro-space">
                   <span>Space</span>
                   <input id="macro-space" type="range" min="0" max="1" step="0.01" value="0.35" />
+                  <output id="macro-space-value" for="macro-space">35%</output>
                 </label>
                 <label class="compact-control" for="macro-punch">
                   <span>Punch</span>
                   <input id="macro-punch" type="range" min="0" max="1" step="0.01" value="0.5" />
+                  <output id="macro-punch-value" for="macro-punch">50%</output>
                 </label>
               </div>
               <label class="compact-control" for="master-snapshot">
@@ -447,7 +453,7 @@
             <a class="editor-nav-link" href="#sample-library">Samples</a>
           </nav>
 
-          <button id="editor-toggle" class="editor-toggle" type="button" aria-expanded="true" aria-controls="editor-content">
+          <button id="editor-toggle" class="button button-secondary editor-toggle" type="button" aria-expanded="true" aria-controls="editor-content">
             Collapse editor
           </button>
 
@@ -654,7 +660,7 @@
                 Load audio
                 <input id="sample-file" type="file" accept="audio/*" />
               </label>
-              <button id="clear-sample" class="text-button" type="button">Use preview tone</button>
+              <button id="clear-sample" class="button button-quiet text-button" type="button">Use preview tone</button>
               <p class="field-help">Load one file here, or use Import audio below for a full folder. Assign library files to this pad, then save. Files stay in this browser.</p>
             </div>
 

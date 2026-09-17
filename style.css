@@ -1418,6 +1418,348 @@ body.is-performance-mode .effects-panel {
   }
 }
 
+/* Final UI system: one calm action language, a compact workspace map, and section accents. */
+:root {
+  --button-height: 2.45rem;
+  --button-radius: 0.58rem;
+  --button-surface: #1b1b1b;
+  --button-surface-hover: #282828;
+  --button-border: #4a4a4a;
+}
+
+button.button,
+label.file-button,
+button.text-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 7rem;
+  width: auto;
+  height: var(--button-height);
+  min-height: var(--button-height);
+  padding: 0 0.78rem;
+  border: 1px solid var(--button-border);
+  border-radius: var(--button-radius);
+  background: var(--button-surface);
+  color: #eeeeee;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+button.button:hover,
+label.file-button:hover,
+button.text-button:hover {
+  border-color: #777777;
+  background: var(--button-surface-hover);
+  color: #ffffff;
+}
+
+button.button:active,
+label.file-button:active,
+button.text-button:active {
+  transform: translateY(1px);
+}
+
+button.button:disabled,
+label.file-button:has(input:disabled),
+button.text-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+  transform: none;
+}
+
+button.button-primary,
+button.button-secondary,
+button.button-danger,
+button.button-quiet,
+button.button-loop,
+button.button-loop.is-on,
+label.file-button.button-primary,
+label.file-button.button-secondary,
+button.text-button {
+  border-color: var(--button-border);
+  background: var(--button-surface);
+  color: #eeeeee;
+}
+
+button.button-primary:hover,
+button.button-secondary:hover,
+button.button-danger:hover,
+button.button-quiet:hover,
+button.button-loop:hover,
+label.file-button.button-primary:hover,
+label.file-button.button-secondary:hover,
+button.text-button:hover {
+  border-color: #777777;
+  background: var(--button-surface-hover);
+  color: #ffffff;
+}
+
+button.button[aria-pressed="true"],
+button.button.is-active,
+button.button-loop.is-on {
+  border-color: #dedede;
+  background: #dedede;
+  color: #0a0a0a;
+}
+
+button.button.is-recording {
+  border-color: #858585;
+  background: #30282a;
+  color: #ffffff;
+}
+
+.feature-nav {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.82rem;
+  background: #101010;
+  box-shadow: 0 0.7rem 1.5rem rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.feature-nav-heading {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.15rem 0.15rem 0.35rem;
+  border-right: 0;
+  border-bottom: 1px solid #2b2b2b;
+}
+
+.feature-nav-heading-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.55rem;
+  row-gap: 0.1rem;
+}
+
+.feature-nav-heading-copy .feature-nav-hint {
+  flex-basis: 100%;
+}
+
+.feature-nav.is-collapsed .feature-nav-heading {
+  padding-bottom: 0.1rem;
+  border-bottom: 0;
+}
+
+.feature-nav.is-collapsed .feature-nav-hint {
+  display: none;
+}
+
+.feature-nav-toggle {
+  min-width: 7rem;
+  width: auto;
+  min-height: var(--button-height);
+  height: var(--button-height);
+  padding-inline: 0.7rem;
+}
+
+.feature-nav-groups {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.feature-nav-group {
+  padding: 0.34rem;
+  border-color: #303030;
+  border-radius: 0.58rem;
+  background: #171717;
+}
+
+.feature-nav-link {
+  min-height: 2rem;
+  padding: 0.28rem 0.35rem;
+  border-radius: 0.38rem;
+}
+
+.feature-nav-link strong {
+  font-size: 0.65rem;
+}
+
+.feature-nav-link small {
+  font-size: 0.55rem;
+}
+
+/* Give every major work area a quiet, recognizable color rail without tinting the whole page. */
+.stage {
+  --section-accent: #9eaeff;
+}
+
+.performance-capture {
+  --section-accent: #e3ad84;
+}
+
+.sequencer-panel {
+  --section-accent: #c3a5ff;
+}
+
+.midi-panel {
+  --section-accent: #84d4bd;
+}
+
+.effects-panel {
+  --section-accent: #e5cb83;
+}
+
+.kit-dock {
+  --section-accent: #a9bcff;
+}
+
+.editor-panel {
+  --section-accent: #9eaaff;
+}
+
+.sample-lab {
+  --section-accent: #e0a995;
+}
+
+.layout-tools {
+  --section-accent: #c0a1e8;
+}
+
+.sample-library {
+  --section-accent: #83cec4;
+}
+
+.stage,
+.performance-capture,
+.sequencer-panel,
+.midi-panel,
+.effects-panel,
+.kit-dock,
+.editor-panel,
+.sample-lab,
+.layout-tools,
+.sample-library {
+  border-top: 2px solid var(--section-accent);
+  background: var(--surface);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--section-accent) 7%, var(--surface)) 0, var(--surface) 8rem);
+}
+
+.stage > .stage-heading,
+.performance-capture > .section-heading,
+.sequencer-panel > .section-heading,
+.midi-panel > .section-heading,
+.effects-panel > .section-heading,
+.kit-dock > .section-heading,
+.editor-panel > .panel-heading,
+.sample-lab > .section-heading,
+.layout-tools > .section-heading,
+.sample-library > .section-heading {
+  padding-left: 0.7rem;
+  border-left: 3px solid var(--section-accent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--section-accent) 9%, transparent), transparent 72%);
+}
+
+.stage > .stage-heading .eyebrow,
+.performance-capture > .section-heading .eyebrow,
+.sequencer-panel > .section-heading .eyebrow,
+.midi-panel > .section-heading .eyebrow,
+.effects-panel > .section-heading .eyebrow,
+.editor-panel > .panel-heading .eyebrow {
+  color: var(--section-accent);
+}
+
+#transport-controls .control-row,
+.recording-controls,
+.sequencer-toolbar,
+.midi-controls,
+.midi-profile-controls,
+.midi-controller-controls,
+.effects-controls,
+.kit-action-row,
+.pad-save-row,
+.slice-toolbar-actions,
+.storage-actions,
+.sample-library-actions {
+  align-items: center;
+}
+
+#transport-controls .control-row > .button,
+.recording-controls > .button,
+.sequencer-toolbar > .button,
+.scene-buttons > .button,
+.arrangement-controls > .button,
+.midi-controls > .button,
+.midi-controller-controls > .button,
+.effects-controls > .button,
+.kit-action-row > .button,
+.pad-save-row > .button,
+.slice-toolbar-actions > .button,
+.tool-grid > .button,
+.tool-grid > .file-button {
+  flex: 0 0 auto;
+}
+
+#transport-controls .control-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+}
+
+#transport-controls .control-row > * {
+  min-width: 0;
+}
+
+#transport-controls .control-row > .button,
+#transport-controls .control-row > .compact-control,
+#transport-controls .control-row > .check-control {
+  width: 100%;
+}
+
+.effects-controls > .button {
+  align-self: center;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  #transport-controls .control-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .feature-nav-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .feature-nav-group {
+    padding: 0.28rem;
+  }
+
+  .feature-nav-group-heading {
+    gap: 0.3rem;
+    padding-bottom: 0.28rem;
+  }
+
+  .feature-nav-link {
+    min-height: 1.85rem;
+  }
+
+  #transport-controls .control-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  button.button,
+  label.file-button,
+  button.text-button {
+    min-width: 6.75rem;
+  }
+}
+
 .sample-item {
   align-items: center;
 }
@@ -3556,5 +3898,451 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   .range-control {
     grid-template-columns: minmax(4.25rem, auto) minmax(4rem, 1fr) auto;
     gap: 0.45rem;
+  }
+}
+
+/* Hardware-style rotary controls. The native range remains the accessible control;
+   app.js adds the visible knob face, vertical drag handling, and Page Up/Page Down steps. */
+.knob-control {
+  --knob-fill-deg: 0deg;
+  --knob-angle: 225deg;
+  position: relative;
+  display: inline-block;
+  flex: 0 0 3.75rem;
+  width: 3.75rem;
+  height: 3.75rem;
+  vertical-align: middle;
+  touch-action: none;
+}
+
+.knob-face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border: 1px solid #090909;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, #484848 0 44%, #282828 45% 61%, #111 62% 68%, transparent 69%),
+    conic-gradient(from 225deg, var(--range-fill, #d8d8d8) 0 var(--knob-fill-deg), var(--range-track, #303030) var(--knob-fill-deg) 270deg, transparent 270deg 360deg);
+  box-shadow: inset 0 0 0 1px #5d5d5d, inset 0 0.18rem 0.35rem rgba(255, 255, 255, 0.12), 0 0.3rem 0.7rem rgba(0, 0, 0, 0.42);
+  cursor: ns-resize;
+  pointer-events: auto;
+}
+
+.knob-face::before {
+  position: absolute;
+  top: 0.34rem;
+  left: 50%;
+  width: 0.18rem;
+  height: 1.36rem;
+  border-radius: 999px;
+  background: #f6f6f6;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+  content: "";
+  transform: translateX(-50%) rotate(var(--knob-angle));
+  transform-origin: 50% 1.58rem;
+}
+
+.knob-face::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 50%;
+  background: #161616;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.22);
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
+input[type="range"].knob-range {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 1px !important;
+  min-width: 1px;
+  height: 1px !important;
+  min-height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  border: 0;
+  opacity: 0.01;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.knob-control:focus-within .knob-face,
+.knob-control.is-dragging .knob-face {
+  border-color: #f3f3f3;
+  box-shadow: inset 0 0 0 1px #888, 0 0 0 3px rgba(255, 255, 255, 0.16), 0 0.3rem 0.7rem rgba(0, 0, 0, 0.42);
+}
+
+.range-control {
+  grid-template-columns: auto minmax(3.75rem, 1fr) auto;
+}
+
+.field > .knob-control,
+.compact-control > .knob-control {
+  justify-self: center;
+}
+
+.effects-controls .compact-control,
+.master-macro-group .compact-control {
+  min-height: 5.1rem;
+}
+
+.volume-rail .knob-control {
+  flex-basis: 3.75rem;
+  width: 3.75rem;
+  height: 3.75rem;
+}
+
+@media (max-width: 560px) {
+  .knob-control {
+    flex-basis: 3.4rem;
+    width: 3.4rem;
+    height: 3.4rem;
+  }
+
+  .volume-rail .knob-control {
+    flex-basis: 3rem;
+    width: 3rem;
+    height: 3rem;
+  }
+}
+
+/* Compact control layout: keep the new rotary faces and action buttons on a shared rhythm. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.4rem;
+  padding: 0.48rem 0.72rem;
+  font-size: 0.76rem;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.control-row,
+.stage-heading,
+.sequencer-toolbar,
+.midi-controls,
+.midi-profile-controls,
+.midi-controller-controls,
+.effects-controls,
+.kit-action-row,
+.pad-save-row,
+.slice-toolbar-actions,
+.storage-actions {
+  align-items: center;
+}
+
+.feature-nav-heading {
+  gap: 0.45rem;
+}
+
+.feature-nav-heading-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.12rem;
+}
+
+.feature-nav-toggle {
+  width: 100%;
+  min-height: 2.15rem;
+  padding: 0.34rem 0.5rem;
+  font-size: 0.66rem;
+}
+
+.feature-nav-groups[hidden] {
+  display: none;
+}
+
+.feature-nav.is-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.feature-nav.is-collapsed .feature-nav-heading {
+  border-right: 0;
+}
+
+.effects-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  align-items: stretch;
+  gap: 0.55rem;
+}
+
+.effects-controls > .compact-control,
+.master-macro-group .compact-control {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 1fr) 3.75rem minmax(3.25rem, auto);
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 4.75rem;
+  box-sizing: border-box;
+  padding: 0.4rem 0.55rem;
+}
+
+.effects-controls > .compact-control > span:first-child,
+.master-macro-group .compact-control > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.effects-controls > .compact-control > .knob-control,
+.master-macro-group .compact-control > .knob-control {
+  justify-self: center;
+}
+
+.effects-controls > .compact-control > output,
+.master-macro-group .compact-control > output {
+  justify-self: end;
+}
+
+.effects-controls > .button {
+  width: 100%;
+  min-width: 0;
+  align-self: center;
+  height: auto;
+}
+
+@media (max-width: 1024px) {
+  .feature-nav-heading {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .feature-nav-toggle {
+    width: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .range-control {
+    grid-template-columns: minmax(4rem, auto) minmax(3.4rem, 1fr) auto;
+  }
+
+  .feature-nav-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-nav-toggle {
+    justify-self: start;
+  }
+
+  .effects-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .effects-controls > .compact-control,
+  .master-macro-group .compact-control {
+    grid-template-columns: minmax(4.5rem, 1fr) 3.4rem minmax(3rem, auto);
+  }
+}
+
+/* Final cascade boundary: keep legacy theme layers from reintroducing mismatched actions. */
+button.button.button,
+label.file-button.button,
+button.text-button.button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 7rem;
+  width: auto;
+  height: var(--button-height);
+  min-height: var(--button-height);
+  padding: 0 0.78rem;
+  border: 1px solid var(--button-border);
+  border-radius: var(--button-radius);
+  background: var(--button-surface);
+  color: #eeeeee;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+button.button.button-primary,
+button.button.button-secondary,
+button.button.button-danger,
+button.button.button-quiet,
+button.button.button-loop,
+button.button.button-loop.is-on,
+label.file-button.button-primary,
+label.file-button.button-secondary,
+button.text-button.button {
+  border-color: var(--button-border);
+  background: var(--button-surface);
+  color: #eeeeee;
+}
+
+button.button.button:hover,
+label.file-button.button:hover,
+button.text-button.button:hover,
+button.button.button-primary:hover,
+button.button.button-secondary:hover,
+button.button.button-danger:hover,
+button.button.button-quiet:hover,
+button.button.button-loop:hover,
+label.file-button.button-primary:hover,
+label.file-button.button-secondary:hover {
+  border-color: #777777;
+  background: var(--button-surface-hover);
+  color: #ffffff;
+}
+
+button.button.button[aria-pressed="true"],
+button.button.button.is-active,
+button.button.button-loop.is-on {
+  border-color: #dedede;
+  background: #dedede;
+  color: #0a0a0a;
+}
+
+button.button.button.is-recording {
+  border-color: #858585;
+  background: #30282a;
+  color: #ffffff;
+}
+
+button.button.button:disabled,
+label.file-button.button:has(input:disabled),
+button.text-button.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+  transform: none;
+}
+
+button.editor-toggle.button {
+  width: 100%;
+}
+
+body {
+  overflow-x: clip;
+}
+
+#transport-controls .control-row > button.button.button,
+.effects-controls > button.button.button,
+.tool-grid > button.button.button,
+.tool-grid > label.file-button.button {
+  width: 100%;
+}
+
+.feature-nav {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.82rem;
+}
+
+.feature-nav-heading {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.15rem 0.15rem 0.35rem;
+  border-right: 0;
+  border-bottom: 1px solid #2b2b2b;
+}
+
+.feature-nav.is-collapsed .feature-nav-heading {
+  padding-bottom: 0.1rem;
+  border-bottom: 0;
+}
+
+.feature-nav.is-collapsed .feature-nav-hint {
+  display: none;
+}
+
+.feature-nav-groups {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.feature-nav-groups[hidden] {
+  display: none !important;
+}
+
+.feature-nav-group {
+  padding: 0.34rem;
+  border-color: #303030;
+  border-radius: 0.58rem;
+  background: #171717;
+}
+
+/* Distinguish work areas with restrained color rails and matching title accents. */
+.stage,
+.performance-capture,
+.sequencer-panel,
+.midi-panel,
+.effects-panel,
+.kit-dock,
+.editor-panel,
+.sample-lab,
+.layout-tools,
+.sample-library {
+  border-top-color: var(--section-accent) !important;
+  background: var(--surface);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--section-accent) 7%, var(--surface)) 0, var(--surface) 8rem);
+}
+
+.stage > .stage-heading,
+.performance-capture > .section-heading,
+.sequencer-panel > .section-heading,
+.midi-panel > .section-heading,
+.effects-panel > .section-heading,
+.kit-dock > .section-heading,
+.editor-panel > .panel-heading,
+.sample-lab > .section-heading,
+.layout-tools > .section-heading,
+.sample-library > .section-heading {
+  padding-left: 0.7rem;
+  border-left: 3px solid var(--section-accent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--section-accent) 9%, transparent), transparent 72%);
+}
+
+@media (max-width: 1024px) {
+  .feature-nav {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .feature-nav-heading {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .feature-nav {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .feature-nav-heading {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .feature-nav-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  button.button.button,
+  label.file-button.button,
+  button.text-button.button {
+    min-width: 6.75rem;
   }
 }
