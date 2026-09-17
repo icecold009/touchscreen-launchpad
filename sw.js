@@ -1,33 +1,33 @@
-const CACHE_NAME = "touchscreen-launchpad-v58";
+const CACHE_NAME = "touchscreen-launchpad-v59";
 const CACHE_PREFIX = "touchscreen-launchpad-";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?version=58",
-  "./src/bootstrap.js?version=58",
-  "./app.js?version=58",
-  "./src/history.js?version=58",
-  "./src/input-adapter.js?version=58",
-  "./src/migrations.js?version=58",
-  "./src/pointer-state.js?version=58",
-  "./src/storage-request.js?version=58",
-  "./src/download.js?version=58",
-  "./src/effects.js?version=58",
-  "./src/midi.js?version=58",
-  "./src/midi-file.js?version=58",
-  "./src/audio-lifecycle.js?version=58",
-  "./src/clocked-sequencer.js?version=58",
-  "./src/performance-engine.js?version=58",
-  "./src/recording.js?version=58",
-  "./src/sample-editor.js?version=58",
-  "./src/sequencer.js?version=58",
-  "./src/slices.js?version=58",
-  "./src/transport.js?version=58",
-  "./src/voice-registry.js?version=58",
-  "./src/wav.js?version=58",
-  "./src/sample-library.js?version=58",
-  "./src/performance-export.js?version=58",
-  "./src/arrangement.js?version=58",
+  "./style.css?version=59",
+  "./src/bootstrap.js?version=59",
+  "./app.js?version=59",
+  "./src/history.js?version=59",
+  "./src/input-adapter.js?version=59",
+  "./src/migrations.js?version=59",
+  "./src/pointer-state.js?version=59",
+  "./src/storage-request.js?version=59",
+  "./src/download.js?version=59",
+  "./src/effects.js?version=59",
+  "./src/midi.js?version=59",
+  "./src/midi-file.js?version=59",
+  "./src/audio-lifecycle.js?version=59",
+  "./src/clocked-sequencer.js?version=59",
+  "./src/performance-engine.js?version=59",
+  "./src/recording.js?version=59",
+  "./src/sample-editor.js?version=59",
+  "./src/sequencer.js?version=59",
+  "./src/slices.js?version=59",
+  "./src/transport.js?version=59",
+  "./src/voice-registry.js?version=59",
+  "./src/wav.js?version=59",
+  "./src/sample-library.js?version=59",
+  "./src/performance-export.js?version=59",
+  "./src/arrangement.js?version=59",
   "./manifest.webmanifest",
   "./icon.svg",
 ];
@@ -52,17 +52,31 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+async function fetchNavigation(request) {
+  try {
+    const response = await fetch(request, { cache: "no-store" });
+    if (response?.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cache = await caches.open(CACHE_NAME);
+    return (await cache.match(request)) || cache.match("./index.html") || Response.error();
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   const isNavigationRequest = event.request.mode === "navigate" || event.request.destination === "document";
 
   event.respondWith(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.match(event.request))
-      .then((cachedResponse) => cachedResponse || fetch(event.request))
-      .catch(() => isNavigationRequest
-        ? caches.open(CACHE_NAME).then((cache) => cache.match("./index.html"))
-        : Response.error()),
+    isNavigationRequest
+      ? fetchNavigation(event.request)
+      : caches.open(CACHE_NAME)
+        .then((cache) => cache.match(event.request))
+        .then((cachedResponse) => cachedResponse || fetch(event.request))
+        .catch(() => Response.error()),
   );
 });

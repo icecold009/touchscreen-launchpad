@@ -30,6 +30,10 @@ function createServiceWorkerHarness() {
           const key = typeof request === "string" ? request : request.url;
           return record.responses.get(key);
         },
+        async put(request, response) {
+          const key = typeof request === "string" ? request : request.url;
+          record.responses.set(key, response);
+        },
       };
     },
     async keys() {
@@ -64,18 +68,21 @@ function createServiceWorkerHarness() {
     },
   };
 
+  const onlineResponses = new Map();
   const context = vm.createContext({
     self,
     caches,
     Response: { error: () => ({ type: "error" }) },
     fetch: async (request) => {
       networkRequests.push(request);
+      const url = typeof request === "string" ? request : request.url;
+      if (onlineResponses.has(url)) return onlineResponses.get(url);
       throw new Error("offline");
     },
   });
   vm.runInContext(serviceWorkerSource, context, { filename: "sw.js" });
 
-  return { listeners, cacheRecords, deletedCaches, lifecycleCalls, networkRequests };
+  return { listeners, cacheRecords, deletedCaches, lifecycleCalls, networkRequests, onlineResponses };
 }
 
 async function dispatchLifecycle(listeners, type, event = {}) {
@@ -106,16 +113,27 @@ test("activate removes stale caches and claims clients", async () => {
   assert.deepEqual(harness.lifecycleCalls, ["claim"]);
 });
 
-test("fetch preserves cached responses, falls back for navigations, and rejects offline assets", async () => {
+test("fetches fresh navigations, falls back offline, and rejects offline assets", async () => {
   const harness = createServiceWorkerHarness();
   await dispatchLifecycle(harness.listeners, "install");
 
+  const freshResponse = { ok: true, clone: () => "fresh-index" };
+  harness.onlineResponses.set("https://example.test/live", freshResponse);
   const navigationResponses = [];
   harness.listeners.get("fetch")({
-    request: { method: "GET", mode: "navigate", destination: "document", url: "https://example.test/deep-link" },
+    request: { method: "GET", mode: "navigate", destination: "document", url: "https://example.test/live" },
     respondWith(promise) { navigationResponses.push(promise); },
   });
-  assert.equal(await navigationResponses[0], "cached-index");
+  assert.equal(await navigationResponses[0], freshResponse);
+  assert.equal([...harness.cacheRecords.values()][0].responses.get("https://example.test/live"), "fresh-index");
+
+  harness.onlineResponses.clear();
+  const offlineNavigationResponses = [];
+  harness.listeners.get("fetch")({
+    request: { method: "GET", mode: "navigate", destination: "document", url: "https://example.test/deep-link" },
+    respondWith(promise) { offlineNavigationResponses.push(promise); },
+  });
+  assert.equal(await offlineNavigationResponses[0], "cached-index");
 
   const assetResponses = [];
   harness.listeners.get("fetch")({
@@ -123,7 +141,7 @@ test("fetch preserves cached responses, falls back for navigations, and rejects 
     respondWith(promise) { assetResponses.push(promise); },
   });
   assert.deepEqual(await assetResponses[0], { type: "error" });
-  assert.equal(harness.networkRequests.length, 2);
+  assert.equal(harness.networkRequests.length, 3);
 
   const postEvent = { request: { method: "POST", mode: "navigate", destination: "document", url: "https://example.test/submit" }, respondWith() { throw new Error("POST must not be intercepted"); } };
   harness.listeners.get("fetch")(postEvent);
