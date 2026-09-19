@@ -5,6 +5,16 @@ Reviewed: feature branch `codex/vercel-canonical-hosting-20260914` during the 20
 Release baseline: PR #7 was merged to `main` as `9c214a8`.
 Audit package baseline: `1dde9e9`; the merged release contains the security hardening, release-workflow pinning, and hosted Vercel deployment below.
 
+## Package: Local-first architecture documentation and GitDiagram export — `codex/architecture-docs-20260919`
+
+- Goal: Document the browser entry point, local persistence boundaries, import/export paths, and offline/PWA recovery flow for reviewers and the portfolio.
+- Scope: README architecture sections; exact default-branch GitDiagram PNG and Mermaid exports; links to the entry point, persistence/import/PWA modules, validation scripts, and portfolio project page.
+- Non-goals: Change runtime persistence behavior, add a server or sync layer, include downloaded WAV packs as repository assets, or claim physical-device/hosted/offline evidence from static files.
+- Files: `README.md`, `TODO.md`, `docs/architecture/touchscreen-launchpad.png`, `docs/architecture/touchscreen-launchpad.mmd`, and the portfolio project entry if that separate repository is explicitly updated.
+- Tests: `npm.cmd run validate`, `git diff --check`, static diagram/file/link inspection, local browser smoke, and separate hosted/PWA boundary reporting.
+- Acceptance: A reviewer can identify what survives reload, what stays device-local, what a kit record contains, how audio is imported/exported/recovered, and why the architecture has no server component. The PNG and Mermaid are exported from the public default branch.
+- Evidence: GitDiagram generation/export at `https://gitdiagram.com/icecold009/touchscreen-launchpad`; local validation and browser/PWA checks reported separately; hosted deployment and physical touchscreen evidence remain distinct.
+
 ## Package: Simpler workspace sections and subdued pad gradient — `codex-simplify-navigation-pad-gradient-20260916`
 
 - Goal: Make the launchpad's first navigation layer understandable at a glance and give pads a subdued vertical gradient.

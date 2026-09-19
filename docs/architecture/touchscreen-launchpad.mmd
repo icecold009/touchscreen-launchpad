@@ -1,0 +1,108 @@
+flowchart TD
+
+subgraph group_interaction["Interaction"]
+  node_ui["Launchpad UI<br/>[index.html]"]
+  node_input["Input Adapter<br/>[input-adapter.js]"]
+  node_app["App Controller<br/>[app.js]"]
+end
+
+subgraph group_audio["Audio And Samples"]
+  node_performance["Performance Modes"]
+  node_audio["Audio Lifecycle<br/>[audio-lifecycle.js]"]
+  node_voices["Voice Registry<br/>[voice-registry.js]"]
+  node_samples["Sample Library<br/>[sample-library.js]"]
+  node_editor["Sample Editor<br/>[sample-editor.js]"]
+  node_slices["Slice Editor<br/>[slices.js]"]
+  node_effects["Effects Engine<br/>[effects.js]"]
+end
+
+subgraph group_state["Local State"]
+  node_kits["Kit Normalization<br/>[migrations.js]"]
+  node_history["Undo Redo<br/>[history.js]"]
+  node_db[("Browser Stores")]
+end
+
+subgraph group_sequencing["Sequencing"]
+  node_transport["Transport Controls<br/>[transport.js]"]
+  node_sequencer["Pattern Sequencer<br/>[sequencer.js]"]
+  node_scheduler["Clock Scheduler"]
+end
+
+subgraph group_capture["Capture And Export"]
+  node_recording["Take Recorder<br/>[recording.js]"]
+  node_takes[("Take Storage")]
+  node_performance_export["Performance Export"]
+  node_wav["WAV Encoder<br/>[wav.js]"]
+  node_midi["MIDI Adapter<br/>[midi.js]"]
+  node_downloads["Download Bridge<br/>[download.js]"]
+end
+
+node_user(("Performer"))
+node_web_audio["Web Audio"]
+node_microphone["Microphone"]
+node_web_midi["Web MIDI"]
+node_service_worker["Offline Shell<br/>[sw.js]"]
+
+node_user -->|"uses"| node_ui
+node_ui -->|"captures input"| node_input
+node_input -->|"reports actions"| node_app
+node_app -->|"applies modes"| node_performance
+node_app -->|"controls playback"| node_audio
+node_audio -->|"tracks voices"| node_voices
+node_audio -->|"creates audio"| node_web_audio
+node_app -->|"manages samples"| node_samples
+node_app -->|"edits regions"| node_editor
+node_app -->|"edits slices"| node_slices
+node_app -->|"applies effects"| node_effects
+node_app -->|"normalizes kits"| node_kits
+node_app -->|"records changes"| node_history
+node_app -->|"reads and writes"| node_db
+node_app -->|"controls tempo"| node_transport
+node_app -->|"runs patterns"| node_sequencer
+node_app -->|"schedules events"| node_scheduler
+node_sequencer -->|"emits steps"| node_app
+node_app -->|"controls capture"| node_recording
+node_app -->|"requests input"| node_microphone
+node_recording -->|"creates take"| node_takes
+node_app -->|"exports performance"| node_performance_export
+node_performance_export -->|"encodes audio"| node_wav
+node_app -->|"starts downloads"| node_downloads
+node_app -.->|"configures MIDI"| node_midi
+node_midi -.->|"reads and sends"| node_web_midi
+node_service_worker -.->|"caches shell"| node_ui
+
+click node_ui "https://github.com/icecold009/touchscreen-launchpad/blob/main/index.html"
+click node_input "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/input-adapter.js"
+click node_app "https://github.com/icecold009/touchscreen-launchpad/blob/main/app.js"
+click node_transport "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/transport.js"
+click node_performance "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/performance-engine.js"
+click node_audio "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/audio-lifecycle.js"
+click node_voices "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/voice-registry.js"
+click node_samples "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/sample-library.js"
+click node_editor "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/sample-editor.js"
+click node_slices "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/slices.js"
+click node_effects "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/effects.js"
+click node_kits "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/migrations.js"
+click node_history "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/history.js"
+click node_sequencer "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/sequencer.js"
+click node_scheduler "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/clocked-sequencer.js"
+click node_recording "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/recording.js"
+click node_performance_export "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/performance-export.js"
+click node_wav "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/wav.js"
+click node_midi "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/midi.js"
+click node_downloads "https://github.com/icecold009/touchscreen-launchpad/blob/main/src/download.js"
+click node_service_worker "https://github.com/icecold009/touchscreen-launchpad/blob/main/sw.js"
+
+classDef toneNeutral fill:#f8fafc,stroke:#334155,stroke-width:1.5px,color:#0f172a
+classDef toneBlue fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#172554
+classDef toneAmber fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
+classDef toneMint fill:#dcfce7,stroke:#16a34a,stroke-width:1.5px,color:#14532d
+classDef toneRose fill:#ffe4e6,stroke:#e11d48,stroke-width:1.5px,color:#881337
+classDef toneIndigo fill:#e0e7ff,stroke:#4f46e5,stroke-width:1.5px,color:#312e81
+classDef toneTeal fill:#ccfbf1,stroke:#0f766e,stroke-width:1.5px,color:#134e4a
+class node_ui,node_input,node_app toneBlue
+class node_performance,node_audio,node_voices,node_samples,node_editor,node_slices,node_effects toneAmber
+class node_kits,node_history,node_db toneMint
+class node_transport,node_sequencer,node_scheduler toneRose
+class node_recording,node_takes,node_performance_export,node_wav,node_midi,node_downloads,node_user,node_web_audio,node_microphone,node_web_midi toneIndigo
+class node_service_worker toneTeal
