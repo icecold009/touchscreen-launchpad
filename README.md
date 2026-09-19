@@ -53,6 +53,49 @@ npm run validate
 
 This checks application and service-worker syntax, required static assets and PWA references, and the primary DOM contract. It does not replace rendered browser or physical touchscreen evidence.
 
+## Browser architecture and persistence
+
+The application is a browser-only, local-first static site. The browser entry point is [`index.html`](index.html), which loads [`src/bootstrap.js`](src/bootstrap.js). Bootstrap catches startup failures; [`app.js`](app.js) then coordinates the pad UI, input adapters, Web Audio playback, kit state, persistence, and import/export. There is no application server in this flow, and downloaded WAV packs are user-selected input rather than source-code or repository assets.
+
+### Runtime path
+
+The main interaction path is:
+
+`touch / mouse / keyboard → 4×4 pad UI → input adapter → app controller → audio and sample services → Web Audio voices`
+
+`index.html` renders the 16-pad surface. [`src/input-adapter.js`](src/input-adapter.js) normalizes pointer, keyboard, and other input into pad actions. [`src/audio-lifecycle.js`](src/audio-lifecycle.js), [`src/voice-registry.js`](src/voice-registry.js), [`src/sample-editor.js`](src/sample-editor.js), [`src/sample-library.js`](src/sample-library.js), and [`src/effects.js`](src/effects.js) cover audio readiness, voice cleanup, sample lookup/editing, and processing. A preview tone remains available when a pad has no assigned sample.
+
+The persistence boundary is implemented in [`app.js`](app.js), with request/transaction failure handling in [`src/storage-request.js`](src/storage-request.js) and record normalization in [`src/migrations.js`](src/migrations.js). The import and export handlers remain in [`app.js`](app.js), with focused contracts in [`test/import-export.test.mjs`](test/import-export.test.mjs) and [`test/kit-library.test.mjs`](test/kit-library.test.mjs).
+
+### What survives a reload
+
+- **IndexedDB blobs and records.** The database is `touchscreen-launchpad`, currently at `DATABASE_VERSION = 3` in [`app.js`](app.js). Its `samples` store keeps audio `Blob`s plus hashes and library metadata; `kits` stores the five kit records and their 16-pad assignments; `takes` stores local performance recordings; and `history` is reserved for persisted history records. Audio files remain in this browser and are not uploaded.
+- **localStorage layout state.** The key `touchscreen-launchpad.layout.v1` stores the active pad layout as a version-2 JSON payload. `touchscreen-launchpad.current-kit.v1` remembers the selected kit, while `touchscreen-launchpad.kits-mirror.v1` is a small compatibility metadata mirror. IndexedDB kit records are canonical when available; the mirror is not a sync service.
+- **Active-pad layout is not the sample library.** The active layout is the currently displayed 16-pad arrangement: names, shortcuts, playback settings, effects, and `sampleId` references. A kit record is a named reusable snapshot of that arrangement. The shared sample library owns the actual audio blobs and metadata, so several kits can refer to the same sample without duplicating its bytes.
+
+The local browser boundary is intentional: persistence survives reload in the same browser profile/device, but it does not provide account storage, cloud backup, or cross-device synchronization.
+
+### Import, export, and recovery
+
+- **Layout JSON** exports pad assignments and settings only. Version 1 and version 2 imports are accepted, and an import reports sample IDs that are not present in this browser rather than pretending it restored their audio.
+- **Audio import** accepts one file, a folder, or multiple files. Files are natural-sorted, SHA-256 deduplicated, and the first 16 map to pads; additional files stay in the shared library. The current limits are 128 samples, 50 MB per file, and 512 MB of logical sample storage.
+- **`.launchpack` backup/restore** includes the five kit definitions and their referenced audio bytes. It validates paths, hashes, IDs, counts, sizes, and pad references before a transactional write; existing samples are reused by content hash and imported IDs are remapped. This is a portable local backup, not an upload or sync protocol.
+- **Recovery paths** are visible in the status UI. IndexedDB or localStorage failure falls back to memory-only operation with a reload warning; quota errors recommend exporting before freeing storage; corrupt or over-limit samples expose repair/reset actions; failed layout or audio imports roll back the in-memory layout and preserve the existing kit where possible.
+
+### Offline and PWA boundary
+
+[`sw.js`](sw.js) caches the relative application shell at cache version `touchscreen-launchpad-v59`, including the browser module graph, manifest, and icon. Its offline fallback is navigation-only: it serves a cached document shell when a navigation cannot reach the network, while ordinary asset requests use the cache or network. [`manifest.webmanifest`](manifest.webmanifest) declares the relative `./` start URL and scope for installable project hosting. A new service-worker controller reports the update and reloads the page; HTTP or HTTPS is required for service-worker, IndexedDB, and installable-PWA behavior.
+
+The diagram was generated from the public default branch with [GitDiagram](https://gitdiagram.com/icecold009/touchscreen-launchpad) using the exact repository URL [`https://github.com/icecold009/touchscreen-launchpad`](https://github.com/icecold009/touchscreen-launchpad):
+
+- [PNG architecture diagram](docs/architecture/touchscreen-launchpad.png)
+- [Mermaid source](docs/architecture/touchscreen-launchpad.mmd)
+- [Portfolio project page](https://shauryasaria.me/projects?project=touchscreen-launchpad)
+
+GitDiagram's `Browser Stores` node represents the IndexedDB stores and localStorage keys described above. The diagram intentionally has no server, provider, or cross-device-sync component.
+
+The focused contracts are [`test/import-export.test.mjs`](test/import-export.test.mjs), [`test/kit-library.test.mjs`](test/kit-library.test.mjs), [`test/storage-recovery.test.mjs`](test/storage-recovery.test.mjs), and [`test/pwa.test.mjs`](test/pwa.test.mjs); the static module/PWA graph is checked by [`scripts/validate-site.mjs`](scripts/validate-site.mjs) through [`package.json`](package.json).
+
 ## Use the launchpad
 
 1. Select a pad.
