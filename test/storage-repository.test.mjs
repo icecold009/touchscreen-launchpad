@@ -8,7 +8,8 @@ import { createArrangement, normalizeArrangement } from "../src/arrangement.js";
 import { normalizeMasterEffects } from "../src/effects.js";
 import { createDefaultPad, normalizeKitRecord, normalizePadDefinition } from "../src/migrations.js";
 import { normalizeMidiConfig } from "../src/midi.js";
-import { attachStorageRequest } from "../src/storage-request.js";
+import { createIndexedDbStore } from "../src/storage/indexed-db.js";
+import { createLocalSettings, LOCAL_SETTINGS_KEYS } from "../src/storage/local-settings.js";
 import { storageContract } from "./fixtures/storage-contract.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -276,11 +277,6 @@ class FakeIndexedDB {
 function makeContext({ storage = new MemoryStorage(), indexedDB = new FakeIndexedDB(), confirm = () => true } = {}) {
   const defaults = clone(storageContract.layout.pads);
   const context = vm.createContext({
-    DATABASE_NAME: storageContract.database.name,
-    DATABASE_VERSION: storageContract.database.version,
-    LAYOUT_STORAGE_KEY: storageContract.localStorageKeys.layout,
-    CURRENT_KIT_STORAGE_KEY: storageContract.localStorageKeys.currentKit,
-    KITS_MIRROR_STORAGE_KEY: storageContract.localStorageKeys.kitMirror,
     KIT_COUNT: storageContract.limits.fixedKitSlots,
     PAD_COUNT: defaults.length,
     MAX_KIT_NAME_LENGTH: 40,
@@ -291,11 +287,9 @@ function makeContext({ storage = new MemoryStorage(), indexedDB = new FakeIndexe
     keyboardKeys: ["Q", "W", "E", "R", "A", "S", "D", "F", "Z", "X", "C", "V", "1", "2", "3", "4"],
     localStorage: storage,
     indexedDB,
-    window: { indexedDB, confirm },
+    window: { confirm },
     storageMode: "persistent",
     storageState: "saved",
-    sampleDatabase: undefined,
-    databasePromise: undefined,
     currentKitId: "kit-1",
     pads: clone(defaults),
     kits: new Map(),
@@ -340,7 +334,19 @@ function makeContext({ storage = new MemoryStorage(), indexedDB = new FakeIndexe
     stopAll() {},
     applyKit() {},
     saveLayout: () => true,
-    attachStorageRequest,
+  });
+  context.localSettings = createLocalSettings({ storage, keys: storageContract.localStorageKeys });
+  context.indexedDbStore = createIndexedDbStore({
+    indexedDB,
+    onUpgrade() {
+      if (context.storageMode === "persistent") context.setStorageState("upgrade", "Updating local storage…");
+    },
+    onOpen() {
+      if (context.storageMode === "persistent") context.setStorageState("saved");
+    },
+    onStorageFailure() {
+      context.markMemoryOnlyMode("Sample storage is unavailable. Audio works, but sample files will not survive a reload.", "unavailable");
+    },
   });
   vm.runInContext(padFactorySource, context);
   vm.runInContext(kitFactorySource, context);
@@ -358,18 +364,21 @@ function tick() {
   return new Promise((resolve) => setImmediate(resolve));
 }
 
-test("the frozen local keys, database v3 schema, five slots, and layout cap match current source", () => {
-  for (const key of Object.values(storageContract.localStorageKeys)) assert.ok(app.includes(`"${key}"`));
-  assert.match(app, /const DATABASE_NAME = "touchscreen-launchpad";/);
-  assert.match(app, /const DATABASE_VERSION = 3;/);
+test("the frozen local keys, database v3 schema, five slots, and layout cap match adapter behavior", async () => {
+  assert.deepEqual(LOCAL_SETTINGS_KEYS, storageContract.localStorageKeys);
   assert.match(app, /const KIT_COUNT = 5;/);
   assert.match(app, /const MAX_LAYOUT_BYTES = 256 \* 1024;/);
-  for (const { storeName, keyPath } of storageContract.database.stores) {
-    assert.match(app, new RegExp(`createObjectStore\\("${storeName}", \\{ keyPath: "${keyPath}" \\}\\)`));
+  const indexedDB = new FakeIndexedDB();
+  const context = makeContext({ indexedDB });
+  await context.openDatabase();
+  assert.deepEqual(indexedDB.lastOpen, { name: storageContract.database.name, version: storageContract.database.version });
+  for (const { storeName, keyPath, indexes } of storageContract.database.stores) {
+    assert.deepEqual(indexedDB.database.definitions.get(storeName), { keyPath, indexes: [...indexes] });
   }
   assert.equal(storageContract.database.stores.length, 4);
   assert.equal(storageContract.layout.pads.length, 16);
   assert.deepEqual(Object.keys(storageContract.layout), ["version", "updatedAt", "pads"]);
+  assert.doesNotMatch(app, /localStorage\.(?:getItem|setItem|removeItem)|indexedDB\.(?:open|deleteDatabase)|transaction\.objectStore\(/);
 });
 
 test("layout serialization round trips the existing version-2 shape", () => {
@@ -582,6 +591,14 @@ test("sample and kit writes share one atomic transaction and deletes settle on c
   assert.equal(idb.database.transactions.length, transactions);
 });
 
+test("the injected adapter owns history-store reads, writes, and deletes", async () => {
+  const context = makeContext();
+  await context.indexedDbStore.writeHistoryRecord({ id: "history-1", entries: [] });
+  assert.deepEqual(plain(await context.indexedDbStore.readHistory()), [{ id: "history-1", entries: [] }]);
+  await context.indexedDbStore.deleteHistoryRecords(["history-1"]);
+  assert.deepEqual(plain(await context.indexedDbStore.readHistory()), []);
+});
+
 test("a failed multi-store write rolls back both kits and samples", async () => {
   const idb = new FakeIndexedDB();
   const context = makeContext({ indexedDB: idb });
@@ -733,7 +750,7 @@ test("reset cancellation and reset failure leave application data unchanged", as
   const idb = new FakeIndexedDB(new FakeDatabase({ version: 3, stores: ["samples", "kits", "takes", "history"] }));
   idb.deleteBehavior.error = true;
   const context = makeContext({ indexedDB: idb, confirm: () => true });
-  context.sampleDatabase = idb.database;
+  await context.openDatabase();
   const before = { samples: context.samples, takes: context.takes, pads: context.pads, kits: context.kits };
   await context.resetSampleStorage();
   assert.equal(context.samples, before.samples);
@@ -757,12 +774,9 @@ test("confirmed reset helper closes and deletes only the injected database", asy
   const database = new FakeDatabase({ version: 3, stores: ["samples", "kits", "takes", "history"] });
   const idb = new FakeIndexedDB(database);
   const context = makeContext({ indexedDB: idb });
-  context.sampleDatabase = database;
-  context.databasePromise = Promise.resolve(database);
+  await context.openDatabase();
   await context.deleteSampleDatabase();
   assert.equal(database.closed, true);
   assert.equal(idb.lastDelete, storageContract.database.name);
   assert.equal(idb.database, null);
-  assert.equal(context.sampleDatabase, undefined);
-  assert.equal(context.databasePromise, undefined);
 });

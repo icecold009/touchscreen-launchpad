@@ -7,7 +7,9 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serviceWorkerSource = fs.readFileSync(path.join(root, "sw.js"), "utf8");
+const htmlSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const shellVersion = serviceWorkerSource.match(/touchscreen-launchpad-v(\d+)/)?.[1];
+const assetVersion = htmlSource.match(/bootstrap\.js\?version=(\d+)/)?.[1];
 
 function createServiceWorkerHarness() {
   const listeners = new Map();
@@ -97,8 +99,12 @@ test("install caches the complete versioned shell and activates immediately", as
 
   const currentCache = [...harness.cacheRecords.values()][0];
   assert.ok(shellVersion);
-  assert.ok(currentCache.added.includes(`./src/bootstrap.js?version=${shellVersion}`));
-  assert.ok(currentCache.added.includes(`./app.js?version=${shellVersion}`));
+  assert.ok(assetVersion);
+  assert.ok(Number(shellVersion) > Number(assetVersion));
+  assert.ok(currentCache.added.includes(`./src/bootstrap.js?version=${assetVersion}`));
+  assert.ok(currentCache.added.includes(`./app.js?version=${assetVersion}`));
+  assert.ok(currentCache.added.includes(`./src/storage/indexed-db.js?version=${assetVersion}`));
+  assert.ok(currentCache.added.includes(`./src/storage/local-settings.js?version=${assetVersion}`));
   assert.deepEqual(harness.lifecycleCalls, ["skipWaiting"]);
 });
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "touchscreen-launchpad-v59";
+const CACHE_NAME = "touchscreen-launchpad-v60";
 const CACHE_PREFIX = "touchscreen-launchpad-";
 const APP_SHELL = [
   "./",
@@ -11,6 +11,8 @@ const APP_SHELL = [
   "./src/migrations.js?version=59",
   "./src/pointer-state.js?version=59",
   "./src/storage-request.js?version=59",
+  "./src/storage/indexed-db.js?version=59",
+  "./src/storage/local-settings.js?version=59",
   "./src/download.js?version=59",
   "./src/effects.js?version=59",
   "./src/midi.js?version=59",

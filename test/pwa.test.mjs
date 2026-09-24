@@ -33,6 +33,8 @@ test("the service worker caches a versioned shell and only falls back to HTML fo
   for (const moduleName of ["arrangement", "audio-lifecycle", "clocked-sequencer", "effects", "history", "input-adapter", "midi", "midi-file", "migrations", "performance-engine", "performance-export", "recording", "sample-editor", "sample-library", "sequencer", "slices", "transport", "voice-registry", "wav"]) {
     assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/${moduleName}\\.js\\?version=\\d+"`));
   }
+  assert.match(serviceWorker, /"\.\/src\/storage\/indexed-db\.js\?version=\d+"/);
+  assert.match(serviceWorker, /"\.\/src\/storage\/local-settings\.js\?version=\d+"/);
 });
 
 test("manifest and app shell use relative installable-PWA metadata", () => {

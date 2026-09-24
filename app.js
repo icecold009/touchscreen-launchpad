@@ -4,7 +4,8 @@ import { createHistory } from "./src/history.js?version=59";
 import { createInputAdapter } from "./src/input-adapter.js?version=59";
 import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=59";
 import { createPointerState } from "./src/pointer-state.js?version=59";
-import { attachStorageRequest } from "./src/storage-request.js?version=59";
+import { createIndexedDbStore } from "./src/storage/indexed-db.js?version=59";
+import { createLocalSettings } from "./src/storage/local-settings.js?version=59";
 import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=59";
 import { getNextQuantizedTime } from "./src/transport.js?version=59";
 import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=59";
@@ -23,11 +24,6 @@ import { createPerformanceEvents, createPerformanceLog, checksumBytes, estimateR
 import { createArrangement, formatSceneChain, getNextChainPosition, getSceneName, normalizeArrangement, normalizeSceneId, parseSceneChain, shouldLaunchAtStep } from "./src/arrangement.js?version=59";
 import { encodePcmWav } from "./src/wav.js?version=59";
 
-const LAYOUT_STORAGE_KEY = "touchscreen-launchpad.layout.v1";
-const CURRENT_KIT_STORAGE_KEY = "touchscreen-launchpad.current-kit.v1";
-const KITS_MIRROR_STORAGE_KEY = "touchscreen-launchpad.kits-mirror.v1";
-const DATABASE_NAME = "touchscreen-launchpad";
-const DATABASE_VERSION = 3;
 const MAX_LAYOUT_BYTES = 256 * 1024;
 const MAX_SAMPLE_BYTES = 50 * 1024 * 1024;
 const MAX_SAMPLE_COUNT = 128;
@@ -467,8 +463,6 @@ const sequencerRunner = createClockedSequencerRunner({
     renderSequencer();
   },
 });
-let databasePromise;
-let sampleDatabase;
 let deferredInstallPrompt;
 let storageMode = "persistent";
 let storageState = "saved";
@@ -482,6 +476,19 @@ let draftSliceId = null;
 let playbackGeneration = 0;
 let beatCountdownTimer;
 let lastPlaybackStatusAt = 0;
+const localSettings = createLocalSettings({ storage: () => globalThis.localStorage });
+const indexedDbStore = createIndexedDbStore({
+  indexedDB: () => globalThis.indexedDB,
+  onUpgrade() {
+    if (storageMode === "persistent") setStorageState("upgrade", "Updating local storage…");
+  },
+  onOpen() {
+    if (storageMode === "persistent") setStorageState("saved");
+  },
+  onStorageFailure() {
+    markMemoryOnlyMode("Sample storage is unavailable. Audio works, but sample files will not survive a reload.", "unavailable");
+  },
+});
 const recordingSession = createRecordingSession({
   onStateChange: updateRecordingState,
 });
@@ -647,7 +654,7 @@ function setKitDirty(value) {
 
 function readCurrentKitId() {
   try {
-    const storedId = localStorage.getItem(CURRENT_KIT_STORAGE_KEY);
+    const storedId = localSettings.readCurrentKitId();
     return kitSlotNumber(storedId) ? storedId : "kit-1";
   } catch {
     return "kit-1";
@@ -656,25 +663,19 @@ function readCurrentKitId() {
 
 function writeCurrentKitId() {
   try {
-    localStorage.setItem(CURRENT_KIT_STORAGE_KEY, currentKitId);
+    localSettings.writeCurrentKitId(currentKitId);
   } catch {
     // The active kit remains usable in memory if the compatibility mirror is unavailable.
   }
 }
 
 function readKitMirror() {
-  try {
-    const value = localStorage.getItem(KITS_MIRROR_STORAGE_KEY);
-    const parsed = value ? JSON.parse(value) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return localSettings.readKitMirror();
 }
 
 function writeKitMirror() {
   try {
-    localStorage.setItem(KITS_MIRROR_STORAGE_KEY, JSON.stringify(getKitRecords()));
+    localSettings.writeKitMirror(getKitRecords());
   } catch {
     // IndexedDB remains the canonical store when the small metadata mirror is unavailable.
   }
@@ -713,11 +714,10 @@ function markMemoryOnlyMode(message, state = "memory-only") {
 
 function readLayout() {
   try {
-    const savedLayout = localStorage.getItem(LAYOUT_STORAGE_KEY);
-    if (!savedLayout) return createDefaultPads();
+    const savedLayout = localSettings.readLayout();
+    if (savedLayout === undefined) return createDefaultPads();
 
-    const parsedLayout = JSON.parse(savedLayout);
-    return normalizePads(parsedLayout.pads);
+    return normalizePads(savedLayout.pads);
   } catch {
     markMemoryOnlyMode("Layout storage is unavailable. Changes will last until this tab is reloaded.", "unavailable");
     return createDefaultPads();
@@ -735,7 +735,7 @@ function serializeLayout() {
 function saveLayout(message = "Layout saved in this browser.") {
   if (storageMode === "persistent") setStorageState("saving", "Saving layout…");
   try {
-    localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(serializeLayout()));
+    localSettings.writeLayout(serializeLayout());
     if (storageMode === "persistent") setStorageState("saved");
     setStatus(storageMode === "memory" ? `${message} Memory-only mode: a reload may discard changes.` : message, storageMode === "memory" ? "error" : "success");
     return true;
@@ -770,164 +770,47 @@ function updateConnectionStatus(message, type = "ready") {
 }
 
 function openDatabase() {
-  if (!("indexedDB" in window)) {
-    return Promise.reject(new Error("IndexedDB is unavailable."));
-  }
-
-  if (!databasePromise) {
-    databasePromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
-
-      request.addEventListener("upgradeneeded", () => {
-        if (storageMode === "persistent") setStorageState("upgrade", "Updating local storage…");
-        if (!request.result.objectStoreNames.contains("samples")) {
-          request.result.createObjectStore("samples", { keyPath: "id" });
-        }
-        if (!request.result.objectStoreNames.contains("kits")) {
-          request.result.createObjectStore("kits", { keyPath: "id" });
-        }
-        if (!request.result.objectStoreNames.contains("takes")) {
-          request.result.createObjectStore("takes", { keyPath: "id" });
-        }
-        if (!request.result.objectStoreNames.contains("history")) {
-          request.result.createObjectStore("history", { keyPath: "id" });
-        }
-      });
-      request.addEventListener("success", () => {
-        sampleDatabase = request.result;
-        sampleDatabase.addEventListener("versionchange", () => sampleDatabase.close());
-        if (storageMode === "persistent") setStorageState("saved");
-        resolve(sampleDatabase);
-      });
-      request.addEventListener("error", () => {
-        markMemoryOnlyMode("Sample storage is unavailable. Audio works, but sample files will not survive a reload.", "unavailable");
-        reject(request.error || new Error("Could not open sample storage."));
-      });
-    });
-  }
-
-  return databasePromise;
-}
-
-function requestFromStore(mode, operation) {
-  return openDatabase().then((database) => new Promise((resolve, reject) => {
-    const transaction = database.transaction("samples", mode);
-    const store = transaction.objectStore("samples");
-    const request = operation(store);
-    attachStorageRequest(request, transaction, resolve, reject);
-  }));
+  return indexedDbStore.open();
 }
 
 function readSamples() {
-  return requestFromStore("readonly", (store) => store.getAll());
+  return indexedDbStore.readSamples();
 }
 
 function writeSample(sample) {
-  return runStorageTransaction("readwrite", ["samples"], (transaction) => {
-    transaction.objectStore("samples").put(sample);
-  });
+  return indexedDbStore.writeSample(sample);
 }
 
 function deleteSample(sampleId) {
-  return runStorageTransaction("readwrite", ["samples"], (transaction) => {
-    transaction.objectStore("samples").delete(sampleId);
-  });
-}
-
-function requestFromTakeStore(mode, operation) {
-  return openDatabase().then((database) => new Promise((resolve, reject) => {
-    const transaction = database.transaction("takes", mode);
-    const store = transaction.objectStore("takes");
-    const request = operation(store);
-    attachStorageRequest(request, transaction, resolve, reject);
-  }));
+  return indexedDbStore.deleteSample(sampleId);
 }
 
 function readTakes() {
-  return requestFromTakeStore("readonly", (store) => store.getAll());
+  return indexedDbStore.readTakes();
 }
 
 function writeTake(take) {
-  return runStorageTransaction("readwrite", ["takes"], (transaction) => {
-    transaction.objectStore("takes").put(take);
-  });
+  return indexedDbStore.writeTake(take);
 }
 
 function deleteTakeRecord(takeId) {
-  return runStorageTransaction("readwrite", ["takes"], (transaction) => {
-    transaction.objectStore("takes").delete(takeId);
-  });
-}
-
-function requestFromKitStore(mode, operation) {
-  return openDatabase().then((database) => new Promise((resolve, reject) => {
-    const transaction = database.transaction("kits", mode);
-    const store = transaction.objectStore("kits");
-    const request = operation(store);
-    attachStorageRequest(request, transaction, resolve, reject);
-  }));
+  return indexedDbStore.deleteTake(takeId);
 }
 
 function readKits() {
-  return requestFromKitStore("readonly", (store) => store.getAll());
+  return indexedDbStore.readKits();
 }
 
 function writeKit(kit) {
-  return runStorageTransaction("readwrite", ["kits"], (transaction) => {
-    transaction.objectStore("kits").put(kit);
-  });
-}
-
-function runStorageTransaction(mode, storeNames, operation) {
-  return openDatabase().then((database) => new Promise((resolve, reject) => {
-    const transaction = database.transaction(storeNames, mode);
-    let result;
-    let settled = false;
-    const rejectTransaction = () => {
-      if (settled) return;
-      settled = true;
-      reject(transaction.error || new Error("Local storage transaction failed."));
-    };
-
-    transaction.addEventListener("complete", () => {
-      if (settled) return;
-      settled = true;
-      resolve(result);
-    }, { once: true });
-    transaction.addEventListener("error", rejectTransaction, { once: true });
-    transaction.addEventListener("abort", rejectTransaction, { once: true });
-
-    try {
-      result = operation(transaction);
-    } catch (error) {
-      try {
-        transaction.abort();
-      } catch {
-        // The transaction may already be inactive.
-      }
-      if (!settled) {
-        settled = true;
-        reject(error);
-      }
-    }
-  }));
+  return indexedDbStore.writeKit(kit);
 }
 
 function writeKitsAndSamples(kitRecords, sampleRecords) {
-  return runStorageTransaction("readwrite", ["kits", "samples"], (transaction) => {
-    const kitStore = transaction.objectStore("kits");
-    const sampleStore = transaction.objectStore("samples");
-    for (const kit of kitRecords) kitStore.put(kit);
-    for (const sample of sampleRecords) sampleStore.put(sample);
-  });
+  return indexedDbStore.writeKitsAndSamples(kitRecords, sampleRecords);
 }
 
 function deleteSamples(sampleIds) {
-  if (!sampleIds.length) return Promise.resolve();
-  return runStorageTransaction("readwrite", ["samples"], (transaction) => {
-    const store = transaction.objectStore("samples");
-    for (const sampleId of sampleIds) store.delete(sampleId);
-  });
+  return indexedDbStore.deleteSamples(sampleIds);
 }
 
 async function initializeKitLibrary(legacyPads) {
@@ -944,10 +827,7 @@ async function initializeKitLibrary(legacyPads) {
 
   if (!validKits.length) {
     kits = createDefaultKitMap(legacyPads);
-    await runStorageTransaction("readwrite", ["kits"], (transaction) => {
-      const store = transaction.objectStore("kits");
-      for (const kit of kits.values()) store.put(kit);
-    });
+    await indexedDbStore.writeKits([...kits.values()]);
   } else {
     kits = new Map(validKits.map((kit) => [kit.id, kit]));
     const missingKits = [];
@@ -962,10 +842,7 @@ async function initializeKitLibrary(legacyPads) {
       }
     }
     if (missingKits.length) {
-      await runStorageTransaction("readwrite", ["kits"], (transaction) => {
-        const store = transaction.objectStore("kits");
-        for (const kit of missingKits) store.put(kit);
-      });
+      await indexedDbStore.writeKits(missingKits);
     }
   }
 
@@ -2236,9 +2113,7 @@ function limitStoredSamples(validSamples) {
 async function repairSampleStorage() {
   repairStorageButton.disabled = true;
   setStorageState("upgrade", "Checking saved sample storage…");
-  sampleDatabase?.close();
-  sampleDatabase = undefined;
-  databasePromise = undefined;
+  indexedDbStore.close();
 
   try {
     const { valid, corrupt } = partitionStoredSamples(await readSamples());
@@ -2270,17 +2145,7 @@ async function repairSampleStorage() {
 }
 
 function deleteSampleDatabase() {
-  if (!("indexedDB" in window)) return Promise.reject(new Error("IndexedDB is unavailable."));
-
-  sampleDatabase?.close();
-  sampleDatabase = undefined;
-  databasePromise = undefined;
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.deleteDatabase(DATABASE_NAME);
-    request.addEventListener("success", resolve, { once: true });
-    request.addEventListener("error", () => reject(request.error || new Error("Sample storage could not be reset.")), { once: true });
-    request.addEventListener("blocked", () => reject(new Error("Close other launchpad tabs before resetting sample storage.")), { once: true });
-  });
+  return indexedDbStore.deleteDatabase();
 }
 
 async function resetSampleStorage() {
@@ -2297,7 +2162,7 @@ async function resetSampleStorage() {
     currentKitId = "kit-1";
     kits = new Map();
     try {
-      localStorage.removeItem(KITS_MIRROR_STORAGE_KEY);
+      localSettings.removeKitMirror();
     } catch {
       // The reset still proceeds if the compatibility mirror cannot be cleared.
     }
