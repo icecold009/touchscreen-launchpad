@@ -6302,7 +6302,7 @@ body {
   border-radius: 999px;
   background: linear-gradient(180deg, #fff9e9 0%, var(--knob-accent) 62%, #92958b 100%);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.78), 0 0 0.26rem color-mix(in srgb, var(--knob-accent) 36%, transparent);
-  transform-origin: 50% 0.92rem;
+  transform-origin: 50% 0.695rem;
 }
 
 .effects-bay .knob-face::after,

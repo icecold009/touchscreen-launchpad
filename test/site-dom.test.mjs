@@ -171,6 +171,7 @@ test("range controls expose the rotary knob interaction contract", () => {
   assert.match(styles, /\.effects-controls > \.master-macro-group\s*\{\s*grid-column: 1 \/ -1/);
   assert.match(styles, /\.knob-control\s*\{[^}]*width:\s*2\.75rem;[^}]*height:\s*2\.75rem;/);
   assert.match(styles, /\.effects-bay \.knob-face,\s*\.master-macro-group \.knob-face\s*\{[^}]*inset:\s*0\.52rem;/);
+  assert.match(styles, /\.effects-bay \.knob-face::before,\s*\.master-macro-group \.knob-face::before\s*\{[^}]*transform-origin:\s*50% 0\.695rem;/);
   assert.match(styles, /\.effects-bay > \.compact-control,[\s\S]*?grid-template-rows:\s*minmax\(0, 0\.78rem\) 2\.5rem/);
   assert.match(styles, /@media \(min-width: 541px\)\s*\{\s*#transport-controls \.control-row\s*\{\s*grid-template-columns: 8rem 8rem 13rem;/);
   assert.match(styles, /@media \(max-width: 540px\)\s*\{\s*#transport-controls \.control-row\s*\{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
