@@ -4578,29 +4578,20 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 
 .knob-face::before {
   position: absolute;
-  top: 0.34rem;
+  top: 0.04rem;
   left: 50%;
-  width: 0.16rem;
-  height: 1.22rem;
+  width: 0.11rem;
+  height: 0.24rem;
   border-radius: 999px;
-  background: linear-gradient(180deg, #fff 0%, var(--knob-accent) 58%, #a6adb8 100%);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.64), 0 0 0.42rem color-mix(in srgb, var(--knob-accent) 42%, transparent);
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.78);
   content: "";
   transform: translateX(-50%) rotate(var(--knob-angle));
-  transform-origin: 50% 1.48rem;
+  transform-origin: 50% 1.495rem;
 }
 
 .knob-face::after {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0.34rem;
-  height: 0.34rem;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #657080, #222831 70%);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.56);
-  content: "";
-  transform: translate(-50%, -50%);
+  display: none;
 }
 
 input[type="range"].knob-range {
@@ -4668,6 +4659,10 @@ input[type="range"].knob-range {
     flex-basis: 3rem;
     width: 3rem;
     height: 3rem;
+  }
+
+  .knob-face::before {
+    transform-origin: 50% 1.32rem;
   }
 }
 
@@ -7266,8 +7261,16 @@ body {
 }
 
 #effects-panel .knob-face::before {
-  background: linear-gradient(180deg, #eee8d9 0%, #d5a25e 72%, #928a7b 100%);
+  top: 0.04rem;
+  width: 0.09rem;
+  height: 0.18rem;
+  background: #fff;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.78);
+  transform-origin: 50% 0.815rem;
+}
+
+#effects-panel .knob-face::after {
+  display: none;
 }
 
 @media (max-width: 380px) {
