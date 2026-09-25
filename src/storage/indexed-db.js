@@ -1,4 +1,4 @@
-import { attachStorageRequest } from "../storage-request.js?version=59";
+import { attachStorageRequest } from "../storage-request.js?version=76";
 
 const DATABASE_NAME = "touchscreen-launchpad";
 const DATABASE_VERSION = 3;

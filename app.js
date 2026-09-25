@@ -1,28 +1,28 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=59";
-import { createInputAdapter } from "./src/input-adapter.js?version=59";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=59";
-import { createPointerState } from "./src/pointer-state.js?version=59";
-import { createIndexedDbStore } from "./src/storage/indexed-db.js?version=59";
-import { createLocalSettings } from "./src/storage/local-settings.js?version=59";
-import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=59";
-import { getNextQuantizedTime } from "./src/transport.js?version=59";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=59";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=59";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=59";
-import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=59";
-import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=59";
-import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=59";
-import { createMidiFile } from "./src/midi-file.js?version=59";
-import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=59";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=59";
-import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=59";
-import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=59";
-import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=59";
-import { createPerformanceEvents, createPerformanceLog, checksumBytes, estimateRenderBytes, isRenderWithinGuardrails, normalizeRenderOptions } from "./src/performance-export.js?version=59";
-import { createArrangement, formatSceneChain, getNextChainPosition, getSceneName, normalizeArrangement, normalizeSceneId, parseSceneChain, shouldLaunchAtStep } from "./src/arrangement.js?version=59";
-import { encodePcmWav } from "./src/wav.js?version=59";
+import { createHistory } from "./src/history.js?version=76";
+import { createInputAdapter } from "./src/input-adapter.js?version=76";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=76";
+import { createPointerState } from "./src/pointer-state.js?version=76";
+import { createIndexedDbStore } from "./src/storage/indexed-db.js?version=76";
+import { createLocalSettings } from "./src/storage/local-settings.js?version=76";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=76";
+import { getNextQuantizedTime } from "./src/transport.js?version=76";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=76";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=76";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=76";
+import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=76";
+import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=76";
+import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=76";
+import { createMidiFile } from "./src/midi-file.js?version=76";
+import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=76";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=76";
+import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=76";
+import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=76";
+import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=76";
+import { createPerformanceEvents, createPerformanceLog, checksumBytes, estimateRenderBytes, isRenderWithinGuardrails, normalizeRenderOptions } from "./src/performance-export.js?version=76";
+import { createArrangement, formatSceneChain, getNextChainPosition, getSceneName, normalizeArrangement, normalizeSceneId, parseSceneChain, shouldLaunchAtStep } from "./src/arrangement.js?version=76";
+import { encodePcmWav } from "./src/wav.js?version=76";
 
 const MAX_LAYOUT_BYTES = 256 * 1024;
 const MAX_SAMPLE_BYTES = 50 * 1024 * 1024;
@@ -217,10 +217,10 @@ const repairStorageButton = document.querySelector("#repair-storage");
 const resetStorageButton = document.querySelector("#reset-storage");
 
 const padColors = [
-  "#262626", "#2e2e2e", "#363636", "#3e3e3e",
-  "#464646", "#4e4e4e", "#565656", "#5e5e5e",
-  "#666666", "#6e6e6e", "#767676", "#7e7e7e",
-  "#868686", "#8e8e8e", "#969696", "#9e9e9e",
+  "#df9b4b", "#c87d43", "#aa633e", "#8f5438",
+  "#d98673", "#c66c72", "#a95668", "#884e61",
+  "#98739c", "#786d9f", "#5c7f9e", "#477f90",
+  "#569481", "#7f9b5d", "#afa251", "#c08a47",
 ];
 
 function updateRangeProgress(input) {
@@ -228,15 +228,32 @@ function updateRangeProgress(input) {
   const max = Number(input.max || 100);
   const value = Number(input.value);
   const progress = Number.isFinite(value) && max > min
-    ? Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100))
+    ? Math.min(1, Math.max(0, (value - min) / (max - min)))
     : 0;
-  input.style.setProperty("--range-progress", `${progress}%`);
-  input.style.setProperty("--knob-fill-deg", `${(progress / 100) * 270}deg`);
-  input.style.setProperty("--knob-angle", `${225 + (progress / 100) * 270}deg`);
+  input.style.setProperty("--range-progress", `${progress * 100}%`);
   const knobControl = input.closest?.(".knob-control");
   if (knobControl) {
-    knobControl.style.setProperty("--knob-fill-deg", `${(progress / 100) * 270}deg`);
-    knobControl.style.setProperty("--knob-angle", `${225 + (progress / 100) * 270}deg`);
+    const rangeDegrees = progress * 270;
+    let angle = 225 + rangeDegrees;
+    if (knobControl.dataset.knobRole === "centered") {
+      const zero = Math.min(1, Math.max(0, (0 - min) / (max - min)));
+      if (progress <= zero) {
+        const sideProgress = zero > 0 ? progress / zero : 0;
+        const fillDegrees = (1 - sideProgress) * 135;
+        angle = 225 + sideProgress * 135;
+        knobControl.style.setProperty("--knob-negative-fill-start", `${360 - fillDegrees}deg`);
+        knobControl.style.setProperty("--knob-positive-fill-deg", "0deg");
+      } else {
+        const sideProgress = zero < 1 ? (progress - zero) / (1 - zero) : 0;
+        const fillDegrees = sideProgress * 135;
+        angle = 360 + sideProgress * 135;
+        knobControl.style.setProperty("--knob-negative-fill-start", "360deg");
+        knobControl.style.setProperty("--knob-positive-fill-deg", `${fillDegrees}deg`);
+      }
+    } else {
+      knobControl.style.setProperty("--knob-fill-deg", `${rangeDegrees}deg`);
+    }
+    knobControl.style.setProperty("--knob-angle", `${angle}deg`);
   }
 }
 
@@ -247,6 +264,20 @@ function syncRangeProgress(input) {
 const enhancedRangeInputs = new WeakSet();
 const activeRangePointers = new Map();
 const RANGE_DRAG_PIXELS = 160;
+const knobRoleByInputId = new Map([
+  ["master-eq-low", "centered"],
+  ["master-eq-mid", "centered"],
+  ["master-eq-high", "centered"],
+  ["pad-pan", "centered"],
+  ["pad-pitch", "centered"],
+  ["sequencer-step-micro", "centered"],
+  ["delay-time", "effects"],
+  ["delay-feedback", "effects"],
+  ["reverb-decay", "effects"],
+  ["pad-delay-send", "effects"],
+  ["pad-reverb-send", "effects"],
+  ["pad-volume", "level"],
+]);
 
 function getRangeModel(input) {
   const min = Number.isFinite(Number(input.min)) ? Number(input.min) : 0;
@@ -285,10 +316,16 @@ function setRangeValue(input, value, { announceChange = false } = {}) {
 function enhanceRangeInput(input) {
   if (!(input instanceof HTMLInputElement) || input.type !== "range" || enhancedRangeInputs.has(input)) return;
   enhancedRangeInputs.add(input);
-  input.classList.add("knob-range");
   input.setAttribute("aria-keyshortcuts", "PageUp PageDown");
+  if (input.id === "master-volume") {
+    input.classList.add("fader-range");
+    syncRangeProgress(input);
+    return;
+  }
+  input.classList.add("knob-range");
   const knobControl = document.createElement("span");
   knobControl.className = "knob-control";
+  knobControl.dataset.knobRole = knobRoleByInputId.get(input.id) || "standard";
   knobControl.setAttribute("data-knob-for", input.id || "range-control");
   const knobFace = document.createElement("span");
   knobFace.className = "knob-face";
@@ -300,6 +337,16 @@ function enhanceRangeInput(input) {
 
 function enhanceRangeInputs(root = document) {
   root.querySelectorAll?.('input[type="range"]').forEach(enhanceRangeInput);
+}
+
+function enhanceAddedRangeInputs(mutations) {
+  for (const mutation of mutations) {
+    for (const node of mutation.addedNodes) {
+      if (!(node instanceof Element)) continue;
+      if (node.matches('input[type="range"]')) enhanceRangeInput(node);
+      node.querySelectorAll('input[type="range"]').forEach(enhanceRangeInput);
+    }
+  }
 }
 
 function syncRangeKnobs() {
@@ -314,6 +361,7 @@ function handleRangePointerDown(event) {
       ? event.target.closest(".knob-control")?.querySelector('input[type="range"]')
       : null;
   if (!(input instanceof HTMLInputElement) || input.type !== "range" || input.disabled) return;
+  if (input.classList.contains("fader-range")) return;
   if (event.button !== undefined && event.button !== 0 && event.pointerType !== "touch") return;
   enhanceRangeInput(input);
   event.preventDefault();
@@ -406,6 +454,7 @@ let pendingSceneLaunch;
 let sceneChainPosition = 0;
 let sequencerHasStepped = false;
 let selectedSequencerStep = { trackIndex: 0, stepIndex: 0 };
+let sequencerPlayheadStepIndex = -1;
 let midiAccess;
 let midiInputs = new Map();
 let midiOutputs = new Map();
@@ -434,20 +483,23 @@ const sequencerRunner = createClockedSequencerRunner({
   onStep: ({ stepIndex, swingOffset, stepDuration, at }) => {
     const isFirstStep = !sequencerHasStepped;
     let switchedAtBoundary = false;
+    let sceneChanged = false;
     if (pendingSceneLaunch && shouldLaunchAtStep(pendingSceneLaunch.quantize, stepIndex)) {
       activeSceneId = pendingSceneLaunch.sceneId;
       sceneChainPosition = Math.max(0, arrangement.chain.indexOf(activeSceneId));
       pendingSceneLaunch = undefined;
       switchedAtBoundary = true;
+      sceneChanged = true;
     }
     if (!isFirstStep && !switchedAtBoundary && stepIndex === 0 && arrangement.chainEnabled && arrangement.chain.length > 1) {
       sceneChainPosition = getNextChainPosition(arrangement.chain, activeSceneId, sceneChainPosition);
       activeSceneId = arrangement.chain[sceneChainPosition];
       setStatus(`${getSceneName(arrangement, activeSceneId)} launched from the scene chain.`, "success");
+      sceneChanged = true;
     }
     sequencerHasStepped = true;
     const pattern = getActiveSequencerPattern();
-    sequencerStatus.textContent = `${getSceneName(arrangement, activeSceneId)} · Step ${stepIndex + 1}/16`;
+    updateSequencerPlayhead(stepIndex);
     for (const event of getStepEvents(pattern, stepIndex)) {
       const targetTime = at + swingOffset + event.microTiming * stepDuration;
       const delay = Math.max(0, (targetTime - (audioContext?.currentTime || targetTime)) * 1000);
@@ -460,9 +512,17 @@ const sequencerRunner = createClockedSequencerRunner({
       }, delay);
       sequencerTimers.add(timer);
     }
-    renderSequencer();
+    if (sceneChanged) renderSequencer();
+    sequencerStatus.textContent = `${getSceneName(arrangement, activeSceneId)} · Step ${stepIndex + 1}/16`;
   },
 });
+
+function stopSequencerPlayback() {
+  sequencerRunner.stop();
+  pendingSceneLaunch = undefined;
+  sequencerHasStepped = false;
+  updateSequencerPlayhead(-1);
+}
 let deferredInstallPrompt;
 let storageMode = "persistent";
 let storageState = "saved";
@@ -560,6 +620,10 @@ function getPadName(pad, index = Math.max(0, Number(pad?.id) - 1)) {
 function getVisiblePadLabel(pad, index) {
   const label = typeof pad?.label === "string" ? pad.label.trim() : "";
   return label && label !== defaultPadName(index) ? label : "";
+}
+
+function getPadDisplayColor(pad) {
+  return pad?.color;
 }
 
 function normalizePad(candidate, index) {
@@ -1010,6 +1074,8 @@ function renderSequencer() {
       const button = document.createElement("button");
       button.className = "sequencer-step";
       button.type = "button";
+      button.dataset.trackIndex = String(trackIndex);
+      button.dataset.stepIndex = String(stepIndex);
       button.textContent = String(stepIndex + 1);
       button.setAttribute("aria-label", `Track ${trackIndex + 1}, step ${stepIndex + 1}, ${step.on ? "on" : "off"}, probability ${Math.round(step.probability * 100)} percent, micro timing ${formatMicroTiming(step.microTiming)}`);
       button.setAttribute("aria-pressed", String(step.on));
@@ -1031,10 +1097,27 @@ function renderSequencer() {
   sceneBButton.setAttribute("aria-pressed", String(activeSceneId === "scene-b"));
   sceneAButton.classList.toggle("is-active", activeSceneId === "scene-a");
   sceneBButton.classList.toggle("is-active", activeSceneId === "scene-b");
+  sequencerPlayButton.setAttribute("aria-pressed", String(sequencerRunner.running));
+  sequencerPlayButton.classList.toggle("is-playing", sequencerRunner.running);
+  sequencerPlayButton.textContent = sequencerRunner.running ? "Stop sequence" : "Play sequence";
   sequencerStatus.textContent = `${getSceneLabel(activeSceneId)} · ${sequencerRunner.running ? "Playing" : "Ready"}`;
   renderArrangementControls();
   renderSequencerStepEditor();
   updateHistoryControls();
+  updateSequencerPlayhead(sequencerPlayheadStepIndex);
+}
+
+function updateSequencerPlayhead(stepIndex) {
+  sequencerGrid.querySelectorAll(".sequencer-step.is-current").forEach((button) => {
+    button.classList.remove("is-current");
+    button.removeAttribute("aria-current");
+  });
+  sequencerPlayheadStepIndex = Number.isInteger(stepIndex) && stepIndex >= 0 && stepIndex < 16 ? stepIndex : -1;
+  if (sequencerPlayheadStepIndex < 0) return;
+  sequencerGrid.querySelectorAll(`[data-step-index="${sequencerPlayheadStepIndex}"]`).forEach((button) => {
+    button.classList.add("is-current");
+    button.setAttribute("aria-current", "step");
+  });
 }
 
 function setSequencerScene(sceneId) {
@@ -1077,9 +1160,7 @@ async function persistArrangement(nextArrangement, message = "Arrangement settin
 
 async function toggleSequencer() {
   if (sequencerRunner.running) {
-    sequencerRunner.stop();
-    pendingSceneLaunch = undefined;
-    sequencerHasStepped = false;
+    stopSequencerPlayback();
     stopMidiClockOutput();
     sequencerPlayButton.textContent = "Play sequence";
     renderSequencer();
@@ -2729,7 +2810,7 @@ function handleAudioContextStateChange() {
   pendingSceneLaunch = undefined;
   sequencerHasStepped = false;
   if (sequencerRunner.running) {
-    sequencerRunner.stop();
+    stopSequencerPlayback();
     stopMidiClockOutput();
     sequencerPlayButton.textContent = "Play sequence";
     renderSequencer();
@@ -3101,7 +3182,7 @@ function showBeatCountdown(time, message) {
   };
 
   update();
-  beatCountdownTimer = window.setInterval(update, 50);
+  beatCountdownTimer = window.setInterval(update, 100);
 }
 
 function releaseVoice(index, voice) {
@@ -3218,7 +3299,7 @@ function stopAll({ announce = true } = {}) {
   pendingSceneLaunch = undefined;
   sequencerHasStepped = false;
   if (sequencerRunner.running) {
-    sequencerRunner.stop();
+    stopSequencerPlayback();
     stopMidiClockOutput();
     sequencerPlayButton.textContent = "Play sequence";
     renderSequencer();
@@ -3479,7 +3560,7 @@ function renderPads() {
     button.className = "pad";
     button.type = "button";
     button.dataset.index = String(index);
-    button.style.setProperty("--pad-color", pad.color);
+    button.style.setProperty("--pad-color", getPadDisplayColor(pad));
     const performanceSettings = normalizePerformanceSettings(pad);
     button.setAttribute("aria-label", `${getPadName(pad, index)}, keyboard shortcut ${pad.key}, ${pad.mode === "loop" ? "loop" : "one-shot"}, ${performanceSettings.triggerMode} mode`);
     button.title = `${String(pad.id).padStart(2, "0")}${getVisiblePadLabel(pad, index) ? ` · ${getVisiblePadLabel(pad, index)}` : ""} · ${pad.key}`;
@@ -4309,14 +4390,15 @@ function toggleFeatureNav() {
   const isExpanded = featureNavToggle.getAttribute("aria-expanded") !== "false";
   featureNavGroups.hidden = isExpanded;
   featureNavToggle.setAttribute("aria-expanded", String(!isExpanded));
-  featureNavToggle.textContent = isExpanded ? "Expand map" : "Collapse map";
+  featureNavToggle.textContent = isExpanded ? "Tools" : "Close tools";
   featureNav?.classList.toggle("is-collapsed", isExpanded);
 }
 
 function bindEvents() {
   enhanceRangeInputs();
-  const rangeKnobObserver = new MutationObserver(() => enhanceRangeInputs());
-  rangeKnobObserver.observe(document.body, { childList: true, subtree: true });
+  // Slice rows are the only range controls created after the initial page load.
+  const rangeKnobObserver = new MutationObserver(enhanceAddedRangeInputs);
+  rangeKnobObserver.observe(sliceList, { childList: true, subtree: true });
   document.addEventListener("pointerdown", handleRangePointerDown, true);
   document.addEventListener("pointermove", handleRangePointerMove, true);
   document.addEventListener("pointerup", finishRangePointer, true);
@@ -4539,7 +4621,7 @@ function bindEvents() {
   editorToggle.addEventListener("click", () => {
     const isCollapsed = editorPanel.classList.toggle("is-collapsed");
     editorToggle.setAttribute("aria-expanded", String(!isCollapsed));
-    editorToggle.textContent = isCollapsed ? "Expand editor" : "Collapse editor";
+    editorToggle.textContent = isCollapsed ? "Open pad editor" : "Close pad editor";
   });
   editorNavLinks.forEach((link) => {
     link.addEventListener("click", () => {
@@ -4549,7 +4631,17 @@ function bindEvents() {
   featureNavToggle?.addEventListener("click", toggleFeatureNav);
   featureNavLinks.forEach((link) => {
     link.addEventListener("click", () => {
+      const targetId = link.getAttribute("href")?.slice(1);
+      const target = targetId ? document.getElementById(targetId) : null;
+      const targetDetails = target?.closest("details");
+      if (targetDetails) targetDetails.open = true;
+      if (target && editorPanel && (target === editorPanel || editorPanel.contains(target)) && editorPanel.classList.contains("is-collapsed")) {
+        editorPanel.classList.remove("is-collapsed");
+        editorToggle.setAttribute("aria-expanded", "true");
+        editorToggle.textContent = "Close pad editor";
+      }
       featureNavLinks.forEach((navLink) => navLink.classList.toggle("is-current", navLink === link));
+      if (featureNavGroups?.contains(link) && featureNavToggle?.getAttribute("aria-expanded") === "true") toggleFeatureNav();
     });
   });
 
@@ -4593,7 +4685,7 @@ async function registerServiceWorker() {
 
   try {
     const hadController = Boolean(navigator.serviceWorker.controller);
-    const registration = await navigator.serviceWorker.register("./sw.js?version=59");
+    const registration = await navigator.serviceWorker.register("./sw.js?version=76");
     const installingWorker = registration.installing;
 
     if (hadController) {
