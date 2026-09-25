@@ -9,6 +9,7 @@ import { validateModuleGraph } from "../scripts/validate-site.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const indexedDbStorage = fs.readFileSync(path.join(root, "src", "storage", "indexed-db.js"), "utf8");
 const bootstrap = fs.readFileSync(path.join(root, "src", "bootstrap.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
@@ -23,11 +24,13 @@ test("bootstrap is the single browser entry and app initialization is exportable
   assert.doesNotMatch(app, /void init(?:Launchpad)?\(\);/);
 });
 
-test("module URLs share one cache version and remain in the offline shell", () => {
+test("module URLs share one asset version and remain in the revised offline shell", () => {
   const htmlVersion = html.match(/src\/bootstrap\.js\?version=(\d+)/)?.[1];
   const bootstrapVersion = bootstrap.match(/app\.js\?version=(\d+)/)?.[1];
   const pointerVersion = app.match(/pointer-state\.js\?version=(\d+)/)?.[1];
-  const storageVersion = app.match(/storage-request\.js\?version=(\d+)/)?.[1];
+  const storageVersion = indexedDbStorage.match(/storage-request\.js\?version=(\d+)/)?.[1];
+  const indexedDbStorageVersion = app.match(/storage\/indexed-db\.js\?version=(\d+)/)?.[1];
+  const localSettingsVersion = app.match(/storage\/local-settings\.js\?version=(\d+)/)?.[1];
   const downloadVersion = app.match(/download\.js\?version=(\d+)/)?.[1];
   const recordingVersion = app.match(/recording\.js\?version=(\d+)/)?.[1];
   const sampleEditorVersion = app.match(/sample-editor\.js\?version=(\d+)/)?.[1];
@@ -49,6 +52,8 @@ test("module URLs share one cache version and remain in the offline shell", () =
   assert.equal(bootstrapVersion, htmlVersion);
   assert.equal(pointerVersion, htmlVersion);
   assert.equal(storageVersion, htmlVersion);
+  assert.equal(indexedDbStorageVersion, htmlVersion);
+  assert.equal(localSettingsVersion, htmlVersion);
   assert.equal(downloadVersion, htmlVersion);
   assert.equal(recordingVersion, htmlVersion);
   assert.equal(sampleEditorVersion, htmlVersion);
@@ -64,11 +69,13 @@ test("module URLs share one cache version and remain in the offline shell", () =
   assert.equal(sampleLibraryVersion, htmlVersion);
   assert.equal(performanceExportVersion, htmlVersion);
   assert.equal(arrangementVersion, htmlVersion);
-  assert.equal(cacheVersion, htmlVersion);
+  assert.ok(Number(cacheVersion) > Number(htmlVersion));
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/bootstrap\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/app\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/pointer-state\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/storage-request\\.js\\?version=${htmlVersion}"`));
+  assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/storage\\/indexed-db\\.js\\?version=${htmlVersion}"`));
+  assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/storage\\/local-settings\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/download\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/recording\\.js\\?version=${htmlVersion}"`));
   assert.match(serviceWorker, new RegExp(`"\\.\\/src\\/sample-editor\\.js\\?version=${htmlVersion}"`));

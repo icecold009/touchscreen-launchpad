@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#070b16" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=59" />
+    <link rel="stylesheet" href="style.css?version=82" />
     <title>Touchscreen Launchpad</title>
     <meta name="google-site-verification" content="1x0ZiOr6RUU3_PnhQXVEgqc9HLaZJpIpGCV0cTgar0g" />
       <meta name="author" content="Shaurya Saria" />
@@ -48,9 +48,8 @@
     <main class="app-shell">
       <header class="app-header">
         <div>
-          <p class="eyebrow">Local performance tool</p>
+          <p class="eyebrow">Live sampler</p>
           <h1>Touchscreen Launchpad</h1>
-          <p class="subtitle">Load sounds, arrange a kit, and perform from any touch surface.</p>
         </div>
 
         <div class="header-actions">
@@ -59,57 +58,22 @@
         </div>
       </header>
 
-      <nav class="feature-nav is-collapsed" aria-label="Workspace sections">
-        <div class="feature-nav-heading">
-          <div class="feature-nav-heading-copy">
-            <span class="eyebrow">Workspace map</span>
-            <strong>Start here</strong>
-            <span class="feature-nav-hint">Choose a section, then open a focused tool.</span>
-          </div>
-          <button id="feature-nav-toggle" class="button button-quiet feature-nav-toggle" type="button" aria-expanded="false" aria-controls="feature-nav-groups">Expand map</button>
+      <nav class="feature-nav is-collapsed" aria-label="Studio views">
+        <div class="feature-nav-primary" aria-label="Main work areas">
+          <a class="feature-nav-link feature-nav-primary-link is-current" href="#performance-surface">Live</a>
+          <a class="feature-nav-link feature-nav-primary-link" href="#effects-panel">Mix</a>
+          <a class="feature-nav-link feature-nav-primary-link" href="#sequencer-panel">Arrange</a>
+          <a class="feature-nav-link feature-nav-primary-link" href="#sample-library">Sounds</a>
+          <a class="feature-nav-link feature-nav-primary-link feature-nav-record" href="#performance-capture">Record</a>
         </div>
+        <button id="feature-nav-toggle" class="button button-quiet feature-nav-toggle" type="button" aria-expanded="false" aria-controls="feature-nav-groups">Tools</button>
         <div id="feature-nav-groups" class="feature-nav-groups" hidden>
-          <section class="feature-nav-group" aria-labelledby="feature-nav-perform">
-            <div class="feature-nav-group-heading" id="feature-nav-perform">
-              <span class="feature-nav-number">01</span>
-              <span><strong>Perform</strong><small>Make sound</small></span>
-            </div>
-            <div class="feature-nav-group-links">
-              <a class="feature-nav-link is-current" href="#performance-surface"><span><strong>Play</strong><small>16 pads</small></span></a>
-              <a class="feature-nav-link" href="#performance-capture"><span><strong>Record</strong><small>Capture a take</small></span></a>
-              <a class="feature-nav-link" href="#kit-tools"><span><strong>Kits</strong><small>Switch sounds</small></span></a>
-            </div>
-          </section>
-          <section class="feature-nav-group" aria-labelledby="feature-nav-build">
-            <div class="feature-nav-group-heading" id="feature-nav-build">
-              <span class="feature-nav-number">02</span>
-              <span><strong>Build</strong><small>Shape the set</small></span>
-            </div>
-            <div class="feature-nav-group-links">
-              <a class="feature-nav-link" href="#sequencer-panel"><span><strong>Arrange</strong><small>Scenes &amp; steps</small></span></a>
-              <a class="feature-nav-link" href="#pad-setup"><span><strong>Shape</strong><small>Pad editor</small></span></a>
-            </div>
-          </section>
-          <section class="feature-nav-group" aria-labelledby="feature-nav-mix">
-            <div class="feature-nav-group-heading" id="feature-nav-mix">
-              <span class="feature-nav-number">03</span>
-              <span><strong>Mix</strong><small>Control the sound</small></span>
-            </div>
-            <div class="feature-nav-group-links">
-              <a class="feature-nav-link" href="#effects-panel"><span><strong>Effects</strong><small>Master bus</small></span></a>
-              <a class="feature-nav-link" href="#midi-panel"><span><strong>MIDI</strong><small>Hardware bridge</small></span></a>
-            </div>
-          </section>
-          <section class="feature-nav-group" aria-labelledby="feature-nav-library">
-            <div class="feature-nav-group-heading" id="feature-nav-library">
-              <span class="feature-nav-number">04</span>
-              <span><strong>Library</strong><small>Manage sounds</small></span>
-            </div>
-            <div class="feature-nav-group-links">
-              <a class="feature-nav-link" href="#sample-library"><span><strong>Samples</strong><small>Browse audio</small></span></a>
-              <a class="feature-nav-link" href="#layout-tools"><span><strong>Backup</strong><small>Transfer kits</small></span></a>
-            </div>
-          </section>
+          <a class="feature-nav-link" href="#kit-options">Kit management</a>
+          <a class="feature-nav-link" href="#midi-panel">MIDI setup</a>
+          <a class="feature-nav-link" href="#pad-setup">Pad editor</a>
+          <a class="feature-nav-link" href="#layout-tools">Backup &amp; transfer</a>
+          <a class="feature-nav-link" href="#audio-tools">Snapshots &amp; diagnostics</a>
+          <a class="feature-nav-link" href="#arrangement-exports">Exports</a>
         </div>
       </nav>
 
@@ -117,13 +81,13 @@
         <div id="performance-surface" class="stage">
           <div class="stage-heading">
             <div>
-              <p class="eyebrow">Performance surface</p>
-              <h2>Play your pads</h2>
+              <p class="eyebrow">Live performance</p>
+              <h2>Play</h2>
             </div>
             <button id="performance-mode" class="button button-secondary" type="button" aria-pressed="false">Perform full screen</button>
           </div>
 
-          <section id="transport-controls" class="controls" aria-label="Launchpad controls">
+          <section id="transport-controls" class="controls" aria-label="Performance controls">
             <div class="control-row">
               <button id="stop-all" class="button button-danger" type="button">Stop all</button>
               <button id="loop-toggle" class="button button-loop" type="button" aria-label="Toggle loop mode for the selected pad" aria-pressed="false">Loop off</button>
@@ -167,24 +131,54 @@
             </div>
           </section>
 
-          <section id="performance-capture" class="performance-capture" aria-labelledby="recording-title">
+          <div class="pad-performance">
+            <div class="pad-bank-heading">
+              <span class="pad-bank-label">Pads <span class="pad-bank-count">01–16</span></span>
+              <label class="compact-control kit-live-select" for="kit-select">
+                <span>Kit</span>
+                <select id="kit-select">
+                  <option value="kit-1">Kit 1 — Starter</option>
+                  <option value="kit-2">Kit 2 · Empty</option>
+                  <option value="kit-3">Kit 3 · Empty</option>
+                  <option value="kit-4">Kit 4 · Empty</option>
+                  <option value="kit-5">Kit 5 · Empty</option>
+                </select>
+              </label>
+            </div>
+            <section id="pad-grid" class="pad-grid" aria-label="Launchpad pads"></section>
+
+            <aside class="volume-rail" aria-label="Master volume">
+              <label class="volume-rail-control" for="master-volume">
+                <span class="volume-rail-title">Volume</span>
+                <output id="master-volume-value" for="master-volume">80%</output>
+                <input id="master-volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Master volume" aria-orientation="vertical" />
+              </label>
+            </aside>
+          </div>
+
+          <section id="kit-tools" class="kit-tools kit-dock" aria-labelledby="kit-tools-title">
             <div class="section-heading">
               <div>
-                <p class="eyebrow">Record to perform</p>
-                <h3 id="recording-title">Capture a take</h3>
-                <p class="section-subtitle">Microphone plus the launchpad mix, saved only in this browser.</p>
+                <h3 id="kit-tools-title">Kit management</h3>
               </div>
-              <span id="recording-timer" class="recording-timer" aria-label="Recording duration">00:00</span>
+              <span id="kit-count" class="muted">1/5 used</span>
             </div>
-            <div class="recording-controls">
-              <button id="record-performance" class="button button-primary" type="button">Record performance</button>
-              <button id="pause-recording" class="button button-secondary" type="button" disabled>Pause recording</button>
-              <span id="recording-state" class="recording-state" role="status" aria-live="polite">Ready to capture</span>
-            </div>
-            <ul id="take-list" class="sample-list take-list" aria-label="Saved performance takes">
-              <li class="empty-state">No takes yet. Record a voice, room sound, or pad performance.</li>
-            </ul>
-            <span id="take-count" class="sr-only">0 takes</span>
+            <details id="kit-options" class="kit-options tool-detail">
+              <summary class="tool-summary">Rename, duplicate, or remove a kit</summary>
+              <div class="kit-dock-controls">
+              <div class="kit-name-row">
+                <label class="field" for="kit-name">
+                  <span>Kit name</span>
+                  <input id="kit-name" name="kit-name" type="text" maxlength="40" required />
+                </label>
+                <button id="rename-kit" class="button button-secondary" type="button">Rename</button>
+              </div>
+                <div class="kit-action-row">
+                  <button id="duplicate-kit" class="button button-secondary" type="button">Duplicate</button>
+                  <button id="delete-kit" class="button button-danger" type="button">Delete</button>
+                </div>
+              </div>
+            </details>
           </section>
 
           <section id="sequencer-panel" class="sequencer-panel" aria-labelledby="sequencer-title">
@@ -201,50 +195,60 @@
                 <button id="scene-a" class="button button-secondary is-active" type="button" aria-pressed="true">Scene A</button>
                 <button id="scene-b" class="button button-secondary" type="button" aria-pressed="false">Scene B</button>
               </div>
-              <div class="scene-names" aria-label="Scene names">
-                <label class="compact-control" for="scene-a-name">
-                  <span>Scene A name</span>
-                  <input id="scene-a-name" type="text" maxlength="32" value="Scene A" />
-                </label>
-                <label class="compact-control" for="scene-b-name">
-                  <span>Scene B name</span>
-                  <input id="scene-b-name" type="text" maxlength="32" value="Scene B" />
-                </label>
-              </div>
-              <div class="arrangement-controls" aria-label="Scene launch and chain controls">
-                <label class="compact-control" for="scene-launch-quantize">
-                  <span>Launch</span>
-                  <select id="scene-launch-quantize">
-                    <option value="immediate">Immediate</option>
-                    <option value="beat">Next beat</option>
-                    <option value="bar" selected>Next bar</option>
-                  </select>
-                </label>
-                <button id="scene-chain-toggle" class="button button-secondary" type="button" aria-pressed="false">Chain off</button>
-                <label class="compact-control scene-chain-field" for="scene-chain">
-                  <span>Chain A/B</span>
-                  <input id="scene-chain" type="text" maxlength="32" value="A,B" spellcheck="false" aria-describedby="scene-chain-status" />
-                </label>
-                <span id="scene-chain-status" class="muted" role="status" aria-live="polite">Chain off · A → B</span>
-              </div>
-              <button id="sequencer-play" class="button button-primary" type="button">Play sequence</button>
-              <button id="sequencer-clear" class="button button-quiet" type="button">Clear scene</button>
-              <button id="export-midi" class="button button-secondary" type="button">Export MIDI</button>
-              <label class="compact-control" for="render-bars">
-                <span>Render bars</span>
-                <input id="render-bars" type="number" min="1" max="16" step="1" value="1" inputmode="numeric" />
-              </label>
-              <button id="render-master-wav" class="button button-secondary" type="button">Render master WAV</button>
-              <button id="render-stems-wav" class="button button-secondary" type="button">Render stems</button>
-              <button id="export-performance-log" class="button button-quiet" type="button">Export event log</button>
-              <button id="sequencer-duplicate" class="button button-secondary" type="button">Duplicate to Scene B</button>
-              <button id="sequencer-undo" class="button button-quiet" type="button">Undo scene</button>
-              <button id="sequencer-redo" class="button button-quiet" type="button">Redo scene</button>
+              <button id="sequencer-play" class="button button-primary" type="button" aria-pressed="false">Play sequence</button>
               <label class="compact-control" for="sequencer-swing">
                 <span>Swing</span>
                 <input id="sequencer-swing" type="range" min="0" max="0.5" step="0.01" value="0" />
                 <output id="sequencer-swing-value" for="sequencer-swing">0%</output>
               </label>
+              <details id="sequencer-tools" class="sequencer-tools tool-detail">
+                <summary class="tool-summary">Scene tools</summary>
+                <div class="sequencer-tools-drawer">
+                  <div class="scene-names" aria-label="Scene names">
+                    <label class="compact-control" for="scene-a-name">
+                      <span>Scene A name</span>
+                      <input id="scene-a-name" type="text" maxlength="32" value="Scene A" />
+                    </label>
+                    <label class="compact-control" for="scene-b-name">
+                      <span>Scene B name</span>
+                      <input id="scene-b-name" type="text" maxlength="32" value="Scene B" />
+                    </label>
+                  </div>
+                  <div class="arrangement-controls" aria-label="Scene launch and chain controls">
+                    <label class="compact-control" for="scene-launch-quantize">
+                      <span>Launch</span>
+                      <select id="scene-launch-quantize">
+                        <option value="immediate">Immediate</option>
+                        <option value="beat">Next beat</option>
+                        <option value="bar" selected>Next bar</option>
+                      </select>
+                    </label>
+                    <button id="scene-chain-toggle" class="button button-secondary" type="button" aria-pressed="false">Chain off</button>
+                    <label class="compact-control scene-chain-field" for="scene-chain">
+                      <span>Chain A/B</span>
+                      <input id="scene-chain" type="text" maxlength="32" value="A,B" spellcheck="false" aria-describedby="scene-chain-status" />
+                    </label>
+                    <span id="scene-chain-status" class="muted" role="status" aria-live="polite">Chain off · A → B</span>
+                  </div>
+                  <div class="sequencer-actions" role="group" aria-label="Sequencer actions">
+                <button id="sequencer-clear" class="button button-quiet" type="button">Clear scene</button>
+                    <button id="sequencer-duplicate" class="button button-secondary" type="button">Duplicate to Scene B</button>
+                    <button id="sequencer-undo" class="button button-quiet" type="button">Undo scene</button>
+                    <button id="sequencer-redo" class="button button-quiet" type="button">Redo scene</button>
+                  </div>
+                  <details id="arrangement-exports" class="arrangement-exports tool-detail">
+                    <summary class="tool-summary">Export &amp; render</summary>
+                    <button id="export-midi" class="button button-secondary" type="button">Export MIDI</button>
+                    <label class="compact-control" for="render-bars">
+                      <span>Render bars</span>
+                      <input id="render-bars" type="number" min="1" max="16" step="1" value="1" inputmode="numeric" />
+                    </label>
+                    <button id="render-master-wav" class="button button-secondary" type="button">Render master WAV</button>
+                    <button id="render-stems-wav" class="button button-secondary" type="button">Render stems</button>
+                    <button id="export-performance-log" class="button button-quiet" type="button">Export event log</button>
+                  </details>
+                </div>
+              </details>
             </div>
             <p id="render-status" class="muted" role="status" aria-live="polite">Offline render is bounded to 16 bars and 64 MB per file.</p>
             <div id="sequencer-grid" class="sequencer-grid" aria-label="Four-track 16-step sequencer"></div>
@@ -286,15 +290,32 @@
             </div>
           </section>
 
-          <section id="midi-panel" class="midi-panel" aria-labelledby="midi-title">
+          <section id="performance-capture" class="performance-capture" aria-labelledby="recording-title">
             <div class="section-heading">
               <div>
-                <p class="eyebrow">Hardware bridge</p>
-                <h3 id="midi-title">MIDI control</h3>
-                <p class="section-subtitle">Optional Web MIDI input, output, and learn mapping.</p>
+                <p class="eyebrow">Record to perform</p>
+                <h3 id="recording-title">Capture a take</h3>
+                <p class="section-subtitle">Microphone plus the launchpad mix, saved only in this browser.</p>
               </div>
-              <span id="midi-status" class="muted" role="status" aria-live="polite">Not connected</span>
+              <span id="recording-timer" class="recording-timer" aria-label="Recording duration">00:00</span>
             </div>
+            <div class="recording-controls">
+              <button id="record-performance" class="button button-primary" type="button">Record performance</button>
+              <button id="pause-recording" class="button button-secondary" type="button" disabled>Pause recording</button>
+              <span id="recording-state" class="recording-state" role="status" aria-live="polite">Ready to capture</span>
+            </div>
+            <ul id="take-list" class="sample-list take-list" aria-label="Saved performance takes">
+              <li class="empty-state">No takes yet. Record a voice, room sound, or pad performance.</li>
+            </ul>
+            <span id="take-count" class="sr-only">0 takes</span>
+          </section>
+
+          <details id="midi-panel" class="midi-panel tool-detail" aria-labelledby="midi-title">
+            <summary class="tool-summary">
+              <strong id="midi-title">MIDI control</strong>
+              <span id="midi-status" class="muted" role="status" aria-live="polite">Not connected</span>
+            </summary>
+            <p class="section-subtitle">Optional hardware clock and controller mapping.</p>
             <div class="midi-controls">
               <button id="midi-connect" class="button button-secondary" type="button">Connect MIDI</button>
               <button id="midi-learn" class="button button-secondary" type="button">Learn selected pad</button>
@@ -338,63 +359,71 @@
             </div>
             <p id="midi-mapping-status" class="muted" role="status" aria-live="polite">Choose a target, then learn a controller.</p>
             <ul id="midi-mappings" class="midi-mappings" aria-label="Learned MIDI controller mappings"></ul>
-          </section>
+          </details>
 
           <section id="effects-panel" class="effects-panel" aria-labelledby="effects-title">
             <div class="section-heading">
               <div>
                 <p class="eyebrow">Master bus</p>
-                <h3 id="effects-title">Live effects &amp; diagnostics</h3>
-                <p class="section-subtitle">Delay and reverb returns are local and included in performance capture.</p>
+                <h3 id="effects-title">Master mixer</h3>
               </div>
               <span id="audio-diagnostics-status" class="muted" role="status" aria-live="polite">Audio not started</span>
             </div>
             <div class="effects-controls">
-              <label class="compact-control" for="delay-time">
-                <span>Delay time</span>
-                <input id="delay-time" type="range" min="0.05" max="0.8" step="0.01" value="0.24" />
-                <output for="delay-time">240 ms</output>
-              </label>
-              <label class="compact-control" for="delay-feedback">
-                <span>Feedback</span>
-                <input id="delay-feedback" type="range" min="0" max="0.8" step="0.01" value="0.28" />
-                <output for="delay-feedback">28%</output>
-              </label>
-              <label class="compact-control" for="reverb-decay">
-                <span>Reverb decay</span>
-                <input id="reverb-decay" type="range" min="0.2" max="4" step="0.1" value="1.4" />
-                <output for="reverb-decay">1.4 s</output>
-              </label>
-              <label class="compact-control" for="master-eq-low">
-                <span>Low EQ</span>
-                <input id="master-eq-low" type="range" min="-12" max="12" step="0.5" value="0" />
-                <output for="master-eq-low">0 dB</output>
-              </label>
-              <label class="compact-control" for="master-eq-mid">
-                <span>Mid EQ</span>
-                <input id="master-eq-mid" type="range" min="-12" max="12" step="0.5" value="0" />
-                <output for="master-eq-mid">0 dB</output>
-              </label>
-              <label class="compact-control" for="master-eq-high">
-                <span>High EQ</span>
-                <input id="master-eq-high" type="range" min="-12" max="12" step="0.5" value="0" />
-                <output for="master-eq-high">0 dB</output>
-              </label>
-              <label class="compact-control" for="compressor-threshold">
-                <span>Comp threshold</span>
-                <input id="compressor-threshold" type="range" min="-60" max="0" step="1" value="-18" />
-                <output for="compressor-threshold">−18 dB</output>
-              </label>
-              <label class="compact-control" for="compressor-ratio">
-                <span>Comp ratio</span>
-                <input id="compressor-ratio" type="range" min="1" max="20" step="0.5" value="4" />
-                <output for="compressor-ratio">4:1</output>
-              </label>
-              <label class="compact-control" for="limiter-threshold">
-                <span>Limiter ceiling</span>
-                <input id="limiter-threshold" type="range" min="-12" max="0" step="0.5" value="-1" />
-                <output for="limiter-threshold">−1 dB</output>
-              </label>
+              <div class="effects-bay" role="group" aria-label="Time effects">
+                <p class="effects-bay-heading">TIME FX <span>Echo and reverb</span></p>
+                <label class="compact-control" for="delay-time">
+                  <span>Delay time</span>
+                  <input id="delay-time" type="range" min="0.05" max="0.8" step="0.01" value="0.24" />
+                  <output for="delay-time">240 ms</output>
+                </label>
+                <label class="compact-control" for="delay-feedback">
+                  <span>Feedback</span>
+                  <input id="delay-feedback" type="range" min="0" max="0.8" step="0.01" value="0.28" />
+                  <output for="delay-feedback">28%</output>
+                </label>
+                <label class="compact-control" for="reverb-decay">
+                  <span>Reverb decay</span>
+                  <input id="reverb-decay" type="range" min="0.2" max="4" step="0.1" value="1.4" />
+                  <output for="reverb-decay">1.4 s</output>
+                </label>
+              </div>
+              <div class="effects-bay" role="group" aria-label="Three-band master equalizer">
+                <p class="effects-bay-heading">3-BAND EQ <span>±12 dB</span></p>
+                <label class="compact-control" for="master-eq-low">
+                  <span>Low</span>
+                  <input id="master-eq-low" type="range" min="-12" max="12" step="0.5" value="0" />
+                  <output for="master-eq-low">0 dB</output>
+                </label>
+                <label class="compact-control" for="master-eq-mid">
+                  <span>Mid</span>
+                  <input id="master-eq-mid" type="range" min="-12" max="12" step="0.5" value="0" />
+                  <output for="master-eq-mid">0 dB</output>
+                </label>
+                <label class="compact-control" for="master-eq-high">
+                  <span>High</span>
+                  <input id="master-eq-high" type="range" min="-12" max="12" step="0.5" value="0" />
+                  <output for="master-eq-high">0 dB</output>
+                </label>
+              </div>
+              <div class="effects-bay" role="group" aria-label="Master dynamics">
+                <p class="effects-bay-heading">DYNAMICS <span>Bus control</span></p>
+                <label class="compact-control" for="compressor-threshold">
+                  <span>Comp threshold</span>
+                  <input id="compressor-threshold" type="range" min="-60" max="0" step="1" value="-18" />
+                  <output for="compressor-threshold">−18 dB</output>
+                </label>
+                <label class="compact-control" for="compressor-ratio">
+                  <span>Comp ratio</span>
+                  <input id="compressor-ratio" type="range" min="1" max="20" step="0.5" value="4" />
+                  <output for="compressor-ratio">4:1</output>
+                </label>
+                <label class="compact-control" for="limiter-threshold">
+                  <span>Limiter ceiling</span>
+                  <input id="limiter-threshold" type="range" min="-12" max="0" step="0.5" value="-1" />
+                  <output for="limiter-threshold">−1 dB</output>
+                </label>
+              </div>
               <div class="master-macro-group" role="group" aria-label="Master macros">
                 <span class="master-macro-title">Macros</span>
                 <label class="compact-control" for="macro-warmth">
@@ -413,64 +442,25 @@
                   <output id="macro-punch-value" for="macro-punch">50%</output>
                 </label>
               </div>
-              <label class="compact-control" for="master-snapshot">
-                <span>Snapshot</span>
-                <select id="master-snapshot"><option value="">No snapshots</option></select>
-              </label>
-              <button id="save-master-snapshot" class="button button-secondary" type="button">Save snapshot</button>
-              <button id="recall-master-snapshot" class="button button-secondary" type="button" disabled>Recall snapshot</button>
-              <span id="master-level-status" class="muted" role="status" aria-live="polite">Level check available after audio starts.</span>
-              <button id="audio-diagnostics" class="button button-secondary" type="button">Check audio</button>
-              <button id="master-level-check" class="button button-quiet" type="button">Check levels</button>
-            </div>
-          </section>
-
-          <div class="pad-performance">
-            <section id="pad-grid" class="pad-grid" aria-label="Launchpad pads"></section>
-
-            <aside class="volume-rail" aria-label="Master volume">
-              <label class="volume-rail-control" for="master-volume">
-                <span class="volume-rail-title">Volume</span>
-                <output id="master-volume-value" for="master-volume">80%</output>
-                <input id="master-volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-orientation="vertical" />
-              </label>
-            </aside>
-          </div>
-
-          <section id="kit-tools" class="kit-tools kit-dock" aria-labelledby="kit-tools-title">
-            <div class="section-heading">
-              <div>
-                <h3 id="kit-tools-title">Kit library</h3>
-              </div>
-              <span id="kit-count" class="muted">1/5 used</span>
-            </div>
-            <div class="kit-dock-controls">
-              <label class="field kit-select-field" for="kit-select">
-                <span>Active kit</span>
-                <select id="kit-select">
-                  <option value="kit-1">Kit 1 — Starter</option>
-                  <option value="kit-2">Kit 2 · Empty</option>
-                  <option value="kit-3">Kit 3 · Empty</option>
-                  <option value="kit-4">Kit 4 · Empty</option>
-                  <option value="kit-5">Kit 5 · Empty</option>
-                </select>
-              </label>
-              <div class="kit-name-row">
-                <label class="field" for="kit-name">
-                  <span>Kit name</span>
-                  <input id="kit-name" name="kit-name" type="text" maxlength="40" required />
+              <details id="audio-tools" class="mix-tools tool-detail">
+                <summary class="tool-summary">Snapshots &amp; diagnostics</summary>
+                <label class="compact-control" for="master-snapshot">
+                  <span>Snapshot</span>
+                  <select id="master-snapshot"><option value="">No snapshots</option></select>
                 </label>
-                <button id="rename-kit" class="button button-secondary" type="button">Rename</button>
-              </div>
-            </div>
-            <div class="kit-action-row">
-              <button id="duplicate-kit" class="button button-secondary" type="button">Duplicate</button>
-              <button id="delete-kit" class="button button-danger" type="button">Delete</button>
+                <button id="save-master-snapshot" class="button button-secondary" type="button">Save snapshot</button>
+                <button id="recall-master-snapshot" class="button button-secondary" type="button" disabled>Recall snapshot</button>
+                <span id="master-level-status" class="muted" role="status" aria-live="polite">Level check available after audio starts.</span>
+                <button id="audio-diagnostics" class="button button-secondary" type="button">Check audio</button>
+                <button id="master-level-check" class="button button-quiet" type="button">Check levels</button>
+              </details>
             </div>
           </section>
+
+
         </div>
 
-        <aside id="pad-setup" class="editor-panel" aria-labelledby="editor-title">
+        <aside id="pad-setup" class="editor-panel is-collapsed" aria-labelledby="editor-title">
           <div class="panel-heading">
             <div>
               <p class="eyebrow">Pad setup</p>
@@ -488,8 +478,8 @@
             <a class="editor-nav-link" href="#sample-library">Samples</a>
           </nav>
 
-          <button id="editor-toggle" class="button button-secondary editor-toggle" type="button" aria-expanded="true" aria-controls="editor-content">
-            Collapse editor
+          <button id="editor-toggle" class="button button-secondary editor-toggle" type="button" aria-expanded="false" aria-controls="editor-content">
+            Open pad editor
           </button>
 
           <div id="editor-content" class="editor-content">
@@ -779,6 +769,6 @@
       </section>
     </main>
 
-            <script type="module" src="src/bootstrap.js?version=59"></script>
+    <script type="module" src="src/bootstrap.js?version=76"></script>
   </body>
 </html>

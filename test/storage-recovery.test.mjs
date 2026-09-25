@@ -7,6 +7,7 @@ import { attachStorageRequest } from "../src/storage-request.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const indexedDbAdapter = fs.readFileSync(path.join(root, "src", "storage", "indexed-db.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
 test("storage recovery exposes explicit saved, saving, upgrade, failure, and memory-only states", () => {
@@ -29,7 +30,7 @@ test("sample records are validated and corrupt records are quarantined", () => {
 
 test("repair is non-destructive and reset requires explicit confirmation", () => {
   assert.match(app, /async function repairSampleStorage\(\)/);
-  assert.match(app, /sampleDatabase\?\.close\(\);/);
+  assert.match(app, /indexedDbStore\.close\(\);/);
   assert.match(app, /async function resetSampleStorage\(\)/);
   assert.match(app, /window\.confirm\("Reset saved sample storage\?/);
   assert.match(app, /await deleteSampleDatabase\(\);/);
@@ -46,7 +47,7 @@ test("a layout persistence failure is not hidden by a healthy sample read", () =
 });
 
 test("IndexedDB request and transaction aborts both reject storage operations", () => {
-  assert.match(app, /attachStorageRequest\(request, transaction, resolve, reject\);/);
+  assert.match(indexedDbAdapter, /attachStorageRequest\(request, transaction, resolve, reject\);/);
 });
 
 test("storage request bridge resolves success and preserves request or abort failures", async () => {

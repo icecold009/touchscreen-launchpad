@@ -6,15 +6,16 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const indexedDbAdapter = fs.readFileSync(path.join(root, "src", "storage", "indexed-db.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
 test("IndexedDB v3 adds professional stores without replacing the samples store", () => {
-  assert.match(app, /const DATABASE_VERSION = 3;/);
-  assert.match(app, /request\.result\.objectStoreNames\.contains\("samples"\)/);
-  assert.match(app, /request\.result\.objectStoreNames\.contains\("kits"\)/);
-  assert.match(app, /request\.result\.createObjectStore\("kits", \{ keyPath: "id" \}\)/);
-  assert.match(app, /request\.result\.createObjectStore\("takes", \{ keyPath: "id" \}\)/);
-  assert.match(app, /request\.result\.createObjectStore\("history", \{ keyPath: "id" \}\)/);
+  assert.match(indexedDbAdapter, /const DATABASE_VERSION = 3;/);
+  for (const storeName of ["samples", "kits", "takes", "history"]) {
+    assert.match(indexedDbAdapter, new RegExp(`name: "${storeName}", keyPath: "id"`));
+  }
+  assert.match(indexedDbAdapter, /if \(!request\.result\.objectStoreNames\.contains\(definition\.name\)\)/);
+  assert.match(indexedDbAdapter, /request\.result\.createObjectStore\(definition\.name, \{ keyPath: definition\.keyPath \}\)/);
   assert.match(app, /async function initializeKitLibrary\(legacyPads\)/);
   assert.match(app, /name: slot === 1 \? "Kit 1 — Starter" : defaultKitName\(slot\)/);
 });
@@ -63,7 +64,7 @@ test("launchpack export/import validates safe paths, hashes, limits, remaps IDs,
   assert.match(app, /slices: normalizeSliceDefinitions\(sample\.slices\)/);
   assert.match(app, /const sampleIdRemap = new Map\(\)/);
   assert.match(app, /actualHash !== importedSample\.hash/);
-  assert.match(app, /transaction\.abort\(\)/);
+  assert.match(indexedDbAdapter, /transaction\.abort\(\)/);
   assert.match(app, /delete nextSample\.path;/);
   assert.match(html, /id="export-pack"/);
   assert.match(html, /id="import-launchpack"/);
