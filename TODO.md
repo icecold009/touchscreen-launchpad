@@ -5,6 +5,16 @@ Reviewed: feature branch `codex/vercel-canonical-hosting-20260914` during the 20
 Release baseline: PR #7 was merged to `main` as `9c214a8`.
 Audit package baseline: `1dde9e9`; the merged release contains the security hardening, release-workflow pinning, and hosted Vercel deployment below.
 
+## Package: Personal website footer — `codex/personal-site-footer-20260926`
+
+- Goal: Add a discreet route from the launchpad to the user's personal website.
+- Scope: Add one centered, low-emphasis footer link below the app workspace; open it in a new tab with safe link attributes.
+- Non-goals: Change launchpad controls, audio behavior, local persistence, navigation, or deployment configuration.
+- Files: `index.html` and this backlog entry.
+- Tests: `npm.cmd run validate`, `git diff --check`, and verify the link markup and placement after the workspace.
+- Acceptance: The footer link appears after the app workspace, points to `https://shauryasaria.me`, and uses `rel="noopener noreferrer"` with `target="_blank"`.
+- Evidence: The footer follows the app workspace in `index.html`, links to `https://shauryasaria.me`, and uses `target="_blank"` with `rel="noopener noreferrer"`. `npm.cmd run validate` passes all 90 tests and validates the 29 required site files; `git diff --check` passes. No browser smoke was run because localhost remains closed per the user's request.
+
 ## Package: Launchpad performance-console visual system — `codex/pro-dj-controls-20260924`
 
 - Goal: Deliver a compact, tactile sampler performance console and a characterized browser-local persistence boundary without changing audio behavior or saved data formats.
