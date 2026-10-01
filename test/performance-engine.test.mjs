@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   getCountInBeatCount,
   getGroupPeers,
+  getPadTriggerBehavior,
   getRepeatIntervalMs,
   normalizePerformanceSettings,
   shouldReleaseOnPointer,
@@ -38,4 +39,11 @@ test("group peers exclude the triggering pad and repeat/count-in timing is bound
   assert.equal(getRepeatIntervalMs(2), 750);
   assert.equal(getCountInBeatCount(2), 8);
   assert.equal(getCountInBeatCount(99), 16);
+});
+
+test("pad hits restart active one-shots while a second loop hit toggles it off", () => {
+  assert.equal(getPadTriggerBehavior("oneshot", []), "start");
+  assert.equal(getPadTriggerBehavior("oneshot", [{ isLoop: false }]), "retrigger");
+  assert.equal(getPadTriggerBehavior("loop", [{ isLoop: true }]), "toggle-loop");
+  assert.equal(getPadTriggerBehavior("loop", [{ isLoop: false }]), "retrigger");
 });

@@ -25,6 +25,12 @@ export function shouldReleaseOnPointer(mode) {
   return mode === "gate" || mode === "hold";
 }
 
+export function getPadTriggerBehavior(padMode, activeVoices) {
+  const voices = Array.from(activeVoices || []);
+  if (padMode === "loop" && voices.some((voice) => voice?.isLoop)) return "toggle-loop";
+  return voices.length ? "retrigger" : "start";
+}
+
 export function getRepeatIntervalMs(bpm, subdivision = "sixteenth") {
   const safeBpm = Math.min(Math.max(Number(bpm) || 120, 20), 400);
   const beatMs = 60_000 / safeBpm;

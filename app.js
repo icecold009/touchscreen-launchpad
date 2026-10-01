@@ -1,28 +1,30 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=76";
-import { createInputAdapter } from "./src/input-adapter.js?version=76";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=76";
-import { createPointerState } from "./src/pointer-state.js?version=76";
-import { createIndexedDbStore } from "./src/storage/indexed-db.js?version=76";
-import { createLocalSettings } from "./src/storage/local-settings.js?version=76";
-import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=76";
-import { getNextQuantizedTime } from "./src/transport.js?version=76";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=76";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=76";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=76";
-import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=76";
-import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=76";
-import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=76";
-import { createMidiFile } from "./src/midi-file.js?version=76";
-import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=76";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=76";
-import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=76";
-import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=76";
-import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=76";
-import { createPerformanceEvents, createPerformanceLog, checksumBytes, estimateRenderBytes, isRenderWithinGuardrails, normalizeRenderOptions } from "./src/performance-export.js?version=76";
-import { createArrangement, formatSceneChain, getNextChainPosition, getSceneName, normalizeArrangement, normalizeSceneId, parseSceneChain, shouldLaunchAtStep } from "./src/arrangement.js?version=76";
-import { encodePcmWav } from "./src/wav.js?version=76";
+import { createHistory } from "./src/history.js?version=105";
+import { createInputAdapter } from "./src/input-adapter.js?version=105";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=105";
+import { createPointerState } from "./src/pointer-state.js?version=105";
+import { createIndexedDbStore } from "./src/storage/indexed-db.js?version=105";
+import { createLocalSettings } from "./src/storage/local-settings.js?version=105";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=105";
+import { getNextQuantizedTime } from "./src/transport.js?version=105";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=105";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, getBufferSourceStartArgs, getPlaybackDurationSeconds, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=105";
+import { getCountInBeatCount, getGroupPeers, getPadTriggerBehavior, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=105";
+import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=105";
+import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=105";
+import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=105";
+import { createMidiFile } from "./src/midi-file.js?version=105";
+import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=105";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=105";
+import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=105";
+import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=105";
+import { createStemPadAssignments } from "./src/stem-pad-map.js?version=105";
+import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=105";
+import { createPerformanceEvents, createPerformanceLog, checksumBytes, estimateRenderBytes, isRenderWithinGuardrails, normalizeRenderOptions } from "./src/performance-export.js?version=105";
+import { createArrangement, formatSceneChain, getNextChainPosition, getSceneName, normalizeArrangement, normalizeSceneId, parseSceneChain, shouldLaunchAtStep } from "./src/arrangement.js?version=105";
+import { encodePcmWav } from "./src/wav.js?version=105";
+import { isHtdemucsBackendUnavailable, separateSongWithLocalEngine } from "./src/stem-separation.js?version=105";
 
 const MAX_LAYOUT_BYTES = 256 * 1024;
 const MAX_SAMPLE_BYTES = 50 * 1024 * 1024;
@@ -129,6 +131,15 @@ const sampleNormalizeInput = document.querySelector("#sample-normalize");
 const sliceCountInput = document.querySelector("#slice-count");
 const createSlicesButton = document.querySelector("#create-slices");
 const clearSlicesButton = document.querySelector("#clear-slices");
+const splitSongToPadsButton = document.querySelector("#split-song-to-pads");
+const slicerModeTab = document.querySelector("#slicer-mode-tab");
+const stemModeTab = document.querySelector("#stem-mode-tab");
+const slicerModePanel = document.querySelector("#slicer-mode-panel");
+const stemModePanel = document.querySelector("#stem-mode-panel");
+const separateSongToPadsButton = document.querySelector("#separate-song-to-pads");
+const stemSeparationProgress = document.querySelector("#stem-separation-progress");
+const stemSeparationStatus = document.querySelector("#stem-separation-status");
+const stemEngineSelect = document.querySelector("#stem-engine-select");
 const sliceCountValue = document.querySelector("#slice-count-value");
 const sliceList = document.querySelector("#slice-list");
 const pitchInput = document.querySelector("#pad-pitch");
@@ -173,24 +184,29 @@ const linkGroupInput = document.querySelector("#link-group");
 const padVolumeInput = document.querySelector("#pad-volume");
 const padVolumeValue = document.querySelector("#pad-volume-value");
 const sampleFileInput = document.querySelector("#sample-file");
+const songLibrarySelect = document.querySelector("#song-library-select");
 const sampleName = document.querySelector("#sample-name");
 const clearSampleButton = document.querySelector("#clear-sample");
 const selectedPadIndicator = document.querySelector("#selected-pad-indicator");
+const selectedPadInline = document.querySelector("#selected-pad-inline");
 const editorDirtyIndicator = document.querySelector("#editor-dirty");
 const undoPadButton = document.querySelector("#undo-pad");
 const redoPadButton = document.querySelector("#redo-pad");
 const editorPanel = document.querySelector(".editor-panel");
 const editorToggle = document.querySelector("#editor-toggle");
-const editorNavLinks = [...document.querySelectorAll(".editor-nav-link")];
+const performanceSurfacePanel = document.querySelector("#performance-surface");
 const featureNav = document.querySelector(".feature-nav");
 const featureNavToggle = document.querySelector("#feature-nav-toggle");
 const featureNavGroups = document.querySelector("#feature-nav-groups");
 const featureNavLinks = [...document.querySelectorAll(".feature-nav-link")];
+const primaryWorkspaceLinks = [...document.querySelectorAll(".feature-nav-primary-link")];
+const workspaceViews = [...document.querySelectorAll("[data-workspace-view]")];
 const saveLayoutButton = document.querySelector("#save-layout");
 const exportLayoutButton = document.querySelector("#export-layout");
 const importLayoutInput = document.querySelector("#import-layout");
 const resetLayoutButton = document.querySelector("#reset-layout");
 const sampleList = document.querySelector("#sample-list");
+const sampleLibraryPanel = document.querySelector("#sample-library");
 const sampleCount = document.querySelector("#sample-count");
 const sampleSearchInput = document.querySelector("#sample-search");
 const sampleSortInput = document.querySelector("#sample-sort");
@@ -215,6 +231,10 @@ const installAppButton = document.querySelector("#install-app");
 const persistenceMessage = document.querySelector("#persistence-message");
 const repairStorageButton = document.querySelector("#repair-storage");
 const resetStorageButton = document.querySelector("#reset-storage");
+const clearLocalDataButton = document.querySelector("#clear-local-data");
+const clearLocalDataDialog = document.querySelector("#clear-local-data-dialog");
+const cancelClearLocalDataButton = document.querySelector("#cancel-clear-local-data");
+const confirmClearLocalDataButton = document.querySelector("#confirm-clear-local-data");
 
 const padColors = [
   "#df9b4b", "#c87d43", "#aa633e", "#8f5438",
@@ -410,10 +430,11 @@ function handleRangeKeydown(event) {
 }
 
 const keyboardKeys = ["Q", "W", "E", "R", "A", "S", "D", "F", "Z", "X", "C", "V", "1", "2", "3", "4"];
-const voiceRegistry = createVoiceRegistry({ maxVoices: 32, maxVoicesPerPad: 4 });
+const voiceRegistry = createVoiceRegistry({ maxVoices: 32, maxVoicesPerPad: 1 });
 const activeVoices = voiceRegistry.byPad;
 const pendingPads = new Set();
 let pads = [];
+let padLibraryReady = false;
 let samples = new Map();
 let takes = new Map();
 let kits = new Map();
@@ -533,6 +554,7 @@ let kitDirty = false;
 let draftSampleCleared = false;
 let draftSampleId = null;
 let draftSliceId = null;
+let stemSeparationRunning = false;
 let playbackGeneration = 0;
 let beatCountdownTimer;
 let lastPlaybackStatusAt = 0;
@@ -564,6 +586,7 @@ const sequencerHistories = new Map([
 const inputAdapter = createInputAdapter({
   padCount: PAD_COUNT,
   onInput: ({ action, padIndex, velocity }) => {
+    if (!padLibraryReady) return;
     if (action === "release") {
       if (shouldReleaseOnPointer(pads[padIndex]?.triggerMode)) stopPad(padIndex, { quantized: true, announce: false });
       sendMidiForPad(padIndex, "noteoff");
@@ -1976,6 +1999,13 @@ function getEditorSample() {
   return (draftSampleId && samples.get(draftSampleId)) || (pad?.sampleId && samples.get(pad.sampleId)) || null;
 }
 
+function updateSplitSongButton() {
+  if (!splitSongToPadsButton) return;
+  const hasSelectedFile = Boolean(sampleFileInput.files?.[0]);
+  const hasSavedSample = !draftSampleCleared && Boolean(getEditorSample());
+  splitSongToPadsButton.disabled = !padLibraryReady || (!hasSelectedFile && !hasSavedSample);
+}
+
 function getSampleSlice(sample, sliceId) {
   return normalizeSliceDefinitions(sample?.slices).find((slice) => slice.id === sliceId) || null;
 }
@@ -2006,23 +2036,18 @@ async function persistSampleSlices(sample, nextSlices, message = "Slices saved l
 
 function renderSliceEditor(sample) {
   if (!sliceList) return;
+  updateSplitSongButton();
   const slices = normalizeSliceDefinitions(sample?.slices);
   sliceCountValue.textContent = `${slices.length}/${MAX_SLICE_COUNT}`;
   createSlicesButton.disabled = !sample;
   clearSlicesButton.disabled = !sample || !slices.length;
   sliceList.replaceChildren();
 
-  if (!sample) {
-    const emptyItem = document.createElement("li");
-    emptyItem.className = "empty-state";
-    emptyItem.textContent = "Load and save a sample before creating slices.";
-    sliceList.append(emptyItem);
-    return;
-  }
+  if (!sample) return;
   if (!slices.length) {
     const emptyItem = document.createElement("li");
     emptyItem.className = "empty-state";
-    emptyItem.textContent = "No slices yet. Create an even bank, then adjust each marker.";
+    emptyItem.textContent = "No slices yet.";
     sliceList.append(emptyItem);
     return;
   }
@@ -2138,6 +2163,255 @@ function assignSliceToSelectedPad(sample, sliceId) {
   setStatus(`${sample.name} · ${slice.label} staged for ${getPadName(pads[selectedPadIndex], selectedPadIndex)}. Save the pad to apply it.`);
 }
 
+async function splitSongAcrossPads() {
+  const selectedFile = sampleFileInput.files?.[0];
+  let sample = selectedFile ? null : (draftSampleCleared ? null : getEditorSample());
+  if (!selectedFile && !sample) return;
+
+  const kit = kits.get(currentKitId) || createKitRecord(kitSlotNumber(currentKitId) || 1);
+  const sourceName = selectedFile?.name || sample?.name || "song";
+
+  const previousPads = clonePads();
+  const previousSelectedPad = selectedPadIndex;
+  const previousSliceCount = sliceCountInput.value;
+  const previousKitDirty = kitDirty;
+  let createdSample = null;
+  let sampleWithNewSliceBank = null;
+  let padsChanged = false;
+
+  try {
+    stopAll({ announce: false });
+    if (selectedFile) {
+      const persistedSample = await persistSample(selectedFile);
+      sample = persistedSample.sample;
+      createdSample = persistedSample.created ? persistedSample.sample : null;
+    }
+    if (!sample) throw new Error("The selected song is not available in the sample library.");
+
+    const savedSlices = normalizeSliceDefinitions(sample.slices);
+    const canUseSavedBank = savedSlices.length === PAD_COUNT;
+    const slices = canUseSavedBank ? savedSlices : createEvenSlices(PAD_COUNT);
+    if (!savedSlices.length) {
+      if (!(await persistSampleSlices(sample, slices, `${sample.name} prepared as a 16-slice song.`))) {
+        throw new Error("The song was loaded, but its 16-slice bank could not be saved.");
+      }
+      sampleWithNewSliceBank = sample;
+    }
+    if (canUseSavedBank || sampleWithNewSliceBank) sliceCountInput.value = String(PAD_COUNT);
+
+    pads = slices.map((slice, index) => ({
+      ...pads[index],
+      label: `Slice ${String(index + 1).padStart(2, "0")}`,
+      sampleId: sample.id,
+      sliceId: canUseSavedBank || sampleWithNewSliceBank ? slice.id : null,
+      sampleRegion: {
+        start: slice.start,
+        end: slice.end,
+        loopStart: slice.start,
+        loopEnd: slice.end,
+        reverse: false,
+      },
+    }));
+    padsChanged = true;
+    sampleFileInput.value = "";
+    draftSampleId = null;
+    draftSliceId = null;
+    draftSampleCleared = false;
+    renderPads();
+    selectPad(0);
+
+    if (!(await saveActiveKit(`${sourceName} split across the active kit's 16 pads.`))) {
+      throw new Error("The kit could not be saved; the previous pad assignments were restored.");
+    }
+
+    layoutHistory.push(previousPads);
+    updateHistoryControls();
+    setStatus(`${sourceName} split into 16 pads in ${kit.name}. The source song is still available in the shared library.`, "success");
+  } catch (error) {
+    if (padsChanged) {
+      pads = previousPads;
+      renderPads();
+      selectPad(previousSelectedPad);
+      sliceCountInput.value = previousSliceCount;
+      setKitDirty(previousKitDirty);
+      saveLayout("Previous pad assignments restored.");
+    }
+    if (!padsChanged) sliceCountInput.value = previousSliceCount;
+    if (sampleWithNewSliceBank && !createdSample) {
+      await persistSampleSlices(sampleWithNewSliceBank, [], "The previous sample bank was restored.");
+    }
+    if (createdSample) {
+      samples.delete(createdSample.id);
+      try {
+        await deleteSample(createdSample.id);
+      } catch {
+        // A failed cleanup remains recoverable through sample-storage reset.
+      }
+      renderSampleLibrary();
+    }
+    setStatus(error instanceof Error ? error.message : "The song could not be split across the pads.", "error");
+  }
+}
+
+function setSampleWorkflow(mode) {
+  const stemsActive = mode === "stem";
+  slicerModeTab?.classList.toggle("is-active", !stemsActive);
+  stemModeTab?.classList.toggle("is-active", stemsActive);
+  slicerModeTab?.setAttribute("aria-selected", String(!stemsActive));
+  stemModeTab?.setAttribute("aria-selected", String(stemsActive));
+  slicerModePanel.hidden = stemsActive;
+  stemModePanel.hidden = !stemsActive;
+}
+
+function getStemSeparationSource() {
+  const selectedFile = sampleFileInput.files?.[0];
+  if (selectedFile) return { blob: selectedFile, name: selectedFile.name, sample: null };
+  const selectedSampleId = songLibrarySelect.value || draftSampleId;
+  const sample = selectedSampleId ? samples.get(selectedSampleId) : null;
+  return sample?.blob ? { blob: sample.blob, name: sample.name, sample } : null;
+}
+
+function updateStemSeparationButton() {
+  if (separateSongToPadsButton) {
+    separateSongToPadsButton.disabled = !padLibraryReady || stemSeparationRunning || !getStemSeparationSource();
+  }
+}
+
+async function decodeStereoSongAtModelRate(source) {
+  const audioContextForDecode = getAudioContext();
+  const decoded = source.sample
+    ? await getSampleBuffer(source.sample, audioContextForDecode)
+    : await audioContextForDecode.decodeAudioData(await source.blob.arrayBuffer());
+  if (!Number.isFinite(decoded.duration) || decoded.duration <= 0) throw new Error("The selected song could not be decoded.");
+  const outputFrames = Math.ceil(decoded.length * 44100 / decoded.sampleRate);
+  if (44 + outputFrames * 4 > MAX_SAMPLE_BYTES) throw new Error("Each generated stem must fit within the 50 MB sample limit. Use a shorter song.");
+
+  if (decoded.sampleRate === 44100 && decoded.numberOfChannels === 2) {
+    return [decoded.getChannelData(0).slice(), decoded.getChannelData(1).slice()];
+  }
+
+  const OfflineAudioContextClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!OfflineAudioContextClass) throw new Error("This browser cannot convert the song to stereo 44.1 kHz audio for stem separation.");
+  const offlineContext = new OfflineAudioContextClass(2, outputFrames, 44100);
+  const sourceNode = offlineContext.createBufferSource();
+  sourceNode.buffer = decoded;
+  sourceNode.connect(offlineContext.destination);
+  sourceNode.start(0);
+  const resampled = await offlineContext.startRendering();
+  return [resampled.getChannelData(0).slice(), resampled.getChannelData(1).slice()];
+}
+
+async function separateSongIntoPads() {
+  const source = getStemSeparationSource();
+  if (!source || stemSeparationRunning || !padLibraryReady) return;
+  let stemEngine = stemEngineSelect?.value === "spleeter" ? "spleeter" : "htdemucs";
+  let stemEngineName = stemEngine === "htdemucs" ? "HT-Demucs" : "Spleeter";
+
+  const previousPads = clonePads();
+  const previousSelectedPad = selectedPadIndex;
+  const previousKitDirty = kitDirty;
+  const previousSamples = new Map(samples);
+  const createdSamples = [];
+  let padsChanged = false;
+  stemSeparationRunning = true;
+  updateStemSeparationButton();
+  stemSeparationProgress.hidden = false;
+  stemSeparationProgress.value = 0;
+  stemSeparationStatus.textContent = "Preparing the song for local separation…";
+  setStatus("Preparing the song for local separation…", "info");
+
+  try {
+    stopAll({ announce: false });
+    const onProgress = ({ value, text }) => {
+      stemSeparationProgress.value = value;
+      stemSeparationStatus.textContent = text;
+    };
+    let channels = await decodeStereoSongAtModelRate(source);
+    let separated;
+    try {
+      separated = await separateSongWithLocalEngine(channels, { model: stemEngine, onProgress });
+    } catch (error) {
+      if (stemEngine !== "htdemucs" || !isHtdemucsBackendUnavailable(error)) throw error;
+      stemEngine = "spleeter";
+      stemEngineName = "Spleeter";
+      if (stemEngineSelect) stemEngineSelect.value = "spleeter";
+      stemSeparationStatus.textContent = "HT-Demucs is unavailable in this browser · retrying locally with Spleeter…";
+      setStatus(stemSeparationStatus.textContent, "info");
+      channels = await decodeStereoSongAtModelRate(source);
+      separated = await separateSongWithLocalEngine(channels, { model: stemEngine, onProgress });
+    }
+    if (!Array.isArray(separated) || separated.length !== 4 || separated.some((stem) => !(stem.audio instanceof ArrayBuffer))) {
+      throw new Error("The local separator did not return four usable stems.");
+    }
+
+    if (!source.sample) {
+      const persistedSource = await persistSample(source.blob);
+      if (persistedSource.created) createdSamples.push(persistedSource.sample);
+    }
+
+    const baseName = source.name.replace(/\.[^./\\]+$/, "").trim().slice(0, 72) || "Song";
+    const stems = [];
+    for (const stem of separated) {
+      const file = new File([stem.audio], `${baseName} - ${stem.name}.wav`, { type: "audio/wav" });
+      const persisted = await persistSample(file);
+      if (persisted.created) createdSamples.push(persisted.sample);
+      stems.push({ sampleId: persisted.sample.id, label: stem.name });
+    }
+    if (new Set(stems.map((stem) => stem.sampleId)).size !== 4) {
+      throw new Error("The separator returned duplicate stem audio; no pad assignments were changed.");
+    }
+
+    const assignments = createStemPadAssignments(stems);
+    pads = assignments.map((assignment, index) => ({
+      ...pads[index],
+      ...assignment,
+      volume: 1,
+      processing: { ...normalizeSampleProcessing(pads[index].processing), normalize: true },
+    }));
+    padsChanged = true;
+    renderPads();
+    selectPad(0);
+    if (!(await saveActiveKit("Four locally separated stems assigned across 16 pads."))) {
+      throw new Error("The kit could not be saved; its previous pad assignments were restored.");
+    }
+
+    layoutHistory.push(previousPads);
+    updateHistoryControls();
+    renderSongLibraryPicker();
+    songLibrarySelect.value = "";
+    updateSplitSongButton();
+    updateSampleName();
+    stemSeparationProgress.value = 100;
+    stemSeparationProgress.hidden = true;
+    stemSeparationStatus.textContent = `Four ${stemEngineName} stems assigned to 16 pads. Stem pads auto-level during playback.`;
+    setStatus(`16 pads ready: four ${stemEngineName} regions each for Drums, Bass, Vocals, and Other. Song audio stayed in this browser.`, "success");
+  } catch (error) {
+    if (padsChanged) {
+      pads = previousPads;
+      renderPads();
+      selectPad(previousSelectedPad);
+      setKitDirty(previousKitDirty);
+      saveLayout("Previous pad assignments restored.");
+    }
+    if (createdSamples.length) {
+      try {
+        await deleteSamples(createdSamples.map((sample) => sample.id));
+      } catch {
+        // A failed cleanup remains recoverable through the sample-storage repair controls.
+      }
+    }
+    samples = previousSamples;
+    renderSampleLibrary();
+    renderSongLibraryPicker();
+    stemSeparationStatus.textContent = error instanceof Error ? error.message : "The song could not be separated.";
+    stemSeparationProgress.hidden = true;
+    setStatus(stemSeparationStatus.textContent, "error");
+  } finally {
+    stemSeparationRunning = false;
+    updateStemSeparationButton();
+  }
+}
+
 function isValidStoredSample(sample) {
   return Boolean(
     sample
@@ -2230,37 +2504,74 @@ function deleteSampleDatabase() {
 }
 
 async function resetSampleStorage() {
-  if (!window.confirm("Reset saved sample storage? This removes saved audio files from this browser. Export your layout first; pad assignments will be cleared after the reset.")) return;
-
   stopAll({ announce: false });
   resetStorageButton.disabled = true;
-  setStorageState("saving", "Resetting sample storage…");
+  clearLocalDataButton.disabled = true;
+  if (arrangementSaveTimer) window.clearTimeout(arrangementSaveTimer);
+  arrangementSaveTimer = undefined;
+  queuedArrangementSave = undefined;
+  setStorageState("saving", "Clearing saved Launchpad data…");
+  let savedContentRemoved = false;
   try {
     await deleteSampleDatabase();
+    savedContentRemoved = true;
     samples = new Map();
     takes = new Map();
-    pads = pads.map((pad) => ({ ...pad, sampleId: null }));
     currentKitId = "kit-1";
+    writeCurrentKitId();
     kits = new Map();
+    selectedSampleIds.clear();
+    sampleSearchInput.value = "";
+    sampleFavoritesOnlyInput.checked = false;
+    sampleTagFilterInput.value = "";
     try {
       localSettings.removeKitMirror();
     } catch {
-      // The reset still proceeds if the compatibility mirror cannot be cleared.
+      // Reinitialization writes a fresh default kit mirror below.
     }
     storageMode = "persistent";
     await initializeKitLibrary(createDefaultPads());
-    pads = createDefaultPads();
+    applyKit(kits.get("kit-1"));
+    renderArrangementControls();
     setStorageState("saved");
-    renderPads();
-    selectPad(0);
     renderSampleLibrary();
     renderTakeLibrary();
-    saveLayout("Sample storage reset. Layout saved without sample assignments.");
+    let runtimeDataCleared = Boolean(globalThis.caches && globalThis.navigator?.serviceWorker);
+    try {
+      if (globalThis.caches) {
+        const cacheNames = await caches.keys();
+        const launchpadCaches = cacheNames.filter((name) => name.startsWith("touchscreen-launchpad-")
+          || name === "launchpad-spleeter-4stems-v1"
+          || name === "launchpad-htdemucs-onnx-v1");
+        await Promise.all(launchpadCaches.map((name) => caches.delete(name)));
+      }
+      const workerUrl = new URL("./sw.js", window.location.href);
+      const workerScope = new URL("./", window.location.href).href;
+      const registrations = await navigator.serviceWorker?.getRegistrations?.() || [];
+      const launchpadRegistrations = registrations.filter((registration) => registration.scope === workerScope
+        && [registration.active, registration.waiting, registration.installing].some((worker) => {
+          if (!worker) return false;
+          const scriptUrl = new URL(worker.scriptURL);
+          return scriptUrl.origin === workerUrl.origin && scriptUrl.pathname === workerUrl.pathname;
+        }));
+      await Promise.all(launchpadRegistrations.map((registration) => registration.unregister()));
+    } catch {
+      runtimeDataCleared = false;
+    }
+    saveLayout(runtimeDataCleared
+      ? "Saved audio, kits, takes, history, offline files, and stem models were cleared. A blank starter kit is ready."
+      : "Saved audio, kits, takes, history, and pad assignments were cleared. Some offline browser files may remain.");
   } catch (error) {
-    markMemoryOnlyMode("Sample storage reset did not complete. No saved samples were intentionally removed.", "unavailable");
+    markMemoryOnlyMode(
+      savedContentRemoved
+        ? "Saved content was removed, but the blank starter kit could not be restored. Reload this page to finish the reset."
+        : "Sample storage reset did not complete. No saved samples were intentionally removed.",
+      "unavailable",
+    );
     setStatus(error instanceof Error ? error.message : "Sample storage could not be reset.", "error");
   } finally {
     resetStorageButton.disabled = false;
+    clearLocalDataButton.disabled = false;
   }
 }
 
@@ -2359,6 +2670,7 @@ function handleSampleDrop(event) {
 
 function renderSampleLibrary() {
   const allSamples = [...samples.values()];
+  renderSongLibraryPicker();
   renderSampleTagFilter(allSamples);
   const storedSamples = filterSampleRecords(allSamples, {
     query: sampleSearchInput.value,
@@ -2437,6 +2749,25 @@ function renderSampleLibrary() {
   updateSampleSelectionControls();
 }
 
+function renderSongLibraryPicker() {
+  if (!songLibrarySelect) return;
+  const currentSampleId = draftSampleCleared ? "" : (draftSampleId || pads[selectedPadIndex]?.sampleId || "");
+  const savedSamples = [...samples.values()].sort((left, right) => left.name.localeCompare(right.name));
+  const placeholder = savedSamples.length ? "Choose a saved song…" : "No saved songs yet";
+  songLibrarySelect.replaceChildren(
+    new Option(placeholder, ""),
+    ...savedSamples.map((sample) => new Option(sample.name, sample.id)),
+  );
+  songLibrarySelect.disabled = savedSamples.length === 0;
+  syncSongLibrarySelection();
+}
+
+function syncSongLibrarySelection() {
+  if (!songLibrarySelect) return;
+  const currentSampleId = draftSampleCleared ? "" : (draftSampleId || pads[selectedPadIndex]?.sampleId || "");
+  songLibrarySelect.value = samples.has(currentSampleId) ? currentSampleId : "";
+}
+
 function assignSampleToSelectedPad(sampleId) {
   const sample = samples.get(sampleId);
   if (!sample) {
@@ -2451,6 +2782,8 @@ function assignSampleToSelectedPad(sampleId) {
   draftSliceId = null;
   sampleFileInput.value = "";
   updateSampleName();
+  updateSplitSongButton();
+  updateStemSeparationButton();
   void renderSampleEditor();
   markEditorDirty();
   setStatus(`${sample.name} selected for ${getPadName(pads[selectedPadIndex], selectedPadIndex)}. Save the pad to apply it.`);
@@ -2468,7 +2801,8 @@ function drawTakeWaveformPlaceholder(canvas, message = "Preview waveform") {
   context.fillStyle = "#f3f4f8";
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = "#7d8494";
-  context.font = "12px system-ui";
+  const canvasScale = sampleWaveform.width / Math.max(1, sampleWaveform.clientWidth);
+  context.font = `${Math.round(14 * canvasScale)}px system-ui`;
   context.textAlign = "center";
   context.fillText(message, canvas.width / 2, canvas.height / 2 + 4);
 }
@@ -3222,9 +3556,9 @@ function registerVoice(index, source, startAt, { isLoop = false, gainNode } = {}
   return voice;
 }
 
-function startRegisteredVoice(index, voice, startAt, stopAt) {
+function startRegisteredVoice(index, voice, startAt, stopAt, sourceStartArgs = []) {
   try {
-    voice.source.start(startAt);
+    voice.source.start(startAt, ...sourceStartArgs);
     if (stopAt !== undefined) voice.source.stop(stopAt);
   } catch (error) {
     releaseVoice(index, voice);
@@ -3431,7 +3765,7 @@ async function playSample(index, pad, sample, context, generation, velocity = 1)
   const voice = registerVoice(index, source, startAt, { isLoop, gainNode: gain });
   const attack = Math.max(clamp(Number(pad.attack) || 0, 0, 1), processing.fadeIn);
   const baseGain = clamp((Number(pad.volume) || 0.8) * clamp(Number(velocity) || 1, 0, 1) * normalizationGain, 0.0001, 1);
-  const stopAt = isLoop ? undefined : startAt + plan.duration;
+  const stopAt = isLoop ? undefined : startAt + getPlaybackDurationSeconds(plan);
   const fadeDuration = stopAt === undefined ? 0 : Math.min(processing.fadeOut, Math.max(0, plan.duration - attack));
   gain.gain.cancelScheduledValues(startAt);
   gain.gain.setValueAtTime(0.0001, startAt);
@@ -3441,7 +3775,7 @@ async function playSample(index, pad, sample, context, generation, velocity = 1)
     gain.gain.setValueAtTime(baseGain, fadeStart);
     gain.gain.linearRampToValueAtTime(0.0001, stopAt);
   }
-  startRegisteredVoice(index, voice, startAt, stopAt);
+  startRegisteredVoice(index, voice, startAt, stopAt, getBufferSourceStartArgs(plan, { loop: isLoop }));
 
   if (isLoop && startAt > context.currentTime + 0.02) {
     setPlaybackStatus(`${getPadName(pad, index)} loop queued for the next beat.`, "info", { force: true });
@@ -3453,7 +3787,7 @@ async function playSample(index, pad, sample, context, generation, velocity = 1)
 }
 
 async function triggerPad(index, { linked = false, bypassCountIn = false, fromRepeat = false, velocity = 1 } = {}) {
-  if (pendingPads.has(index)) return;
+  if (!padLibraryReady || pendingPads.has(index)) return;
   const pad = pads[index];
   const settings = normalizePerformanceSettings(pad);
 
@@ -3477,12 +3811,13 @@ async function triggerPad(index, { linked = false, bypassCountIn = false, fromRe
     stopPad(index, { quantized: true, announce: true });
     return;
   }
-  const existingVoices = [...getPadVoices(index)].filter((voice) => voice.isLoop);
-
-  if (pad.mode === "loop" && existingVoices.length) {
+  const triggerBehavior = getPadTriggerBehavior(pad.mode, getPadVoices(index));
+  if (triggerBehavior === "toggle-loop") {
     stopPad(index, { quantized: true, announce: true });
     return;
   }
+
+  if (triggerBehavior === "retrigger") stopPad(index, { quantized: false, announce: false });
 
   if (pad.mode === "loop" && !pad.sampleId) {
     setStatus(`${getPadName(pad, index)} needs an audio sample before it can loop.`, "error");
@@ -3553,12 +3888,14 @@ function releasePadPointer(button, event) {
 
 function renderPads() {
   clearPointerState();
+  padGrid.setAttribute("aria-busy", String(!padLibraryReady));
   padGrid.replaceChildren();
 
   pads.forEach((pad, index) => {
     const button = document.createElement("button");
     button.className = "pad";
     button.type = "button";
+    button.disabled = !padLibraryReady;
     button.dataset.index = String(index);
     button.style.setProperty("--pad-color", getPadDisplayColor(pad));
     const performanceSettings = normalizePerformanceSettings(pad);
@@ -3638,6 +3975,7 @@ function updateSampleName() {
   } else {
     sampleName.textContent = "Preview tone";
   }
+  syncSongLibrarySelection();
 }
 
 let waveformBuffer;
@@ -3665,9 +4003,9 @@ function drawEmptyWaveform(message = "Load audio to see its waveform") {
   if (!sampleWaveform?.getContext) return;
   const context = sampleWaveform.getContext("2d");
   context.clearRect(0, 0, sampleWaveform.width, sampleWaveform.height);
-  context.fillStyle = "#f3f4f8";
+  context.fillStyle = "#0b0e0f";
   context.fillRect(0, 0, sampleWaveform.width, sampleWaveform.height);
-  context.fillStyle = "#7d8494";
+  context.fillStyle = "#9aa4a8";
   context.font = "12px system-ui";
   context.textAlign = "center";
   context.fillText(message, sampleWaveform.width / 2, sampleWaveform.height / 2 + 4);
@@ -3687,7 +4025,8 @@ function updateSampleEditorLabels() {
   sampleFadeOutValue.textContent = `${Math.round(Number(sampleFadeOutInput.value) * 1000)} ms`;
   const region = getSampleRegionFromEditor();
   sampleEditStatus.textContent = `Region ${Math.round(region.start * 100)}–${Math.round(region.end * 100)}% · loop ${Math.round(region.loopStart * 100)}–${Math.round(region.loopEnd * 100)}%`;
-  if (waveformBuffer) drawWaveform(sampleWaveform, waveformBuffer, region, getSampleProcessingFromEditor());
+  const waveformSlices = sampleFileInput.files?.[0] ? createEvenSlices(PAD_COUNT) : normalizeSliceDefinitions(getEditorSample()?.slices);
+  if (waveformBuffer) drawWaveform(sampleWaveform, waveformBuffer, region, getSampleProcessingFromEditor(), waveformSlices);
 }
 
 function getSampleEditorValues() {
@@ -3717,6 +4056,7 @@ function getSampleEditorValues() {
 async function renderSampleEditor() {
   const pad = pads[selectedPadIndex];
   const region = normalizeSampleRegion(pad.sampleRegion);
+  const selectedFile = sampleFileInput.files?.[0];
   sampleStartInput.value = String(region.start);
   sampleEndInput.value = String(region.end);
   sampleLoopStartInput.value = String(region.loopStart);
@@ -3736,9 +4076,21 @@ async function renderSampleEditor() {
   releaseInput.value = String(pad.release);
   padDelaySendInput.value = String(pad.effectSends?.delay || 0);
   padReverbSendInput.value = String(pad.effectSends?.reverb || 0);
+  if (selectedFile) {
+    sampleStartInput.value = "0";
+    sampleEndInput.value = "1";
+    sampleLoopStartInput.value = "0";
+    sampleLoopEndInput.value = "1";
+    sampleReverseInput.checked = false;
+    sampleZoomInput.value = "1";
+  }
   syncRangeKnobs();
   updateSampleEditorLabels();
   waveformBuffer = undefined;
+  if (selectedFile) {
+    await renderSelectedSongPreview(selectedFile);
+    return;
+  }
   const sample = getEditorSample();
   renderSliceEditor(sample);
   if (!sample) {
@@ -3750,10 +4102,31 @@ async function renderSampleEditor() {
     const buffer = await getSampleBuffer(sample, getAudioContext());
     if (renderToken !== waveformRenderToken) return;
     waveformBuffer = buffer;
-    drawWaveform(sampleWaveform, buffer, getSampleRegionFromEditor(), getSampleProcessingFromEditor());
+    drawWaveform(sampleWaveform, buffer, getSampleRegionFromEditor(), getSampleProcessingFromEditor(), normalizeSliceDefinitions(sample.slices));
     sampleEditStatus.textContent = `${buffer.duration.toFixed(2)}s source · edit is saved with this pad`;
   } catch {
     if (renderToken === waveformRenderToken) drawEmptyWaveform("Waveform preview unavailable");
+  }
+}
+
+async function renderSelectedSongPreview(file) {
+  const renderToken = ++waveformRenderToken;
+  waveformBuffer = undefined;
+  sampleEditStatus.textContent = "Preparing waveform preview…";
+  drawEmptyWaveform("Decoding song waveform…");
+  try {
+    const context = getAudioContext();
+    const buffer = await getSampleBuffer({ blob: file }, context);
+    if (renderToken !== waveformRenderToken || sampleFileInput.files?.[0] !== file) return;
+    waveformBuffer = buffer;
+    const songRegion = { start: 0, end: 1, loopStart: 0, loopEnd: 1, reverse: false };
+    drawWaveform(sampleWaveform, buffer, songRegion, { zoom: 1 }, createEvenSlices(PAD_COUNT));
+    sampleEditStatus.textContent = `${buffer.duration.toFixed(2)}s preview · 16 song sections`;
+  } catch {
+    if (renderToken === waveformRenderToken) {
+      drawEmptyWaveform("Waveform preview unavailable");
+      sampleEditStatus.textContent = "The song is loaded, but its waveform could not be decoded.";
+    }
   }
 }
 
@@ -3773,6 +4146,7 @@ function selectPad(index) {
   selectedPadIndex = index;
   const pad = pads[index];
   selectedPadIndicator.textContent = String(pad.id).padStart(2, "0");
+  if (selectedPadInline) selectedPadInline.textContent = String(pad.id).padStart(2, "0");
   padLabelInput.value = getVisiblePadLabel(pad, index);
   padKeyInput.value = pad.key;
   padModeInput.value = pad.mode;
@@ -3793,6 +4167,8 @@ function selectPad(index) {
   draftSliceId = pad.sliceId || null;
   setEditorDirty(false);
   updateSampleName();
+  updateSplitSongButton();
+  updateStemSeparationButton();
   void renderSampleEditor();
 
   for (let padIndex = 0; padIndex < PAD_COUNT; padIndex += 1) updatePadState(padIndex);
@@ -4390,8 +4766,60 @@ function toggleFeatureNav() {
   const isExpanded = featureNavToggle.getAttribute("aria-expanded") !== "false";
   featureNavGroups.hidden = isExpanded;
   featureNavToggle.setAttribute("aria-expanded", String(!isExpanded));
-  featureNavToggle.textContent = isExpanded ? "Tools" : "Close tools";
+  featureNavToggle.textContent = isExpanded ? "More" : "Close";
   featureNav?.classList.toggle("is-collapsed", isExpanded);
+}
+
+function setWorkspaceView(view) {
+  const panelViews = new Set(workspaceViews.map((panel) => panel.dataset.workspaceView));
+  const activeView = panelViews.has(view) ? view : "play";
+  const destinationByView = {
+    play: "#performance-surface",
+    build: "#pad-setup",
+    sounds: "#sample-library",
+  };
+  const activeLink = primaryWorkspaceLinks.find((link) => link.getAttribute("href") === destinationByView[activeView]);
+
+  workspaceViews.forEach((panel) => {
+    panel.hidden = panel.dataset.workspaceView !== activeView;
+  });
+  primaryWorkspaceLinks.forEach((link) => {
+    const isCurrent = link === activeLink;
+    link.classList.toggle("is-current", isCurrent);
+    if (isCurrent) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
+}
+
+function updateFeatureNavigationFromHash(hash = window.location.hash, { scroll = false } = {}) {
+  const targetId = hash.startsWith("#") ? hash.slice(1) : "";
+  const target = targetId ? document.getElementById(targetId) : performanceSurfacePanel;
+  if (!target) return;
+  const destinationHash = targetId ? hash : "#performance-surface";
+
+  const targetInEditor = Boolean(editorPanel && (target === editorPanel || editorPanel.contains(target)));
+  const targetInSounds = Boolean(sampleLibraryPanel && (target === sampleLibraryPanel || sampleLibraryPanel.contains(target)));
+  const featureLink = featureNavLinks.find((link) => link.getAttribute("href") === destinationHash)
+    || (targetInEditor && primaryWorkspaceLinks.find((link) => link.getAttribute("href") === "#pad-setup"))
+    || (targetInSounds && primaryWorkspaceLinks.find((link) => link.getAttribute("href") === "#sample-library"));
+  if (!featureLink) return;
+
+  const activeView = targetInEditor ? "build" : targetInSounds ? "sounds" : "play";
+  setWorkspaceView(activeView);
+  const targetDetails = target.closest("details");
+  if (targetDetails) targetDetails.open = true;
+  if (targetInEditor && editorPanel.classList.contains("is-collapsed")) {
+    editorPanel.classList.remove("is-collapsed");
+    editorToggle.setAttribute("aria-expanded", "true");
+    editorToggle.textContent = "Close pad editor";
+  }
+  featureNavLinks.forEach((link) => link.classList.toggle("is-current", link === featureLink));
+  const isMoreDestination = Boolean(featureNavGroups?.contains(featureLink));
+  featureNavToggle?.classList.toggle("is-current", isMoreDestination);
+  featureNavToggle?.setAttribute("aria-label", isMoreDestination
+    ? `More views. Current section: ${featureLink.textContent.trim()}`
+    : "More views");
+  if (scroll) window.requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "start" }));
 }
 
 function bindEvents() {
@@ -4422,15 +4850,31 @@ function bindEvents() {
   window.addEventListener("orientationchange", clearPointerState);
   padEditor.addEventListener("submit", (event) => void saveSelectedPad(event));
   clearSampleButton.addEventListener("click", clearSelectedSample);
+  songLibrarySelect.addEventListener("change", () => {
+    sampleFileInput.value = "";
+    draftSampleId = samples.has(songLibrarySelect.value) ? songLibrarySelect.value : null;
+    draftSliceId = null;
+    draftSampleCleared = false;
+    updateSampleName();
+    updateSplitSongButton();
+    updateStemSeparationButton();
+    renderSliceEditor(getEditorSample());
+    markEditorDirty();
+    void renderSampleEditor();
+  });
   padEditor.addEventListener("input", markEditorDirty);
   padEditor.addEventListener("change", markEditorDirty);
   sampleFileInput.addEventListener("change", () => {
     draftSampleCleared = false;
     draftSampleId = null;
     draftSliceId = null;
+    songLibrarySelect.value = "";
     updateSampleName();
+    updateSplitSongButton();
+    updateStemSeparationButton();
     renderSliceEditor(null);
     markEditorDirty();
+    void renderSampleEditor();
   });
   [sampleStartInput, sampleEndInput, sampleLoopStartInput, sampleLoopEndInput, sampleReverseInput, sampleZoomInput, sampleFadeInInput, sampleFadeOutInput, sampleNormalizeInput, pitchInput, stretchInput, panInput, filterTypeInput, filterFrequencyInput, padDelaySendInput, padReverbSendInput, attackInput, releaseInput]
     .forEach((input) => input.addEventListener("input", updateSampleEditorLabels));
@@ -4446,6 +4890,21 @@ function bindEvents() {
     if (!sample) return;
     void persistSampleSlices(sample, createEvenSlices(sliceCountInput.value), `${sample.name} split into ${sliceCountInput.value} slices.`);
   });
+  splitSongToPadsButton.addEventListener("click", () => void splitSongAcrossPads());
+  slicerModeTab?.addEventListener("click", () => setSampleWorkflow("slicer"));
+  stemModeTab?.addEventListener("click", () => setSampleWorkflow("stem"));
+  [slicerModeTab, stemModeTab].forEach((tab, index, tabs) => tab?.addEventListener("keydown", (event) => {
+    const nextIndex = event.key === "ArrowRight" ? (index + 1) % tabs.length
+      : event.key === "ArrowLeft" ? (index + tabs.length - 1) % tabs.length
+        : event.key === "Home" ? 0
+          : event.key === "End" ? tabs.length - 1
+            : -1;
+    if (nextIndex < 0) return;
+    event.preventDefault();
+    tabs[nextIndex].focus();
+    setSampleWorkflow(nextIndex === 1 ? "stem" : "slicer");
+  }));
+  separateSongToPadsButton.addEventListener("click", () => void separateSongIntoPads());
   clearSlicesButton.addEventListener("click", () => {
     const sample = getEditorSample();
     if (!sample) return;
@@ -4599,6 +5058,12 @@ function bindEvents() {
   importLaunchpackInput.addEventListener("change", (event) => void importPack(event));
   repairStorageButton.addEventListener("click", () => void repairSampleStorage());
   resetStorageButton.addEventListener("click", () => void resetSampleStorage());
+  clearLocalDataButton.addEventListener("click", () => clearLocalDataDialog.showModal());
+  cancelClearLocalDataButton.addEventListener("click", () => clearLocalDataDialog.close());
+  confirmClearLocalDataButton.addEventListener("click", () => {
+    clearLocalDataDialog.close();
+    void resetSampleStorage();
+  });
   sampleSearchInput.addEventListener("input", renderSampleLibrary);
   sampleSortInput.addEventListener("change", renderSampleLibrary);
   sampleFavoritesOnlyInput.addEventListener("change", renderSampleLibrary);
@@ -4623,30 +5088,29 @@ function bindEvents() {
     editorToggle.setAttribute("aria-expanded", String(!isCollapsed));
     editorToggle.textContent = isCollapsed ? "Open pad editor" : "Close pad editor";
   });
-  editorNavLinks.forEach((link) => {
-    link.addEventListener("click", () => {
-      editorNavLinks.forEach((navLink) => navLink.classList.toggle("is-current", navLink === link));
-    });
-  });
   featureNavToggle?.addEventListener("click", toggleFeatureNav);
   featureNavLinks.forEach((link) => {
     link.addEventListener("click", () => {
-      const targetId = link.getAttribute("href")?.slice(1);
-      const target = targetId ? document.getElementById(targetId) : null;
-      const targetDetails = target?.closest("details");
-      if (targetDetails) targetDetails.open = true;
-      if (target && editorPanel && (target === editorPanel || editorPanel.contains(target)) && editorPanel.classList.contains("is-collapsed")) {
-        editorPanel.classList.remove("is-collapsed");
-        editorToggle.setAttribute("aria-expanded", "true");
-        editorToggle.textContent = "Close pad editor";
-      }
-      featureNavLinks.forEach((navLink) => navLink.classList.toggle("is-current", navLink === link));
+      updateFeatureNavigationFromHash(link.getAttribute("href"), { scroll: true });
       if (featureNavGroups?.contains(link) && featureNavToggle?.getAttribute("aria-expanded") === "true") toggleFeatureNav();
     });
   });
+  window.addEventListener("hashchange", () => updateFeatureNavigationFromHash(window.location.hash, { scroll: true }));
+  window.addEventListener("pageshow", () => updateFeatureNavigationFromHash(window.location.hash, { scroll: true }));
 
   document.addEventListener("keydown", (event) => {
     if (event.repeat || isEditableTarget(event.target)) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      stopAll();
+      return;
+    }
+    if (event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && event.key.toUpperCase() === "M") {
+      event.preventDefault();
+      metronomeInput.checked = !metronomeInput.checked;
+      metronomeInput.dispatchEvent(new Event("change", { bubbles: true }));
+      return;
+    }
     const padIndex = pads.findIndex((pad) => pad.key === event.key.toUpperCase());
     if (padIndex === -1) return;
     event.preventDefault();
@@ -4685,7 +5149,7 @@ async function registerServiceWorker() {
 
   try {
     const hadController = Boolean(navigator.serviceWorker.controller);
-    const registration = await navigator.serviceWorker.register("./sw.js?version=76");
+    const registration = await navigator.serviceWorker.register("./sw.js?version=105");
     const installingWorker = registration.installing;
 
     if (hadController) {
@@ -4711,6 +5175,7 @@ async function registerServiceWorker() {
 }
 
 export async function initLaunchpad() {
+  setStatus("Loading saved pads and sounds…", "info");
   currentKitId = readCurrentKitId();
   pads = readLayout();
   bindEvents();
@@ -4736,10 +5201,17 @@ export async function initLaunchpad() {
       const normalized = normalizeSampleRecord(sample);
       return [normalized.id, normalized];
     }));
+    renderSongLibraryPicker();
     await initializeKitLibrary(pads);
+    renderKitControls();
     applyKit(kits.get(currentKitId));
+    padLibraryReady = true;
+    renderPads();
     renderSampleLibrary();
     updateSampleName();
+    updateSplitSongButton();
+    updateStemSeparationButton();
+    setStatus("Saved pads ready. Tap a pad to play.", "info");
     if (corrupt.length || excess.length) {
       const issueCount = corrupt.length + excess.length;
       storageMode = "memory";
@@ -4751,9 +5223,14 @@ export async function initLaunchpad() {
   } catch {
     kits = createDefaultKitMap(pads);
     renderKitControls();
+    padLibraryReady = true;
+    renderPads();
+    updateSplitSongButton();
+    updateStemSeparationButton();
     markMemoryOnlyMode("Sample storage is unavailable. Audio works, but sample files will not survive a reload.", "unavailable");
     setStatus("Audio works, but this browser cannot persist sample files.", "error");
   }
 
+  updateFeatureNavigationFromHash(window.location.hash, { scroll: true });
   await registerServiceWorker();
 }

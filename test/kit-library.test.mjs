@@ -20,6 +20,10 @@ test("IndexedDB v3 adds professional stores without replacing the samples store"
   assert.match(app, /name: slot === 1 \? "Kit 1 — Starter" : defaultKitName\(slot\)/);
 });
 
+test("kit controls refresh after saved kits finish hydrating", () => {
+  assert.match(app, /await initializeKitLibrary\(pads\);\s*renderKitControls\(\);\s*applyKit\(kits\.get\(currentKitId\)\);/);
+});
+
 test("kit controls expose fixed-slot selection and lifecycle actions", () => {
   assert.match(app, /const KIT_COUNT = 5;/);
   assert.match(app, /function switchKit\(nextKitId\)/);
@@ -51,7 +55,7 @@ test("shared-library samples can be staged on the selected pad before saving", (
   assert.match(app, /draftSampleId && samples\.has\(draftSampleId\)/);
   assert.match(app, /className = "button button-secondary sample-assign"/);
   assert.match(app, /assignButton\.addEventListener\("click", \(\) => assignSampleToSelectedPad\(sample\.id\)\)/);
-  assert.match(html, /Assign library files to this pad, then save/);
+  assert.match(html, /<h3 id="sample-lab-title">Song prep<\/h3>/);
 });
 
 test("launchpack export/import validates safe paths, hashes, limits, remaps IDs, and writes transactionally", () => {

@@ -12,7 +12,7 @@ test("pointer interruption cleanup is centralized and clears pressed styles", ()
   assert.match(app, /function clearPointerState\(\) \{[\s\S]*pointerState\.activeEntries\(\)[\s\S]*pointerState\.clear\(\);[\s\S]*querySelectorAll\("\.is-pressed"\)[\s\S]*classList\.remove\("is-pressed"\);[\s\S]*\}/);
   assert.match(app, /button\?\.hasPointerCapture\?\.\(pointerId\)[\s\S]*button\.releasePointerCapture\(pointerId\);/);
   assert.match(app, /function handleVisibilityChange\(\) \{[\s\S]*document\.hidden[\s\S]*document\.visibilityState === "hidden"[\s\S]*clearPointerState\(\);/);
-  assert.match(app, /function renderPads\(\) \{\s*clearPointerState\(\);\s*padGrid\.replaceChildren\(\);/);
+  assert.match(app, /function renderPads\(\) \{\s*clearPointerState\(\);\s*padGrid\.setAttribute\("aria-busy", String\(!padLibraryReady\)\);\s*padGrid\.replaceChildren\(\);/);
 });
 
 test("pointer lifecycle listeners cover hidden, blur, pagehide, and orientation interruption", () => {

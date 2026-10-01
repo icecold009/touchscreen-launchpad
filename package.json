@@ -3,9 +3,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check:syntax": "node --check app.js && node --check src/bootstrap.js && node --check sw.js",
+    "check:syntax": "node --check app.js && node --check src/bootstrap.js && node --check src/stem-separation.js && node --check src/stem-separation-engine.js && node --check src/stem-separation-dsp.js && node --check src/htdemucs-separation-engine.js && node --check src/htdemucs-separation-dsp.js && node --check scripts/build-stem-engine.mjs && node --check sw.js",
     "check:static": "node scripts/validate-site.mjs",
+    "build:stem-engine": "node scripts/build-stem-engine.mjs",
     "test:dom": "node --test test/site-dom.test.mjs test/pointer-lifecycle.test.mjs test/audio-lifecycle.test.mjs test/storage-recovery.test.mjs",
-    "validate": "npm run check:syntax && node scripts/validate-site.mjs && node --test test/site-dom.test.mjs test/module-contract.test.mjs test/foundation.test.mjs test/recording.test.mjs test/sample-editor.test.mjs test/sample-library.test.mjs test/performance-export.test.mjs test/arrangement.test.mjs test/slices.test.mjs test/wav.test.mjs test/performance-engine.test.mjs test/sequencer.test.mjs test/audio-lifecycle.test.mjs test/midi.test.mjs test/midi-file.test.mjs test/effects.test.mjs test/pointer-lifecycle.test.mjs test/storage-recovery.test.mjs test/import-export.test.mjs test/kit-library.test.mjs test/pwa.test.mjs test/service-worker-runtime.test.mjs"
+    "validate": "npm run check:syntax && node scripts/validate-site.mjs && node --test test/site-dom.test.mjs test/module-contract.test.mjs test/foundation.test.mjs test/recording.test.mjs test/sample-editor.test.mjs test/sample-library.test.mjs test/performance-export.test.mjs test/arrangement.test.mjs test/slices.test.mjs test/stem-pad-map.test.mjs test/stem-separation-routing.test.mjs test/stem-separation-dsp.test.mjs test/htdemucs-separation-dsp.test.mjs test/wav.test.mjs test/performance-engine.test.mjs test/sequencer.test.mjs test/audio-lifecycle.test.mjs test/midi.test.mjs test/midi-file.test.mjs test/effects.test.mjs test/pointer-lifecycle.test.mjs test/storage-recovery.test.mjs test/import-export.test.mjs test/kit-library.test.mjs test/pwa.test.mjs test/service-worker-runtime.test.mjs"
+  },
+  "dependencies": {
+    "fft.js": "4.0.4",
+    "onnxruntime-web": "1.30.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }

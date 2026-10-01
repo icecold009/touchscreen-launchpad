@@ -32,9 +32,11 @@ test("repair is non-destructive and reset requires explicit confirmation", () =>
   assert.match(app, /async function repairSampleStorage\(\)/);
   assert.match(app, /indexedDbStore\.close\(\);/);
   assert.match(app, /async function resetSampleStorage\(\)/);
-  assert.match(app, /window\.confirm\("Reset saved sample storage\?/);
+  assert.match(html, /<dialog id="clear-local-data-dialog"[^>]+aria-labelledby="clear-local-data-title"/);
+  assert.match(app, /clearLocalDataButton\.addEventListener\("click", \(\) => clearLocalDataDialog\.showModal\(\)\)/);
+  assert.match(app, /confirmClearLocalDataButton\.addEventListener\("click", \(\) => \{\s*clearLocalDataDialog\.close\(\);\s*void resetSampleStorage\(\);/);
   assert.match(app, /await deleteSampleDatabase\(\);/);
-  assert.match(app, /pads = pads\.map\(\(pad\) => \(\{ \.\.\.pad, sampleId: null \}\)\);/);
+  assert.match(app, /applyKit\(kits\.get\("kit-1"\)\)/);
 });
 
 test("service-worker status does not overwrite healthy persistence status", () => {

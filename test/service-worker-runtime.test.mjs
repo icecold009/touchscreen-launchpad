@@ -17,9 +17,11 @@ function createServiceWorkerHarness() {
   const deletedCaches = [];
   const lifecycleCalls = [];
   const networkRequests = [];
+  const cacheErrors = { open: false, match: false, put: false };
 
   const caches = {
     async open(name) {
+      if (cacheErrors.open) throw new Error("cache storage unavailable");
       if (!cacheRecords.has(name)) {
         cacheRecords.set(name, { added: [], responses: new Map([["./index.html", "cached-index"]]) });
       }
@@ -29,10 +31,12 @@ function createServiceWorkerHarness() {
           record.added.push(...references);
         },
         async match(request) {
+          if (cacheErrors.match) throw new Error("cache lookup failed");
           const key = typeof request === "string" ? request : request.url;
           return record.responses.get(key);
         },
         async put(request, response) {
+          if (cacheErrors.put) throw new Error("cache quota exceeded");
           const key = typeof request === "string" ? request : request.url;
           record.responses.set(key, response);
         },
@@ -74,6 +78,7 @@ function createServiceWorkerHarness() {
   const context = vm.createContext({
     self,
     caches,
+    URL,
     Response: { error: () => ({ type: "error" }) },
     fetch: async (request) => {
       networkRequests.push(request);
@@ -84,7 +89,7 @@ function createServiceWorkerHarness() {
   });
   vm.runInContext(serviceWorkerSource, context, { filename: "sw.js" });
 
-  return { listeners, cacheRecords, deletedCaches, lifecycleCalls, networkRequests, onlineResponses };
+  return { listeners, cacheRecords, cacheErrors, deletedCaches, lifecycleCalls, networkRequests, onlineResponses };
 }
 
 async function dispatchLifecycle(listeners, type, event = {}) {
@@ -151,4 +156,61 @@ test("fetches fresh navigations, falls back offline, and rejects offline assets"
 
   const postEvent = { request: { method: "POST", mode: "navigate", destination: "document", url: "https://example.test/submit" }, respondWith() { throw new Error("POST must not be intercepted"); } };
   harness.listeners.get("fetch")(postEvent);
+});
+
+test("stem runtime WASM is cached on first use without joining the install download", async () => {
+  const harness = createServiceWorkerHarness();
+  await dispatchLifecycle(harness.listeners, "install");
+  const currentCache = [...harness.cacheRecords.values()][0];
+  const runtimeUrl = "https://example.test/site/vendor/ort/ort-wasm-simd-threaded.asyncify.wasm";
+  const response = { ok: true, clone: () => "cached-wasm" };
+  harness.onlineResponses.set(runtimeUrl, response);
+
+  assert.equal(currentCache.added.some((reference) => reference.includes("vendor/ort/")), false);
+  const runtimeResponses = [];
+  harness.listeners.get("fetch")({
+    request: { method: "GET", mode: "no-cors", destination: "", url: runtimeUrl },
+    respondWith(promise) { runtimeResponses.push(promise); },
+  });
+  assert.equal(await runtimeResponses[0], response);
+  assert.equal(currentCache.responses.get(runtimeUrl), "cached-wasm");
+});
+
+test("a runtime asset still loads when cache storage cannot retain the download", async () => {
+  const harness = createServiceWorkerHarness();
+  const runtimeUrl = "https://example.test/site/vendor/ort/ort-wasm-simd-threaded.asyncify.mjs";
+  const response = { ok: true, clone: () => "runtime-module" };
+  harness.cacheErrors.put = true;
+  harness.onlineResponses.set(runtimeUrl, response);
+
+  const runtimeResponses = [];
+  harness.listeners.get("fetch")({
+    request: { method: "GET", mode: "cors", destination: "script", url: runtimeUrl },
+    respondWith(promise) { runtimeResponses.push(promise); },
+  });
+
+  assert.equal(await runtimeResponses[0], response);
+  assert.deepEqual(harness.networkRequests, [{ method: "GET", mode: "cors", destination: "script", url: runtimeUrl }]);
+  assert.equal([...harness.cacheRecords.values()][0].responses.has(runtimeUrl), false);
+});
+
+test("assets still load from the network when cache open or lookup fails", async (context) => {
+  for (const failure of ["open", "match"]) {
+    await context.test(`cache ${failure}`, async () => {
+      const harness = createServiceWorkerHarness();
+      const runtimeUrl = "https://example.test/site/vendor/ort/ort-wasm-simd-threaded.asyncify.wasm";
+      const response = { ok: true, clone: () => "runtime-wasm" };
+      harness.cacheErrors[failure] = true;
+      harness.onlineResponses.set(runtimeUrl, response);
+
+      const runtimeResponses = [];
+      harness.listeners.get("fetch")({
+        request: { method: "GET", mode: "cors", destination: "", url: runtimeUrl },
+        respondWith(promise) { runtimeResponses.push(promise); },
+      });
+
+      assert.equal(await runtimeResponses[0], response);
+      assert.equal(harness.networkRequests.length, 1);
+    });
+  }
 });

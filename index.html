@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#070b16" />
     <meta name="description" content="A local-first touchscreen launchpad for triggering samples and loops." />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css?version=82" />
+    <link rel="stylesheet" href="style.css?version=106" />
     <title>Touchscreen Launchpad</title>
     <meta name="google-site-verification" content="1x0ZiOr6RUU3_PnhQXVEgqc9HLaZJpIpGCV0cTgar0g" />
       <meta name="author" content="Shaurya Saria" />
@@ -60,25 +60,34 @@
 
       <nav class="feature-nav is-collapsed" aria-label="Studio views">
         <div class="feature-nav-primary" aria-label="Main work areas">
-          <a class="feature-nav-link feature-nav-primary-link is-current" href="#performance-surface">Live</a>
-          <a class="feature-nav-link feature-nav-primary-link" href="#effects-panel">Mix</a>
-          <a class="feature-nav-link feature-nav-primary-link" href="#sequencer-panel">Arrange</a>
+          <a class="feature-nav-link feature-nav-primary-link is-current" href="#performance-surface" aria-current="page">Play</a>
+          <a class="feature-nav-link feature-nav-primary-link" href="#pad-setup">Build a kit</a>
           <a class="feature-nav-link feature-nav-primary-link" href="#sample-library">Sounds</a>
-          <a class="feature-nav-link feature-nav-primary-link feature-nav-record" href="#performance-capture">Record</a>
         </div>
-        <button id="feature-nav-toggle" class="button button-quiet feature-nav-toggle" type="button" aria-expanded="false" aria-controls="feature-nav-groups">Tools</button>
+        <button id="feature-nav-toggle" class="button button-quiet feature-nav-toggle" type="button" aria-expanded="false" aria-controls="feature-nav-groups">More</button>
         <div id="feature-nav-groups" class="feature-nav-groups" hidden>
-          <a class="feature-nav-link" href="#kit-options">Kit management</a>
-          <a class="feature-nav-link" href="#midi-panel">MIDI setup</a>
-          <a class="feature-nav-link" href="#pad-setup">Pad editor</a>
-          <a class="feature-nav-link" href="#layout-tools">Backup &amp; transfer</a>
-          <a class="feature-nav-link" href="#audio-tools">Snapshots &amp; diagnostics</a>
-          <a class="feature-nav-link" href="#arrangement-exports">Exports</a>
+          <div class="feature-nav-group" role="group" aria-label="Perform">
+            <span class="feature-nav-group-title">Perform</span>
+            <a class="feature-nav-link" href="#sequencer-panel">Arrange</a>
+            <a class="feature-nav-link" href="#effects-panel">Mix</a>
+            <a class="feature-nav-link" href="#performance-capture">Record</a>
+          </div>
+          <div class="feature-nav-group" role="group" aria-label="Setup">
+            <span class="feature-nav-group-title">Setup</span>
+            <a class="feature-nav-link" href="#kit-options">Kit management</a>
+            <a class="feature-nav-link" href="#midi-panel">MIDI setup</a>
+          </div>
+          <div class="feature-nav-group" role="group" aria-label="Files and tools">
+            <span class="feature-nav-group-title">Files &amp; tools</span>
+            <a class="feature-nav-link" href="#layout-tools">Backup &amp; transfer</a>
+            <a class="feature-nav-link" href="#audio-tools">Snapshots &amp; diagnostics</a>
+            <a class="feature-nav-link" href="#arrangement-exports">Exports</a>
+          </div>
         </div>
       </nav>
 
       <section class="workspace" aria-label="Launchpad workspace">
-        <div id="performance-surface" class="stage">
+        <div id="performance-surface" class="stage workspace-view" data-workspace-view="play">
           <div class="stage-heading">
             <div>
               <p class="eyebrow">Live performance</p>
@@ -89,7 +98,7 @@
 
           <section id="transport-controls" class="controls" aria-label="Performance controls">
             <div class="control-row">
-              <button id="stop-all" class="button button-danger" type="button">Stop all</button>
+              <button id="stop-all" class="button button-danger" type="button" aria-keyshortcuts="Escape">Stop all <kbd>Esc</kbd></button>
               <button id="loop-toggle" class="button button-loop" type="button" aria-label="Toggle loop mode for the selected pad" aria-pressed="false">Loop off</button>
 
               <label class="compact-control" for="tempo">
@@ -104,8 +113,8 @@
               </label>
 
               <label class="check-control" for="metronome">
-                <input id="metronome" type="checkbox" />
-                <span>Metronome</span>
+                <input id="metronome" type="checkbox" aria-keyshortcuts="Shift+M" />
+                <span>Metronome <kbd>Shift+M</kbd></span>
               </label>
 
               <label class="compact-control" for="count-in">
@@ -120,7 +129,7 @@
 
             </div>
 
-            <p id="status" class="status-message" role="status" aria-live="polite">Tap a pad to start audio.</p>
+            <p id="status" class="status-message" role="status" aria-live="polite">Loading saved pads and sounds…</p>
             <p id="beat-indicator" class="beat-indicator" role="status" aria-live="off" hidden></p>
             <div id="persistence-note" class="persistence-note" role="status" hidden>
               <span id="persistence-message"></span>
@@ -181,15 +190,15 @@
             </details>
           </section>
 
-          <section id="sequencer-panel" class="sequencer-panel" aria-labelledby="sequencer-title">
-            <div class="section-heading">
+          <details id="sequencer-panel" class="sequencer-panel studio-secondary-panel" aria-labelledby="sequencer-title">
+            <summary class="section-heading">
               <div>
                 <p class="eyebrow">Live arrangement</p>
                 <h3 id="sequencer-title">Scenes</h3>
                 <p class="section-subtitle">Four tracks · 16 steps · performance-first.</p>
               </div>
               <span id="sequencer-status" class="muted" role="status" aria-live="polite">Scene A · Ready</span>
-            </div>
+            </summary>
             <div class="sequencer-toolbar">
               <div class="scene-buttons" role="group" aria-label="Sequencer scenes">
                 <button id="scene-a" class="button button-secondary is-active" type="button" aria-pressed="true">Scene A</button>
@@ -288,17 +297,17 @@
                 </label>
               </div>
             </div>
-          </section>
+          </details>
 
-          <section id="performance-capture" class="performance-capture" aria-labelledby="recording-title">
-            <div class="section-heading">
+          <details id="performance-capture" class="performance-capture studio-secondary-panel" aria-labelledby="recording-title">
+            <summary class="section-heading">
               <div>
                 <p class="eyebrow">Record to perform</p>
                 <h3 id="recording-title">Capture a take</h3>
                 <p class="section-subtitle">Microphone plus the launchpad mix, saved only in this browser.</p>
               </div>
               <span id="recording-timer" class="recording-timer" aria-label="Recording duration">00:00</span>
-            </div>
+            </summary>
             <div class="recording-controls">
               <button id="record-performance" class="button button-primary" type="button">Record performance</button>
               <button id="pause-recording" class="button button-secondary" type="button" disabled>Pause recording</button>
@@ -308,7 +317,7 @@
               <li class="empty-state">No takes yet. Record a voice, room sound, or pad performance.</li>
             </ul>
             <span id="take-count" class="sr-only">0 takes</span>
-          </section>
+          </details>
 
           <details id="midi-panel" class="midi-panel tool-detail" aria-labelledby="midi-title">
             <summary class="tool-summary">
@@ -361,14 +370,14 @@
             <ul id="midi-mappings" class="midi-mappings" aria-label="Learned MIDI controller mappings"></ul>
           </details>
 
-          <section id="effects-panel" class="effects-panel" aria-labelledby="effects-title">
-            <div class="section-heading">
+          <details id="effects-panel" class="effects-panel studio-secondary-panel" aria-labelledby="effects-title">
+            <summary class="section-heading">
               <div>
                 <p class="eyebrow">Master bus</p>
                 <h3 id="effects-title">Master mixer</h3>
               </div>
               <span id="audio-diagnostics-status" class="muted" role="status" aria-live="polite">Audio not started</span>
-            </div>
+            </summary>
             <div class="effects-controls">
               <div class="effects-bay" role="group" aria-label="Time effects">
                 <p class="effects-bay-heading">TIME FX <span>Echo and reverb</span></p>
@@ -455,16 +464,16 @@
                 <button id="master-level-check" class="button button-quiet" type="button">Check levels</button>
               </details>
             </div>
-          </section>
+          </details>
 
 
         </div>
 
-        <aside id="pad-setup" class="editor-panel is-collapsed" aria-labelledby="editor-title">
+        <aside id="pad-setup" class="editor-panel is-collapsed workspace-view" data-workspace-view="build" aria-labelledby="editor-title" hidden>
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Pad setup</p>
-              <h2 id="editor-title">Shape the selected pad</h2>
+              <p class="eyebrow">Kit builder</p>
+              <h2 id="editor-title">Build a kit</h2>
             </div>
             <div class="panel-status">
               <span id="selected-pad-indicator" class="selected-indicator">01</span>
@@ -472,18 +481,173 @@
             </div>
           </div>
 
-          <nav class="editor-nav" aria-label="Pad setup sections">
-            <a class="editor-nav-link is-current" href="#pad-editor">Pad</a>
-            <a class="editor-nav-link" href="#layout-tools">Backup</a>
-            <a class="editor-nav-link" href="#sample-library">Samples</a>
-          </nav>
-
           <button id="editor-toggle" class="button button-secondary editor-toggle" type="button" aria-expanded="false" aria-controls="editor-content">
             Open pad editor
           </button>
 
           <div id="editor-content" class="editor-content">
+            <nav class="builder-steps" aria-label="Kit-building steps">
+              <a href="#song-source"><span class="builder-step-number">01</span><span><strong>Choose a song</strong><small>Upload or select audio</small></span></a>
+              <a href="#sample-lab"><span class="builder-step-number">02</span><span><strong>Prepare it</strong><small>Slice or separate stems</small></span></a>
+              <a href="#pad-label"><span class="builder-step-number">03</span><span><strong>Set up pads</strong><small>Name, tune and save</small></span></a>
+            </nav>
             <form id="pad-editor" class="pad-editor">
+            <div id="song-source" class="sample-picker">
+              <div class="field-line">
+                <span>Song</span>
+                <span id="sample-name" class="sample-name">Preview tone</span>
+              </div>
+              <label class="file-button button button-secondary" for="sample-file">
+                Upload song
+                <input id="sample-file" type="file" accept="audio/*" />
+              </label>
+              <label class="field" for="song-library-select">
+                <span>Saved song</span>
+                <select id="song-library-select" disabled>
+                  <option value="">No saved songs yet</option>
+                </select>
+              </label>
+              <button id="clear-sample" class="button button-quiet text-button" type="button">Use preview tone</button>
+            </div>
+            <section id="sample-lab" class="sample-lab" aria-labelledby="sample-lab-title">
+              <div class="section-heading">
+                <div>
+                  <h3 id="sample-lab-title">Song prep</h3>
+                  <p class="section-subtitle">Slice a song or separate its stems.</p>
+                </div>
+                <span id="sample-edit-status" class="muted">No sample loaded</span>
+              </div>
+              <div class="sample-mode-tabs" role="tablist" aria-label="Song pad workflow">
+                <button id="slicer-mode-tab" class="sample-mode-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="slicer-mode-panel">Slicer</button>
+                <button id="stem-mode-tab" class="sample-mode-tab" type="button" role="tab" aria-selected="false" aria-controls="stem-mode-panel">Stem</button>
+              </div>
+              <div id="slicer-mode-panel" role="tabpanel" aria-labelledby="slicer-mode-tab">
+              <canvas id="sample-waveform" class="sample-waveform" width="960" height="180" aria-label="Song waveform preview with slice boundaries"></canvas>
+              <div class="field-grid sample-region-grid">
+                <label class="field" for="sample-start">
+                  <span>Start</span>
+                  <input id="sample-start" type="range" min="0" max="1" step="0.01" value="0" />
+                </label>
+                <label class="field" for="sample-end">
+                  <span>End</span>
+                  <input id="sample-end" type="range" min="0" max="1" step="0.01" value="1" />
+                </label>
+                <label class="field" for="sample-loop-start">
+                  <span>Loop in</span>
+                  <input id="sample-loop-start" type="range" min="0" max="1" step="0.01" value="0" />
+                </label>
+                <label class="field" for="sample-loop-end">
+                  <span>Loop out</span>
+                  <input id="sample-loop-end" type="range" min="0" max="1" step="0.01" value="1" />
+                </label>
+              </div>
+              <div class="slice-toolbar">
+                <label class="field" for="slice-count">
+                  <span>Slice bank <output id="slice-count-value" for="slice-count">0/16</output></span>
+                  <input id="slice-count" type="number" min="1" max="16" step="1" value="4" />
+                </label>
+                <div class="slice-toolbar-actions">
+                  <button id="create-slices" class="button button-secondary" type="button">Create even slices</button>
+                  <button id="clear-slices" class="button button-quiet" type="button" disabled>Clear slices</button>
+                </div>
+              </div>
+              <button id="split-song-to-pads" class="button button-primary" type="button" aria-describedby="assign-16-warning" disabled>Assign all 16 pads</button>
+              <p id="assign-16-warning" class="field-help slice-help">Replaces this kit’s assignments. Use Undo to restore them.</p>
+              <ul id="slice-list" class="slice-list" aria-label="Sample slices"></ul>
+              </div>
+              <section id="stem-mode-panel" class="stem-mode-panel" role="tabpanel" aria-labelledby="stem-mode-tab" hidden>
+                <label class="field stem-engine-field" for="stem-engine-select">
+                  <span>Separation quality</span>
+                  <select id="stem-engine-select">
+                    <option value="htdemucs" selected>Higher quality · HT-Demucs</option>
+                    <option value="spleeter">Faster · Spleeter</option>
+                  </select>
+                </label>
+                <p class="field-help stem-engine-help">HT-Demucs downloads a verified 166 MB model the first time and uses more memory. Spleeter is quicker but has lower separation quality. Your song stays in this browser.</p>
+                <button id="separate-song-to-pads" class="button button-primary" type="button" disabled>Separate &amp; fill 16 pads</button>
+                <progress id="stem-separation-progress" class="stem-separation-progress" max="100" value="0" hidden aria-label="Stem separation progress"></progress>
+                <p id="stem-separation-status" class="field-help stem-separation-status" role="status" aria-live="polite">Generated stems are level-normalized for pads. Separation runs locally; only model weights are downloaded.</p>
+              </section>
+              <label class="check-control sample-reverse-control" for="sample-reverse">
+                <input id="sample-reverse" type="checkbox" />
+                <span>Reverse playback</span>
+              </label>
+              <div class="field-grid sample-shape-grid">
+                <label class="field" for="sample-zoom">
+                  <span>Waveform zoom <output id="sample-zoom-value" for="sample-zoom">1.0×</output></span>
+                  <input id="sample-zoom" type="range" min="1" max="8" step="0.1" value="1" />
+                </label>
+                <label class="check-control" for="sample-normalize">
+                  <input id="sample-normalize" type="checkbox" />
+                  <span>Normalize on playback</span>
+                </label>
+              </div>
+              <div class="field-grid sample-shape-grid">
+                <label class="field" for="sample-fade-in">
+                  <span>Fade in <output id="sample-fade-in-value" for="sample-fade-in">5 ms</output></span>
+                  <input id="sample-fade-in" type="range" min="0" max="1" step="0.005" value="0.005" />
+                </label>
+                <label class="field" for="sample-fade-out">
+                  <span>Fade out <output id="sample-fade-out-value" for="sample-fade-out">15 ms</output></span>
+                  <input id="sample-fade-out" type="range" min="0" max="1" step="0.005" value="0.015" />
+                </label>
+              </div>
+              <div class="field-grid sample-shape-grid">
+                <label class="field" for="pad-pitch">
+                  <span>Pitch <output id="pad-pitch-value" for="pad-pitch">0¢</output></span>
+                  <input id="pad-pitch" type="range" min="-2400" max="2400" step="1" value="0" />
+                </label>
+                <label class="field" for="pad-stretch">
+                  <span>Live speed <output id="pad-stretch-value" for="pad-stretch">1.00× live</output></span>
+                  <input id="pad-stretch" type="range" min="0.25" max="4" step="0.01" value="1" />
+                </label>
+                <label class="field" for="pad-pan">
+                  <span>Pan <output id="pad-pan-value" for="pad-pan">Center</output></span>
+                  <input id="pad-pan" type="range" min="-1" max="1" step="0.01" value="0" />
+                </label>
+                <label class="field" for="pad-filter-type">
+                  <span>Filter</span>
+                  <select id="pad-filter-type">
+                    <option value="lowpass">Low-pass</option>
+                    <option value="highpass">High-pass</option>
+                    <option value="bandpass">Band-pass</option>
+                  </select>
+                </label>
+              </div>
+              <label class="field" for="pad-filter-frequency">
+                <span>Filter cutoff <output id="pad-filter-frequency-value" for="pad-filter-frequency">20000 Hz</output></span>
+                <input id="pad-filter-frequency" type="range" min="20" max="20000" step="10" value="20000" />
+              </label>
+              <div class="field-grid sample-shape-grid">
+                <label class="field" for="pad-delay-send">
+                  <span>Delay send <output id="pad-delay-send-value" for="pad-delay-send">0%</output></span>
+                  <input id="pad-delay-send" type="range" min="0" max="1" step="0.01" value="0" />
+                </label>
+                <label class="field" for="pad-reverb-send">
+                  <span>Reverb send <output id="pad-reverb-send-value" for="pad-reverb-send">0%</output></span>
+                  <input id="pad-reverb-send" type="range" min="0" max="1" step="0.01" value="0" />
+                </label>
+              </div>
+              <div class="field-grid sample-shape-grid">
+                <label class="field" for="pad-attack">
+                  <span>Attack <output id="pad-attack-value" for="pad-attack">5 ms</output></span>
+                  <input id="pad-attack" type="range" min="0" max="1" step="0.001" value="0.005" />
+                </label>
+                <label class="field" for="pad-release">
+                  <span>Release <output id="pad-release-value" for="pad-release">15 ms</output></span>
+                  <input id="pad-release" type="range" min="0.002" max="2" step="0.001" value="0.015" />
+                </label>
+              </div>
+            </section>
+
+            <section id="pad-controls" class="pad-controls" aria-labelledby="pad-controls-title">
+            <div class="section-heading pad-controls-heading">
+              <div>
+                <p class="eyebrow">Step 3</p>
+                <h3 id="pad-controls-title">Set up the selected pad</h3>
+              </div>
+              <span class="muted">Pad <span id="selected-pad-inline">01</span></span>
+            </div>
             <label class="field" for="pad-label">
               <span>Pad name</span>
               <input id="pad-label" name="label" type="text" maxlength="32" placeholder="Optional label" />
@@ -563,137 +727,14 @@
               <input id="pad-volume" name="volume" type="range" min="0" max="1" step="0.01" value="0.8" />
             </label>
 
-            <section class="sample-lab" aria-labelledby="sample-lab-title">
-              <div class="section-heading">
-                <div>
-                  <h3 id="sample-lab-title">Sample lab</h3>
-                  <p class="section-subtitle">Trim and shape the selected sound.</p>
-                </div>
-                <span id="sample-edit-status" class="muted">No sample loaded</span>
-              </div>
-              <canvas id="sample-waveform" class="sample-waveform" width="640" height="128" aria-label="Sample waveform preview"></canvas>
-              <div class="field-grid sample-region-grid">
-                <label class="field" for="sample-start">
-                  <span>Start</span>
-                  <input id="sample-start" type="range" min="0" max="1" step="0.01" value="0" />
-                </label>
-                <label class="field" for="sample-end">
-                  <span>End</span>
-                  <input id="sample-end" type="range" min="0" max="1" step="0.01" value="1" />
-                </label>
-                <label class="field" for="sample-loop-start">
-                  <span>Loop in</span>
-                  <input id="sample-loop-start" type="range" min="0" max="1" step="0.01" value="0" />
-                </label>
-                <label class="field" for="sample-loop-end">
-                  <span>Loop out</span>
-                  <input id="sample-loop-end" type="range" min="0" max="1" step="0.01" value="1" />
-                </label>
-              </div>
-              <div class="slice-toolbar">
-                <label class="field" for="slice-count">
-                  <span>Slice bank <output id="slice-count-value" for="slice-count">0/16</output></span>
-                  <input id="slice-count" type="number" min="1" max="16" step="1" value="4" />
-                </label>
-                <div class="slice-toolbar-actions">
-                  <button id="create-slices" class="button button-secondary" type="button">Create even slices</button>
-                  <button id="clear-slices" class="button button-quiet" type="button" disabled>Clear slices</button>
-                </div>
-              </div>
-              <p class="field-help slice-help">Create up to 16 non-destructive markers. Adjust In/Out, preview a slice, then assign it to the selected pad.</p>
-              <ul id="slice-list" class="slice-list" aria-label="Sample slices">
-                <li class="empty-state">Load and save a sample before creating slices.</li>
-              </ul>
-              <label class="check-control sample-reverse-control" for="sample-reverse">
-                <input id="sample-reverse" type="checkbox" />
-                <span>Reverse playback</span>
-              </label>
-              <div class="field-grid sample-shape-grid">
-                <label class="field" for="sample-zoom">
-                  <span>Waveform zoom <output id="sample-zoom-value" for="sample-zoom">1.0×</output></span>
-                  <input id="sample-zoom" type="range" min="1" max="8" step="0.1" value="1" />
-                </label>
-                <label class="check-control" for="sample-normalize">
-                  <input id="sample-normalize" type="checkbox" />
-                  <span>Normalize on playback</span>
-                </label>
-              </div>
-              <div class="field-grid sample-shape-grid">
-                <label class="field" for="sample-fade-in">
-                  <span>Fade in <output id="sample-fade-in-value" for="sample-fade-in">5 ms</output></span>
-                  <input id="sample-fade-in" type="range" min="0" max="1" step="0.005" value="0.005" />
-                </label>
-                <label class="field" for="sample-fade-out">
-                  <span>Fade out <output id="sample-fade-out-value" for="sample-fade-out">15 ms</output></span>
-                  <input id="sample-fade-out" type="range" min="0" max="1" step="0.005" value="0.015" />
-                </label>
-              </div>
-              <div class="field-grid sample-shape-grid">
-                <label class="field" for="pad-pitch">
-                  <span>Pitch <output id="pad-pitch-value" for="pad-pitch">0¢</output></span>
-                  <input id="pad-pitch" type="range" min="-2400" max="2400" step="1" value="0" />
-                </label>
-                <label class="field" for="pad-stretch">
-                  <span>Live speed <output id="pad-stretch-value" for="pad-stretch">1.00× live</output></span>
-                  <input id="pad-stretch" type="range" min="0.25" max="4" step="0.01" value="1" />
-                </label>
-                <label class="field" for="pad-pan">
-                  <span>Pan <output id="pad-pan-value" for="pad-pan">Center</output></span>
-                  <input id="pad-pan" type="range" min="-1" max="1" step="0.01" value="0" />
-                </label>
-                <label class="field" for="pad-filter-type">
-                  <span>Filter</span>
-                  <select id="pad-filter-type">
-                    <option value="lowpass">Low-pass</option>
-                    <option value="highpass">High-pass</option>
-                    <option value="bandpass">Band-pass</option>
-                  </select>
-                </label>
-              </div>
-              <label class="field" for="pad-filter-frequency">
-                <span>Filter cutoff <output id="pad-filter-frequency-value" for="pad-filter-frequency">20000 Hz</output></span>
-                <input id="pad-filter-frequency" type="range" min="20" max="20000" step="10" value="20000" />
-              </label>
-              <div class="field-grid sample-shape-grid">
-                <label class="field" for="pad-delay-send">
-                  <span>Delay send <output id="pad-delay-send-value" for="pad-delay-send">0%</output></span>
-                  <input id="pad-delay-send" type="range" min="0" max="1" step="0.01" value="0" />
-                </label>
-                <label class="field" for="pad-reverb-send">
-                  <span>Reverb send <output id="pad-reverb-send-value" for="pad-reverb-send">0%</output></span>
-                  <input id="pad-reverb-send" type="range" min="0" max="1" step="0.01" value="0" />
-                </label>
-              </div>
-              <div class="field-grid sample-shape-grid">
-                <label class="field" for="pad-attack">
-                  <span>Attack <output id="pad-attack-value" for="pad-attack">5 ms</output></span>
-                  <input id="pad-attack" type="range" min="0" max="1" step="0.001" value="0.005" />
-                </label>
-                <label class="field" for="pad-release">
-                  <span>Release <output id="pad-release-value" for="pad-release">15 ms</output></span>
-                  <input id="pad-release" type="range" min="0.002" max="2" step="0.001" value="0.015" />
-                </label>
-              </div>
-            </section>
 
-            <div class="sample-picker">
-              <div class="field-line">
-                <span>Sample source</span>
-                <span id="sample-name" class="sample-name">Preview tone</span>
-              </div>
-              <label class="file-button button button-secondary" for="sample-file">
-                Load audio
-                <input id="sample-file" type="file" accept="audio/*" />
-              </label>
-              <button id="clear-sample" class="button button-quiet text-button" type="button">Use preview tone</button>
-              <p class="field-help">Load one file here, or use Import audio below for a full folder. Assign library files to this pad, then save. Files stay in this browser.</p>
-            </div>
 
             <div class="pad-save-row">
               <button class="button button-primary" type="submit">Save pad</button>
-              <button id="undo-pad" class="button button-quiet" type="button">Undo pad</button>
-              <button id="redo-pad" class="button button-quiet" type="button">Redo pad</button>
+              <button id="undo-pad" class="button button-quiet" type="button">Undo</button>
+              <button id="redo-pad" class="button button-quiet" type="button">Redo</button>
             </div>
+            </section>
             </form>
 
             <section id="layout-tools" class="layout-tools backup-card" aria-labelledby="layout-tools-title">
@@ -722,57 +763,72 @@
                 </label>
                 <button id="reset-layout" class="button button-quiet" type="button">Reset current kit</button>
               </div>
+              <div class="clear-local-data">
+                <p>Remove this site’s saved audio, kits, takes, pad assignments, undo history, offline files, and stem models from this browser.</p>
+                <button id="clear-local-data" class="button button-danger" type="button">Clear all local data</button>
+              </div>
             </section>
 
-            <section id="sample-library" class="sample-library" aria-labelledby="sample-library-title">
-              <div class="section-heading">
-                <div>
-                  <h3 id="sample-library-title">Sample library</h3>
-                  <p class="section-subtitle">Shared across every kit.</p>
-                </div>
-                <span id="sample-count" class="muted">0 files</span>
-              </div>
-              <div class="sample-tools">
-                <label class="sr-only" for="sample-search">Search samples</label>
-                <input id="sample-search" type="search" placeholder="Search samples" autocomplete="off" />
-                <label class="sr-only" for="sample-sort">Sort samples</label>
-                <select id="sample-sort">
-                  <option value="name">Name A–Z</option>
-                  <option value="newest">Newest first</option>
-                  <option value="largest">Largest first</option>
-                  <option value="favorite">Favorites first</option>
-                </select>
-              </div>
-              <div id="sample-dropzone" class="sample-dropzone" role="button" tabindex="0" aria-label="Drop audio files here or choose an import">
-                <strong>Drop audio here</strong>
-                <span>Folder imports stay local, deduplicate by hash, and keep extras in the library.</span>
-              </div>
-              <div class="sample-library-actions">
-                <label class="check-control" for="sample-favorites-only">
-                  <input id="sample-favorites-only" type="checkbox" />
-                  <span>Favorites only</span>
-                </label>
-                <label class="compact-control" for="sample-tag-filter">
-                  <span>Tag</span>
-                  <select id="sample-tag-filter"><option value="">All tags</option></select>
-                </label>
-                <span id="sample-selection-status" class="muted" role="status" aria-live="polite">Select samples for batch assignment.</span>
-                <button id="assign-selected-samples" class="button button-secondary" type="button" disabled>Assign selected</button>
-                <button id="remove-orphans" class="button button-quiet" type="button" disabled>Remove unused</button>
-              </div>
-              <ul id="sample-list" class="sample-list">
-                <li class="empty-state">No local samples yet.</li>
-              </ul>
-            </section>
           </div>
         </aside>
+        <section id="sample-library" class="sample-library workspace-view" data-workspace-view="sounds" aria-labelledby="sample-library-title" hidden>
+          <div class="section-heading">
+            <div>
+              <h2 id="sample-library-title">Sounds</h2>
+              <p class="section-subtitle">Manage audio shared across every kit.</p>
+            </div>
+            <span id="sample-count" class="muted">0 files</span>
+          </div>
+          <div class="sample-tools">
+            <label class="sr-only" for="sample-search">Search samples</label>
+            <input id="sample-search" type="search" placeholder="Search samples" autocomplete="off" />
+            <label class="sr-only" for="sample-sort">Sort samples</label>
+            <select id="sample-sort">
+              <option value="name">Name A–Z</option>
+              <option value="newest">Newest first</option>
+              <option value="largest">Largest first</option>
+              <option value="favorite">Favorites first</option>
+            </select>
+          </div>
+          <div id="sample-dropzone" class="sample-dropzone" role="button" tabindex="0" aria-label="Drop audio files here or choose an import">
+            <strong>Drop audio here</strong>
+            <span>Folder imports stay local, deduplicate by hash, and keep extras in the library.</span>
+          </div>
+          <div class="sample-library-actions">
+            <label class="check-control" for="sample-favorites-only">
+              <input id="sample-favorites-only" type="checkbox" />
+              <span>Favorites only</span>
+            </label>
+            <label class="compact-control" for="sample-tag-filter">
+              <span>Tag</span>
+              <select id="sample-tag-filter"><option value="">All tags</option></select>
+            </label>
+            <span id="sample-selection-status" class="muted" role="status" aria-live="polite">Select samples for batch assignment.</span>
+            <button id="assign-selected-samples" class="button button-secondary" type="button" disabled>Assign selected</button>
+            <button id="remove-orphans" class="button button-quiet" type="button" disabled>Remove unused</button>
+          </div>
+          <ul id="sample-list" class="sample-list">
+            <li class="empty-state">Your library is empty. Drop audio here or choose Import audio to get started.</li>
+          </ul>
+        </section>
       </section>
+      <dialog id="clear-local-data-dialog" class="confirm-dialog" aria-labelledby="clear-local-data-title" aria-describedby="clear-local-data-description">
+        <div class="confirm-dialog-copy">
+          <p class="eyebrow">Browser storage</p>
+          <h2 id="clear-local-data-title">Clear all local data?</h2>
+          <p id="clear-local-data-description">This permanently removes saved audio, kits, takes, pad assignments, undo history, offline files, and downloaded stem models from this site in this browser. One blank starter kit will be created.</p>
+        </div>
+        <div class="confirm-dialog-actions">
+          <button id="cancel-clear-local-data" class="button button-secondary" type="button" autofocus>Cancel</button>
+          <button id="confirm-clear-local-data" class="button button-danger" type="button">Clear local data</button>
+        </div>
+      </dialog>
     </main>
 
-    <footer style="padding: 1.25rem 1rem; text-align: center; font-size: .85rem; opacity: .75;">
-      <a href="https://shauryasaria.me" target="_blank" rel="noopener noreferrer" style="color: inherit; text-underline-offset: .2em;">Personal website</a>
+    <footer class="app-footer">
+      <a class="app-footer-link" href="https://shauryasaria.me" target="_blank" rel="noopener noreferrer">Personal website</a>
     </footer>
 
-    <script type="module" src="src/bootstrap.js?version=76"></script>
+    <script type="module" src="src/bootstrap.js?version=105"></script>
   </body>
 </html>

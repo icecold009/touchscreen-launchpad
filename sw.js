@@ -1,35 +1,39 @@
-const CACHE_NAME = "touchscreen-launchpad-v83";
+const CACHE_NAME = "touchscreen-launchpad-v117";
 const CACHE_PREFIX = "touchscreen-launchpad-";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?version=82",
-  "./src/bootstrap.js?version=76",
-  "./app.js?version=76",
-  "./src/history.js?version=76",
-  "./src/input-adapter.js?version=76",
-  "./src/migrations.js?version=76",
-  "./src/pointer-state.js?version=76",
-  "./src/storage-request.js?version=76",
-  "./src/storage/indexed-db.js?version=76",
-  "./src/storage/local-settings.js?version=76",
-  "./src/download.js?version=76",
-  "./src/effects.js?version=76",
-  "./src/midi.js?version=76",
-  "./src/midi-file.js?version=76",
-  "./src/audio-lifecycle.js?version=76",
-  "./src/clocked-sequencer.js?version=76",
-  "./src/performance-engine.js?version=76",
-  "./src/recording.js?version=76",
-  "./src/sample-editor.js?version=76",
-  "./src/sequencer.js?version=76",
-  "./src/slices.js?version=76",
-  "./src/transport.js?version=76",
-  "./src/voice-registry.js?version=76",
-  "./src/wav.js?version=76",
-  "./src/sample-library.js?version=76",
-  "./src/performance-export.js?version=76",
-  "./src/arrangement.js?version=76",
+  "./style.css?version=106",
+  "./src/bootstrap.js?version=105",
+  "./app.js?version=105",
+  "./src/history.js?version=105",
+  "./src/input-adapter.js?version=105",
+  "./src/migrations.js?version=105",
+  "./src/pointer-state.js?version=105",
+  "./src/storage-request.js?version=105",
+  "./src/storage/indexed-db.js?version=105",
+  "./src/storage/local-settings.js?version=105",
+  "./src/download.js?version=105",
+  "./src/effects.js?version=105",
+  "./src/midi.js?version=105",
+  "./src/midi-file.js?version=105",
+  "./src/audio-lifecycle.js?version=105",
+  "./src/clocked-sequencer.js?version=105",
+  "./src/performance-engine.js?version=105",
+  "./src/recording.js?version=105",
+  "./src/sample-editor.js?version=105",
+  "./src/sequencer.js?version=105",
+  "./src/slices.js?version=105",
+  "./src/stem-pad-map.js?version=105",
+  "./src/stem-separation.js?version=105",
+  "./src/transport.js?version=105",
+  "./src/voice-registry.js?version=105",
+  "./src/wav.js?version=105",
+  "./src/sample-library.js?version=105",
+  "./src/performance-export.js?version=105",
+  "./src/arrangement.js?version=105",
+  "./vendor/stem-separation-engine.js?version=105",
+  "./vendor/htdemucs-separation-engine.js?version=105",
   "./manifest.webmanifest",
   "./icon.svg",
 ];
@@ -72,13 +76,27 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   const isNavigationRequest = event.request.mode === "navigate" || event.request.destination === "document";
+  const isStemRuntimeAsset = new URL(event.request.url).pathname.includes("/vendor/ort/");
 
   event.respondWith(
     isNavigationRequest
       ? fetchNavigation(event.request)
-      : caches.open(CACHE_NAME)
-        .then((cache) => cache.match(event.request))
-        .then((cachedResponse) => cachedResponse || fetch(event.request))
-        .catch(() => Response.error()),
+      : fetchAsset(event.request, isStemRuntimeAsset).catch(() => Response.error()),
   );
 });
+
+async function fetchAsset(request, cacheStemRuntimeAsset) {
+  const cache = await caches.open(CACHE_NAME).catch(() => null);
+  const cachedResponse = await cache?.match(request).catch(() => null);
+  if (cachedResponse) return cachedResponse;
+
+  const response = await fetch(request);
+  if (cacheStemRuntimeAsset && cache && response.ok) {
+    try {
+      await cache.put(request, response.clone());
+    } catch {
+      // A runtime asset stays usable when browser cache quota is exhausted.
+    }
+  }
+  return response;
+}

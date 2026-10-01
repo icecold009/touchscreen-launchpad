@@ -25,10 +25,12 @@ test("the launchpad DOM exposes its primary interaction surface", () => {
     "layout-tools",
     "sample-library",
     "sample-file",
+    "song-library-select",
     "save-layout",
     "export-layout",
     "import-layout",
     "reset-layout",
+    "clear-local-data",
     "kit-select",
     "kit-name",
     "kit-count",
@@ -80,6 +82,14 @@ test("the launchpad DOM exposes its primary interaction surface", () => {
     "slice-count",
     "create-slices",
     "clear-slices",
+    "slicer-mode-tab",
+    "stem-mode-tab",
+    "slicer-mode-panel",
+    "stem-mode-panel",
+    "stem-engine-select",
+    "separate-song-to-pads",
+    "stem-separation-progress",
+    "stem-separation-status",
     "slice-list",
     "sample-dropzone",
     "sample-favorites-only",
@@ -111,23 +121,36 @@ test("the launchpad DOM exposes its primary interaction surface", () => {
 
   assert.match(html, /class=["'][^"']*volume-rail[^"']*["']/i);
   assert.match(html, /id=["']master-volume["'][^>]+aria-orientation=["']vertical["']/i);
-  assert.match(html, /class=["'][^"']*editor-nav[^"']*["']/i);
+  assert.match(html, /class=["'][^"']*builder-steps[^"']*["']/i);
   assert.match(html, /class=["'][^"']*feature-nav[^"']*["']/i);
   assert.match(html, /id=["']feature-nav-toggle["'][^>]+aria-expanded=["']false["'][^>]+aria-controls=["']feature-nav-groups["']/i);
   assert.match(html, /id=["']feature-nav-groups["'][^>]+class=["'][^"']*feature-nav-groups[^"']*["'][^>]+hidden/i);
+  assert.match(html, /href=["']#performance-surface["'][^>]*>Play</i);
+  assert.match(html, /href=["']#pad-setup["'][^>]*>Build a kit</i);
+  assert.match(html, /<h3 id=["']sample-lab-title["']>Song prep<\/h3>/i);
+  assert.match(html, /Loading saved pads and sounds/);
+  assert.doesNotMatch(html, /QUICK START|Or choose a saved song|Load a song or choose one already saved here|Choose Slicer to shape one song/i);
+  assert.match(html, /<span>Saved song<\/span>/);
+  assert.match(html, />\s*Upload song\s*<input id="sample-file"/);
+  assert.doesNotMatch(`${html}\n${app}`, /Load a song or choose a saved sample before splitting it across the pads|Load and save a sample before creating slices|No slices yet\. Create an even bank, then adjust each marker/i);
+  assert.match(app, /if \(!padLibraryReady \|\| pendingPads\.has\(index\)\) return/);
+  assert.match(app, /padGrid\.setAttribute\("aria-busy", String\(!padLibraryReady\)\)/);
+  assert.match(html, /<details id=["']sequencer-panel["'][^>]*studio-secondary-panel(?![^>]*open)[^>]*>[\s\S]*?<summary class=["']section-heading["']/i);
+  assert.match(html, /<details id=["']performance-capture["'][^>]*studio-secondary-panel(?![^>]*open)/i);
+  assert.match(html, /<details id=["']effects-panel["'][^>]*studio-secondary-panel(?![^>]*open)/i);
   for (const target of [
     "performance-surface",
-    "effects-panel",
-    "sequencer-panel",
+    "pad-setup",
     "sample-library",
-    "performance-capture",
   ]) {
-    assert.match(html, new RegExp(`class=["'][^"']*feature-nav-primary-link[^"']*["'][^>]+href=["']#${target}["']`), `main view is missing #${target}`);
+    assert.match(html, new RegExp(`class=["'][^"']*feature-nav-primary-link[^"']*["'][^>]+href=["']#${target}["']`), `main work area is missing #${target}`);
   }
-  for (const target of ["kit-options", "midi-panel", "pad-setup", "layout-tools", "audio-tools", "arrangement-exports"]) {
+  for (const target of ["effects-panel", "sequencer-panel", "performance-capture", "kit-options", "midi-panel", "layout-tools", "audio-tools", "arrangement-exports"]) {
     assert.match(html, new RegExp(`class=["'][^"']*feature-nav-link[^"']*["'][^>]+href=["']#${target}["']`), `Tools is missing #${target}`);
   }
-  assert.match(html, /href=["']#pad-editor["']/i);
+  assert.match(html, /class=["']builder-steps["'][\s\S]*href=["']#song-source["'][\s\S]*href=["']#sample-lab["'][\s\S]*href=["']#pad-label["']/i);
+  assert.match(html, /role=["']group["'][^>]+aria-label=["']Perform["'][\s\S]*href=["']#sequencer-panel["'][\s\S]*aria-label=["']Setup["'][\s\S]*href=["']#kit-options["'][\s\S]*aria-label=["']Files and tools["']/i);
+  assert.doesNotMatch(html, /class=["'][^"']*editor-nav[^"']*["']/i);
   assert.equal((html.match(/id=["']kit-select["']/g) ?? []).length, 1, "the live kit selector has one owner");
   assert.ok(html.indexOf('id="kit-select"') < html.indexOf('id="pad-grid"'), "kit selection is available before the pads");
   assert.match(html, /id=["']pad-setup["'][^>]+class=["'][^"']*is-collapsed/);
@@ -139,6 +162,48 @@ test("the launchpad DOM exposes its primary interaction surface", () => {
 test("the DOM loads the app as a module and keeps the static delivery model", () => {
   assert.match(html, /<script[^>]+type=["']module["'][^>]+src=["']src\/bootstrap\.js(?:\?[^"']*)?["']/i);
   assert.doesNotMatch(html, /<script[^>]+src=["'][^"']*(?:bundle|dist|build)[^"']*["']/i);
+});
+
+test("the separate Slicer and Stem workflows offer a higher-quality local separator", () => {
+  assert.match(html, /id="slicer-mode-tab"[^>]*role="tab"[^>]*aria-selected="true"[^>]*aria-controls="slicer-mode-panel"/);
+  assert.match(html, /id="stem-mode-tab"[^>]*role="tab"[^>]*aria-selected="false"[^>]*aria-controls="stem-mode-panel"/);
+  assert.match(html, /id="stem-mode-panel"[^>]*role="tabpanel"[^>]*hidden/);
+  assert.match(html, /id="separate-song-to-pads"[^>]*disabled>Separate &amp; fill 16 pads/);
+  assert.match(html, /id="stem-separation-progress"[^>]*hidden/);
+  assert.match(html, /id="stem-engine-select"/);
+  assert.match(html, /Higher quality · HT-Demucs/);
+  assert.match(html, /Faster · Spleeter/);
+  assert.match(html, /verified 166 MB model/);
+  assert.match(app, /model: stemEngine/);
+  assert.match(app, /normalize: true/);
+  assert.match(html, /Stem/);
+  assert.doesNotMatch(html, /stem-(?:drums|bass|vocals|other)-file|Stem files need to be separated before loading/);
+  assert.match(app, /function setSampleWorkflow\(mode\)/);
+  assert.match(app, /event\.key === "ArrowRight"[\s\S]*?event\.key === "ArrowLeft"[\s\S]*?event\.key === "Home"[\s\S]*?event\.key === "End"/);
+  assert.match(app, /createStemPadAssignments\(stems\)/);
+  assert.match(app, /separateSongWithLocalEngine\(channels/);
+  assert.match(app, /async function separateSongIntoPads\(\)/);
+  assert.doesNotMatch(app, /assignStemFilesToPads|stemFileInputs/);
+});
+
+test("song upload, waveform, 16-pad assignment, and pad settings share one build flow", () => {
+  const upload = html.indexOf('id="sample-file"');
+  const waveform = html.indexOf('id="sample-waveform"');
+  const assignAll = html.indexOf('id="split-song-to-pads"');
+  const padSettings = html.indexOf('for="pad-label"');
+  assert.ok(upload >= 0 && upload < waveform && waveform < assignAll && assignAll < padSettings);
+  assert.match(html, /id="split-song-to-pads"[^>]*>Assign all 16 pads</);
+  assert.match(html, /id="assign-16-warning"[^>]*>[^<]*Use Undo to restore them\./);
+  assert.match(html, /id="stop-all"[^>]*aria-keyshortcuts="Escape"[^>]*>Stop all <kbd>Esc<\/kbd>/);
+  assert.match(html, /id="metronome"[^>]*aria-keyshortcuts="Shift\+M"/);
+  assert.match(html, /id="metronome"[^>]*>[\s\S]*?<span>Metronome <kbd>Shift\+M<\/kbd>/);
+  assert.match(app, /async function renderSelectedSongPreview\(file\)/);
+  assert.match(app, /songLibrarySelect\.addEventListener\("change"/);
+  assert.match(app, /function renderSongLibraryPicker\(\)/);
+  assert.match(app, /drawWaveform\(sampleWaveform, buffer, songRegion, \{ zoom: 1 \}, createEvenSlices\(PAD_COUNT\)\)/);
+  assert.match(app, /if \(event\.key === "Escape"\)[\s\S]*?stopAll\(\)/);
+  assert.match(app, /event\.shiftKey[\s\S]*?event\.key\.toUpperCase\(\) === "M"[\s\S]*?metronomeInput\.dispatchEvent/);
+  assert.doesNotMatch(app, /Make 16 pads from \$\{sourceName\}/);
 });
 
 test("range controls expose the rotary knob interaction contract", () => {
@@ -208,12 +273,45 @@ test("the sequencer playhead updates in place without replacing step rows on clo
 
 test("the workspace map exposes a collapsible control", () => {
   assert.match(app, /function toggleFeatureNav\(/);
+  assert.match(app, /function updateFeatureNavigationFromHash\(/);
   assert.match(app, /featureNavGroups\.hidden = isExpanded/);
   assert.match(app, /featureNavToggle\.setAttribute\(["']aria-expanded["']/);
-  assert.match(app, /const targetDetails = target\?\.closest\(["']details["']\)/);
+  assert.match(app, /const targetDetails = target\.closest\(["']details["']\)/);
   assert.match(app, /if \(targetDetails\) targetDetails\.open = true/);
+  assert.match(app, /window\.addEventListener\(["']hashchange["']/);
+  assert.match(app, /window\.addEventListener\(["']pageshow["']/);
+  assert.match(app, /target\.scrollIntoView\(/);
+  assert.match(app, /featureNavToggle\?\.classList\.toggle\("is-current", isMoreDestination\)/);
+  assert.match(app, /featureNavToggle\?\.setAttribute\("aria-label"/);
+  assert.match(app, /Current section:/);
+  assert.doesNotMatch(app, /revealTools/);
+  assert.match(styles, /\.feature-nav-toggle\.is-current\s*\{/);
   assert.match(app, /featureNavGroups\?\.contains\(link\)/);
   assert.match(styles, /\.feature-nav\.is-collapsed/);
+});
+
+test("primary destinations switch focused Play, Build, and Sounds views", () => {
+  assert.match(html, /id="performance-surface"[^>]*data-workspace-view="play"/);
+  assert.match(html, /id="pad-setup"[^>]*data-workspace-view="build"[^>]*hidden/);
+  assert.match(html, /id="sample-library"[^>]*data-workspace-view="sounds"[^>]*hidden/);
+
+  const builderStart = html.indexOf('<aside id="pad-setup"');
+  const builderEnd = html.indexOf("</aside>", builderStart);
+  const soundsStart = html.indexOf('<section id="sample-library"');
+  assert.ok(builderStart >= 0 && builderEnd > builderStart && soundsStart > builderEnd, "Sounds is a separate view after the builder");
+  assert.match(html, /href="#performance-surface" aria-current="page">Play/);
+  assert.match(html, /href="#pad-setup">Build a kit/);
+  assert.match(html, /href="#sample-library">Sounds/);
+
+  assert.match(app, /function setWorkspaceView\(view\)/);
+  assert.match(app, /panel\.hidden = panel\.dataset\.workspaceView !== activeView/);
+  assert.match(app, /link\.setAttribute\("aria-current", "page"\)/);
+  assert.match(app, /const targetInSounds = Boolean\(sampleLibraryPanel/);
+  assert.match(app, /const activeView = targetInEditor \? "build" : targetInSounds \? "sounds" : "play"/);
+  assert.match(app, /setWorkspaceView\(activeView\)/);
+  assert.match(app, /const target = targetId \? document\.getElementById\(targetId\) : performanceSurfacePanel/);
+  assert.match(app, /const destinationHash = targetId \? hash : "#performance-surface"/);
+  assert.match(app, /target\.scrollIntoView\(/);
 });
 
 test("the performance console puts its trigger bank before utility panels", () => {
@@ -224,7 +322,8 @@ test("the performance console puts its trigger bank before utility panels", () =
   const arrangement = html.indexOf('id="sequencer-panel"');
   assert.ok(transport >= 0 && transport < pads, "the pad bank follows the transport");
   assert.ok(pads < kits && kits < arrangement && arrangement < capture, "the sequencer follows the trigger bank before recording utilities");
-  assert.match(html, /class="feature-nav-primary"[\s\S]*href="#performance-surface"[\s\S]*href="#effects-panel"[\s\S]*href="#sequencer-panel"[\s\S]*href="#sample-library"[\s\S]*href="#performance-capture"/);
+  assert.match(html, /class="feature-nav-primary"[\s\S]*href="#performance-surface"[\s\S]*href="#pad-setup"[\s\S]*href="#sample-library"/);
+  assert.match(html, /feature-nav-groups[\s\S]*href="#sequencer-panel"[\s\S]*href="#effects-panel"[\s\S]*href="#performance-capture"/);
   assert.match(html, /class="effects-bay" role="group" aria-label="Time effects"/);
   assert.match(html, /class="effects-bay" role="group" aria-label="Three-band master equalizer"/);
   assert.match(html, /class="effects-bay" role="group" aria-label="Master dynamics"/);
@@ -282,6 +381,30 @@ test("workspace sections expose a visual differentiation system", () => {
   assert.match(styles, /--section-accent:\s*#84d4bd/);
   assert.match(styles, /border-top-color:\s*var\(--section-accent\)/);
   assert.match(styles, /background:\s*linear-gradient\(180deg,\s*color-mix/);
+});
+
+test("mobile navigation and sample-library rows stay compact and reachable", () => {
+  const finalCleanup = styles.slice(styles.lastIndexOf("/* Keep the three primary destinations evenly sized"));
+  assert.match(finalCleanup, /\.feature-nav-primary\s*\{\s*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(finalCleanup, /@media\s*\(max-width:\s*700px\)[\s\S]*?\.sample-item\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*auto minmax\(0, 1fr\)/);
+  assert.match(finalCleanup, /button\.button\.button\.sample-favorite\s*\{[^}]*min-width:\s*2\.75rem/);
+  assert.match(finalCleanup, /\.sample-list\s*\{\s*overflow-x:\s*hidden/);
+});
+
+test("local-data clearing states its effects and clears app-owned browser caches", () => {
+  assert.match(html, /class="clear-local-data"[\s\S]*?id="clear-local-data"[\s\S]*?Clear all local data/);
+  assert.match(html, /<dialog id="clear-local-data-dialog"[^>]+aria-labelledby="clear-local-data-title"[^>]+aria-describedby="clear-local-data-description"/);
+  assert.match(html, /id="cancel-clear-local-data"[^>]+>Cancel<\/button>[\s\S]*id="confirm-clear-local-data"[^>]+>Clear local data<\/button>/);
+  assert.match(app, /clearLocalDataButton\.addEventListener\("click", \(\) => clearLocalDataDialog\.showModal\(\)\)/);
+  assert.match(app, /confirmClearLocalDataButton\.addEventListener\("click", \(\) => \{\s*clearLocalDataDialog\.close\(\);\s*void resetSampleStorage\(\);/);
+  assert.doesNotMatch(app, /window\.confirm\("Clear all saved Launchpad data in this browser\?/);
+  assert.match(app, /name\.startsWith\("touchscreen-launchpad-"\)[\s\S]*launchpad-spleeter-4stems-v1[\s\S]*launchpad-htdemucs-onnx-v1/);
+  assert.match(app, /currentKitId = "kit-1";\s*writeCurrentKitId\(\);\s*kits = new Map\(\);/);
+  assert.match(app, /registration\.scope === workerScope[\s\S]*worker\.scriptURL[\s\S]*launchpadRegistrations\.map\(\(registration\) => registration\.unregister\(\)\)/);
+  assert.match(app, /applyKit\(kits\.get\("kit-1"\)\)/);
+  assert.match(html, /<footer class="app-footer">[\s\S]*class="app-footer-link"/);
+  assert.doesNotMatch(html, /<footer style=/);
+  assert.match(styles, /\.app-footer\s*\{[^}]*padding:\s*1\.25rem 1rem;[^}]*text-align:\s*center/);
 });
 
 test("a closed editor leaves the live surface full width and mixer bays compact", () => {

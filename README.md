@@ -16,6 +16,7 @@ The feature-by-feature delivery plan, acceptance criteria, and explicit deferred
 - Versioned layout persistence in local storage with JSON v2 export and v1/v2 import compatibility.
 - Sample persistence in IndexedDB; audio files never leave the browser.
 - Folder or multi-file audio import with natural ordering, first-16 pad mapping, SHA-256 deduplication, and extra-library retention.
+- Separate Slicer and Stem pad workflows. Stem separates one selected song into Drums, Bass, Vocals, and Other on this device, then maps four equal sections from each stem to exactly 16 pads.
 - Sample-library drag/drop, favorites, bounded tags, tag-aware search/filtering, usage/orphan visibility, bounded batch assignment, and confirmed unused-sample cleanup.
 - Portable `.launchpack` backup/restore containing all five kit definitions and their referenced audio, with validation and transactional rollback.
 - Local performance capture with microphone-plus-app mix, saved takes, take assignment, and direct take download.
@@ -34,7 +35,7 @@ The feature-by-feature delivery plan, acceptance criteria, and explicit deferred
 
 ## Run locally
 
-There is no build step or dependency install. Serve the repository over HTTP so service-worker, IndexedDB, and installable-PWA behavior can run:
+The site is static and has no application server. Serve the repository over HTTP so service-worker, IndexedDB, and installable-PWA behavior can run:
 
 ```bash
 python -m http.server 4173
@@ -51,7 +52,7 @@ npm ci
 npm run validate
 ```
 
-This checks application and service-worker syntax, required static assets and PWA references, and the primary DOM contract. It does not replace rendered browser or physical touchscreen evidence.
+This checks application and service-worker syntax, required static assets and PWA references, DSP/mapping contracts, and the primary DOM contract. It does not replace rendered browser or physical touchscreen evidence. The Stem engine bundle and its browser runtime are included under `vendor/`; run `npm run build:stem-engine` after changing its source or ONNX Runtime Web version.
 
 ## Browser architecture and persistence
 
@@ -65,7 +66,7 @@ The main interaction path is:
 
 `index.html` renders the 16-pad surface. [`src/input-adapter.js`](src/input-adapter.js) normalizes pointer, keyboard, and other input into pad actions. [`src/audio-lifecycle.js`](src/audio-lifecycle.js), [`src/voice-registry.js`](src/voice-registry.js), [`src/sample-editor.js`](src/sample-editor.js), [`src/sample-library.js`](src/sample-library.js), and [`src/effects.js`](src/effects.js) cover audio readiness, voice cleanup, sample lookup/editing, and processing. A preview tone remains available when a pad has no assigned sample.
 
-The persistence boundary is implemented in [`app.js`](app.js), with request/transaction failure handling in [`src/storage-request.js`](src/storage-request.js) and record normalization in [`src/migrations.js`](src/migrations.js). The import and export handlers remain in [`app.js`](app.js), with focused contracts in [`test/import-export.test.mjs`](test/import-export.test.mjs) and [`test/kit-library.test.mjs`](test/kit-library.test.mjs).
+The persistence boundary is implemented in [`app.js`](app.js), with request/transaction failure handling in [`src/storage-request.js`](src/storage-request.js) and record normalization in [`src/migrations.js`](src/migrations.js). The import and export handlers remain in [`app.js`](app.js), with focused contracts in [`test/import-export.test.mjs`](test/import-export.test.mjs) and [`test/kit-library.test.mjs`](test/kit-library.test.mjs). Stem mode offers two browser-local separators: higher-quality HT-Demucs and a smaller, faster Spleeter fallback. HT-Demucs runs in a dedicated ONNX Runtime Web worker, uses overlapping 7.8-second sections, and tries WebGPU before WebAssembly CPU inference. Its pinned 166 MB model is downloaded once, SHA-256 verified, then cached. Generated stem pads normalize their playback level automatically. Song audio remains in the browser and is not uploaded to a service.
 
 ### What survives a reload
 
@@ -84,7 +85,7 @@ The local browser boundary is intentional: persistence survives reload in the sa
 
 ### Offline and PWA boundary
 
-[`sw.js`](sw.js) caches the relative application shell at cache version `touchscreen-launchpad-v59`, including the browser module graph, manifest, and icon. Its offline fallback is navigation-only: it serves a cached document shell when a navigation cannot reach the network, while ordinary asset requests use the cache or network. [`manifest.webmanifest`](manifest.webmanifest) declares the relative `./` start URL and scope for installable project hosting. A new service-worker controller reports the update and reloads the page; HTTP or HTTPS is required for service-worker, IndexedDB, and installable-PWA behavior.
+[`sw.js`](sw.js) caches the relative application shell at cache version `touchscreen-launchpad-v97`, including the browser module graph, manifest, and icon. It caches the ONNX runtime files after their first same-origin request. Its offline fallback is navigation-only: it serves a cached document shell when a navigation cannot reach the network, while ordinary asset requests use the cache or network. [`manifest.webmanifest`](manifest.webmanifest) declares the relative `./` start URL and scope for installable project hosting. A new service-worker controller reports the update and reloads the page; HTTP or HTTPS is required for service-worker, IndexedDB, and installable-PWA behavior.
 
 The diagram was generated from the public default branch with [GitDiagram](https://gitdiagram.com/icecold009/touchscreen-launchpad) using the exact repository URL [`https://github.com/icecold009/touchscreen-launchpad`](https://github.com/icecold009/touchscreen-launchpad):
 
@@ -100,11 +101,12 @@ The focused contracts are [`test/import-export.test.mjs`](test/import-export.tes
 
 1. Select a pad.
 2. Edit its name, shortcut, playback mode, and volume.
-3. Choose an audio file and save the pad. To reuse a file already in the shared library, select **Assign** beside it, then save the pad.
+3. Choose an audio file or a saved song in Pad Setup, then preview its waveform before assigning it.
 4. Trigger it by touch, mouse, or the displayed keyboard shortcut.
 5. Use **Save kit** for an explicit local save, or switch among the five named kit slots.
-6. Use **Export .launchpack** for a portable backup of all kits and referenced audio. **Import Pack** accepts a folder or multiple audio files; the first 16 natural-sorted files map to pads and any remaining files stay in the shared library.
-7. Record a local take, assign it to a pad, or download it. In Sample lab, create a bounded slice bank, adjust In/Out markers, preview a slice, and assign it to the selected pad before saving. Build Scene A/B patterns, export a deterministic event log or bounded master/stems WAV, and use **Export MIDI** to move the arrangement into a DAW or hardware sequencer.
+6. In Pad Setup, choose **Slicer** to preview a song, create slices, and fill all pads from its existing 16-slice bank or 16 equal sections. Choose **Stem** and select a song to separate it on this device into Drums, Bass, Vocals, and Other. The higher-quality HT-Demucs option downloads a pinned 166 MB model on first use; Spleeter is available as a quicker, lower-quality option. The four stems each become four equal pad regions, for exactly 16 pads. Stem pads automatically normalize their playback level. Only model weights are downloaded; the song never leaves this browser. Both workflows replace the active kit's assignments; choose **Undo** to restore them. **Import audio** opens the folder picker for up to 128 files; the first 16 natural-sorted files map to pads and any remaining files stay in the shared library.
+7. Use **Esc** to stop all playback or **Shift+M** to toggle the metronome.
+8. Record a local take, assign it to a pad, or download it. In Sample lab, create a bounded slice bank, adjust In/Out markers, preview a slice, and assign it to the selected pad before saving. Build Scene A/B patterns, export a deterministic event log or bounded master/stems WAV, and use **Export MIDI** to move the arrangement into a DAW or hardware sequencer.
 
 Exported JSON contains pad assignments and settings, not audio bytes. An imported layout may therefore show missing samples until those files are assigned again in the current browser. `.launchpack` backups include the referenced audio bytes and never upload them to the hosted app.
 
@@ -137,4 +139,4 @@ Only load audio you created or have permission to use. Do not commit or redistri
 
 ## Deliberate limits
 
-Cloud accounts, sync, complex time-stretching, automatic slicing, richer offline delay/reverb return rendering, more-than-two-scene arrangements, full timeline sequencing, DAW import verification, and native mobile packaging remain deferred. Scene MIDI, event-log, guarded WAV export, and bounded A/B chain playback are available; audio capture and device access stay permission-gated and browser-local.
+Cloud accounts, sync, complex time-stretching, automatic transient slicing, richer offline delay/reverb return rendering, more-than-two-scene arrangements, full timeline sequencing, DAW import verification, and native mobile packaging remain deferred. Scene MIDI, event-log, guarded WAV export, and bounded A/B chain playback are available; audio capture and device access stay permission-gated and browser-local.

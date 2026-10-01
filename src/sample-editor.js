@@ -44,6 +44,18 @@ export function createPlaybackPlan({ duration, region, timeStretch = 1, pitchCen
   };
 }
 
+export function getBufferSourceStartArgs(plan, { loop = false } = {}) {
+  const offset = Math.max(0, Number(plan?.offset) || 0);
+  if (loop) return [offset];
+  return [offset, Math.max(0.001, Number(plan?.duration) || 0.001)];
+}
+
+export function getPlaybackDurationSeconds(plan) {
+  const rate = Math.max(0.0001, Number(plan?.playbackRate) || 1)
+    * (2 ** (clamp(Number(plan?.detune) || 0, -2400, 2400) / 1200));
+  return Math.max(0.001, Number(plan?.duration) || 0.001) / rate;
+}
+
 export function createWaveformPeaks(buffer, pointCount = 160) {
   if (!buffer || typeof buffer.getChannelData !== "function") return [];
   const data = buffer.getChannelData(0);
@@ -71,7 +83,7 @@ export function getBufferPeak(buffer, region = {}) {
   return Math.max(0.0001, peak);
 }
 
-export function drawWaveform(canvas, buffer, region = {}, processing = {}) {
+export function drawWaveform(canvas, buffer, region = {}, processing = {}, slices = []) {
   if (!canvas?.getContext) return false;
   const context = canvas.getContext("2d");
   const width = canvas.width;
@@ -103,6 +115,25 @@ export function drawWaveform(canvas, buffer, region = {}, processing = {}) {
     context.moveTo(x, 0);
     context.lineTo(x, height);
     context.stroke();
+  }
+  const visibleSlices = Array.isArray(slices) ? slices : [];
+  if (visibleSlices.length > 1) {
+    context.save();
+    context.strokeStyle = "rgba(155, 109, 51, 0.8)";
+    context.lineWidth = 1;
+    context.setLineDash([3, 3]);
+    for (const slice of visibleSlices.slice(1)) {
+      const position = Number(slice.start);
+      if (!Number.isFinite(position)) continue;
+      const x = Math.round(width * clamp(visiblePosition(position), 0, 1)) + 0.5;
+      if (x <= 0.5 || x >= width - 0.5) continue;
+      context.beginPath();
+      context.moveTo(x, 0);
+      context.lineTo(x, height);
+      context.stroke();
+    }
+    context.setLineDash([]);
+    context.restore();
   }
   return true;
 }
