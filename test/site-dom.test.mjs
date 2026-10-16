@@ -85,6 +85,8 @@ test("the launchpad DOM exposes its primary interaction surface", () => {
     "sample-favorites-only",
     "sample-tag-filter",
     "sample-selection-status",
+    "selected-pad-context",
+    "sample-assignment-target",
     "assign-selected-samples",
     "remove-orphans",
     "sample-list",
@@ -181,6 +183,23 @@ test("range controls expose the rotary knob interaction contract", () => {
   assert.match(styles, /@media \(max-width: 540px\)\s*\{\s*#transport-controls \.control-row\s*\{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(styles, /#kit-tools:has\(#kit-options:not\(\[open\]\)\),\s*#midi-panel:not\(\[open\]\)\s*\{\s*display: none;/);
   assert.match(styles, /touch-action:\s*none/);
+});
+
+test("pad editing and assignment announce their target and performance state", () => {
+  assert.match(html, /id="selected-pad-context"/);
+  assert.match(html, /id="sample-assignment-target"[^>]+role="status"[^>]+aria-live="polite"/);
+  assert.match(app, /function formatPadContext\(index\)/);
+  assert.match(app, /function formatBatchAssignmentRange\(assignments\)/);
+  assert.match(app, /Staged replacement:/);
+  assert.match(app, /will assign to \$\{range\}/);
+  assert.match(app, /selected for editing/);
+  assert.match(app, /launch queued/);
+  assert.match(app, /button\.dataset\.activity = isLoading \? "loading"/);
+  assert.match(app, /stateBadge\.hidden = !visibleState/);
+  assert.match(styles, /\.pad-performance \.pad-state\[hidden\]\s*\{\s*display:\s*none;/);
+  assert.match(styles, /\.pad-performance \.pad\.is-selected\.is-playing/);
+  assert.match(styles, /\.pad-performance \.pad\.is-selected\.is-queued/);
+  assert.match(styles, /#sample-library \.sample-assignment-target\[data-state="staged"\]/);
 });
 
 test("the sequencer playhead updates in place without replacing step rows on clock ticks", () => {

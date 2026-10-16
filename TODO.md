@@ -1,5 +1,15 @@
 # Completion audit — Touchscreen Launchpad
 
+## Package: Pad context, assignment destinations, and live states — `codex/pad-editor-performance-ux-20261016`
+
+- Goal: Make existing pad editing, sound assignment, and performance states easier to identify without changing how audio or saved kits work.
+- Scope: Keep the selected pad number and custom name visible in the editor; show the current or staged sound and exact assignment destination; preview the bounded batch pad range before its existing immediate save; identify selected, playing, queued, and loading pads visually and to assistive technology; preserve the current trigger adapter, keyboard shortcuts, audio clock, persistence, and app-shell cache discipline.
+- Non-goals: Add a second audio subsystem, retrospective capture, new assignment semantics, a new sequencer/launch model, or Ableton/native behavior claims. Pending-launch behavior not demonstrated by the browser reference remains out of scope.
+- Files: `index.html`, `app.js`, `style.css`, `src/bootstrap.js`, `sw.js`, `test/site-dom.test.mjs`, `TODO.md`, and `docs/evidence/rea/`.
+- Tests: `npm.cmd run validate`, `git diff --check`, and isolated browser checks at 1600×900 and effective 400×1000 (the viewport API returned 400px for a 320px request): keyboard W/3 selection, numbered/custom editor context, editor-to-LIVE selection retention, staged preview-tone save, loop on/off round trip, selected/PLAY accessibility state, and no horizontal overflow. file-backed WAV replacement on Pad 15 staged until Save pad and persisted to the isolated library; batch selection previewed Pad 15 and confirmed `1 sample assigned to Pad 15`.
+- Acceptance: The editor and sample library identify the same selected pad by number/name; single replacement remains staged until Save pad; batch preview matches the existing bounded range and save result; selected/play/queue/loading states remain independently visible/readable when combined; narrow controls do not overflow; no gesture, audio-clock, persistence, or shortcut contract changes.
+- Evidence: `docs/evidence/rea/reference-study.md` records the Skunk Sampler target, receipts, findings and limitations; same-target REA before/after screenshots compare as 1,276 changed pixels (0.096%). `npm.cmd run validate` passes 91 tests and `git diff --check` passes. Jev reviewed implementation, tests, backlog and the study summary but flagged a verification gap; no concrete source defect was identified. A bounded follow-up browser interaction verified isolated WAV replacement staging/save and immediate batch assignment to Pad 15. Hosted PR checks remain separate.
+
 Repository: `C:\Users\91829\OneDrive\Documents\GitHub\touchscreen-launchpad`
 Reviewed: feature branch `codex/vercel-canonical-hosting-20260914` during the 2026-09-14 completion audit
 Release baseline: PR #7 was merged to `main` as `9c214a8`.

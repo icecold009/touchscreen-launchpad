@@ -1,28 +1,28 @@
 const PAD_COUNT = 16;
 const KIT_COUNT = 5;
-import { createHistory } from "./src/history.js?version=76";
-import { createInputAdapter } from "./src/input-adapter.js?version=76";
-import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=76";
-import { createPointerState } from "./src/pointer-state.js?version=76";
-import { createIndexedDbStore } from "./src/storage/indexed-db.js?version=76";
-import { createLocalSettings } from "./src/storage/local-settings.js?version=76";
-import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=76";
-import { getNextQuantizedTime } from "./src/transport.js?version=76";
-import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=76";
-import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=76";
-import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=76";
-import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=76";
-import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=76";
-import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=76";
-import { createMidiFile } from "./src/midi-file.js?version=76";
-import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=76";
-import { createVoiceRegistry } from "./src/voice-registry.js?version=76";
-import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=76";
-import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=76";
-import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=76";
-import { createPerformanceEvents, createPerformanceLog, checksumBytes, estimateRenderBytes, isRenderWithinGuardrails, normalizeRenderOptions } from "./src/performance-export.js?version=76";
-import { createArrangement, formatSceneChain, getNextChainPosition, getSceneName, normalizeArrangement, normalizeSceneId, parseSceneChain, shouldLaunchAtStep } from "./src/arrangement.js?version=76";
-import { encodePcmWav } from "./src/wav.js?version=76";
+import { createHistory } from "./src/history.js?version=77";
+import { createInputAdapter } from "./src/input-adapter.js?version=77";
+import { createDefaultPad, normalizeKitRecord, normalizePadDefinition, normalizeSampleRecord } from "./src/migrations.js?version=77";
+import { createPointerState } from "./src/pointer-state.js?version=77";
+import { createIndexedDbStore } from "./src/storage/indexed-db.js?version=77";
+import { createLocalSettings } from "./src/storage/local-settings.js?version=77";
+import { downloadBlob as triggerBlobDownload, downloadText as triggerTextDownload } from "./src/download.js?version=77";
+import { getNextQuantizedTime } from "./src/transport.js?version=77";
+import { createRecordingSession, createTakeRecord, formatRecordingTime, isValidTakeRecord, normalizeTakeRecord } from "./src/recording.js?version=77";
+import { createPlaybackPlan, createReversedBuffer, drawWaveform, getBufferPeak, normalizeSampleProcessing, normalizeSampleRegion } from "./src/sample-editor.js?version=77";
+import { getCountInBeatCount, getGroupPeers, getRepeatIntervalMs, normalizePerformanceSettings, shouldReleaseOnPointer } from "./src/performance-engine.js?version=77";
+import { createPattern, getStepEvents, normalizePattern, toggleStep, updateStep } from "./src/sequencer.js?version=77";
+import { createClockedSequencerRunner } from "./src/clocked-sequencer.js?version=77";
+import { createMidiClockMessage, createMidiClockTracker, createMidiControllerMessage, createMidiLearnState, createMidiNoteMessage, getMidiControllerValue, getMidiMappingConflicts, getPadIndexForMidiNote, normalizeMidiConfig, normalizeMidiControllerMapping, normalizeMidiMapping, parseMidiMessage } from "./src/midi.js?version=77";
+import { createMidiFile } from "./src/midi-file.js?version=77";
+import { createImpulseResponse, detectPeak, normalizeEffectSends, normalizeMasterEffects } from "./src/effects.js?version=77";
+import { createVoiceRegistry } from "./src/voice-registry.js?version=77";
+import { describeAudioState, hasLiveMediaTracks, normalizeAudioContextState } from "./src/audio-lifecycle.js?version=77";
+import { MAX_SLICE_COUNT, createEvenSlices, normalizeSliceDefinitions, updateSliceDefinition } from "./src/slices.js?version=77";
+import { normalizeSampleLibraryMetadata, filterSampleRecords, getOrphanSampleIds, getSampleUsage, createBatchAssignments } from "./src/sample-library.js?version=77";
+import { createPerformanceEvents, createPerformanceLog, checksumBytes, estimateRenderBytes, isRenderWithinGuardrails, normalizeRenderOptions } from "./src/performance-export.js?version=77";
+import { createArrangement, formatSceneChain, getNextChainPosition, getSceneName, normalizeArrangement, normalizeSceneId, parseSceneChain, shouldLaunchAtStep } from "./src/arrangement.js?version=77";
+import { encodePcmWav } from "./src/wav.js?version=77";
 
 const MAX_LAYOUT_BYTES = 256 * 1024;
 const MAX_SAMPLE_BYTES = 50 * 1024 * 1024;
@@ -176,6 +176,7 @@ const sampleFileInput = document.querySelector("#sample-file");
 const sampleName = document.querySelector("#sample-name");
 const clearSampleButton = document.querySelector("#clear-sample");
 const selectedPadIndicator = document.querySelector("#selected-pad-indicator");
+const selectedPadContext = document.querySelector("#selected-pad-context");
 const editorDirtyIndicator = document.querySelector("#editor-dirty");
 const undoPadButton = document.querySelector("#undo-pad");
 const redoPadButton = document.querySelector("#redo-pad");
@@ -199,6 +200,7 @@ const sampleTagFilterInput = document.querySelector("#sample-tag-filter");
 const sampleDropzone = document.querySelector("#sample-dropzone");
 const sampleDropInput = document.querySelector("#import-pack");
 const sampleSelectionStatus = document.querySelector("#sample-selection-status");
+const sampleAssignmentTarget = document.querySelector("#sample-assignment-target");
 const assignSelectedSamplesButton = document.querySelector("#assign-selected-samples");
 const removeOrphansButton = document.querySelector("#remove-orphans");
 const selectedSampleIds = new Set();
@@ -620,6 +622,13 @@ function getPadName(pad, index = Math.max(0, Number(pad?.id) - 1)) {
 function getVisiblePadLabel(pad, index) {
   const label = typeof pad?.label === "string" ? pad.label.trim() : "";
   return label && label !== defaultPadName(index) ? label : "";
+}
+
+function formatPadContext(index) {
+  const pad = pads[index];
+  const number = String(pad?.id || index + 1).padStart(2, "0");
+  const label = getVisiblePadLabel(pad, index);
+  return label ? `Pad ${number} · ${label}` : `Pad ${number}`;
 }
 
 function getPadDisplayColor(pad) {
@@ -2275,11 +2284,60 @@ function renderSampleTagFilter(allSamples) {
 
 function updateSampleSelectionControls() {
   const orphanCount = getOrphanSampleIds([...samples.values()], [...kits.values()]).length;
-  if (sampleSelectionStatus) sampleSelectionStatus.textContent = selectedSampleIds.size ? `${selectedSampleIds.size} selected` : "Select samples for batch assignment.";
-  if (assignSelectedSamplesButton) assignSelectedSamplesButton.disabled = !selectedSampleIds.size;
+  const selectedIds = [...selectedSampleIds].filter((sampleId) => samples.has(sampleId));
+  const assignments = createBatchAssignments(selectedIds, PAD_COUNT, selectedPadIndex);
+  const range = formatBatchAssignmentRange(assignments);
+
+  if (sampleSelectionStatus) {
+    if (!selectedIds.length) {
+      sampleSelectionStatus.textContent = "Select samples for batch assignment.";
+    } else if (assignments.length < selectedIds.length) {
+      sampleSelectionStatus.textContent = `${selectedIds.length} selected · ${assignments.length} fit on ${range}; the rest stay unassigned.`;
+    } else {
+      sampleSelectionStatus.textContent = `${selectedIds.length} selected · will assign to ${range}.`;
+    }
+  }
+  if (assignSelectedSamplesButton) {
+    assignSelectedSamplesButton.disabled = !assignments.length;
+    assignSelectedSamplesButton.textContent = assignments.length ? `Assign ${assignments.length}` : "Assign selected";
+    const assignmentDescription = assignments.length
+      ? assignments.length < selectedIds.length
+        ? `Assign the first ${assignments.length} of ${selectedIds.length} selected samples to ${range}, starting at ${formatPadContext(assignments[0].padIndex)}; the rest stay unassigned.`
+        : `Assign ${assignments.length} selected sample${assignments.length === 1 ? "" : "s"} to ${range}, starting at ${formatPadContext(assignments[0].padIndex)}.`
+      : `Assign selected samples to pads starting at ${formatPadContext(selectedPadIndex)}.`;
+    assignSelectedSamplesButton.setAttribute("aria-label", assignmentDescription);
+  }
   if (removeOrphansButton) {
     removeOrphansButton.disabled = !orphanCount;
     removeOrphansButton.textContent = orphanCount ? `Remove ${orphanCount} unused` : "Remove unused";
+  }
+}
+
+function formatBatchAssignmentRange(assignments) {
+  if (!assignments.length) return "";
+  const first = String(pads[assignments[0].padIndex].id).padStart(2, "0");
+  const last = String(pads[assignments[assignments.length - 1].padIndex].id).padStart(2, "0");
+  return assignments.length === 1 ? `Pad ${first}` : `Pads ${first}–${last}`;
+}
+
+function updateSampleAssignmentTarget() {
+  if (!sampleAssignmentTarget) return;
+  const context = formatPadContext(selectedPadIndex);
+  const stagedSample = draftSampleId ? samples.get(draftSampleId) : null;
+  const selectedFile = sampleFileInput.files?.[0];
+  const currentSample = pads[selectedPadIndex]?.sampleId ? samples.get(pads[selectedPadIndex].sampleId) : null;
+
+  if (draftSampleCleared) {
+    sampleAssignmentTarget.textContent = `Sample removal staged for ${context}. Save pad to apply.`;
+    sampleAssignmentTarget.dataset.state = "staged";
+  } else if (stagedSample || selectedFile) {
+    const soundName = stagedSample?.name || selectedFile.name;
+    sampleAssignmentTarget.textContent = `Staged replacement: ${soundName} → ${context}. Save pad to apply.`;
+    sampleAssignmentTarget.dataset.state = "staged";
+  } else {
+    const currentSound = currentSample ? ` Current sound: ${currentSample.name}.` : "";
+    sampleAssignmentTarget.textContent = `Assignment target: ${context}.${currentSound} Single assignments stage until Save pad; batch assignments save immediately.`;
+    sampleAssignmentTarget.dataset.state = "ready";
   }
 }
 
@@ -2321,7 +2379,9 @@ async function assignSelectedSamples() {
   pads = pads.map((pad, index) => assignedByPad.has(index) ? { ...pad, sampleId: assignedByPad.get(index), sliceId: null } : pad);
   renderPads();
   selectPad(selectedPadIndex);
-  if (!(await saveActiveKit(`${assignments.length} samples assigned starting at Pad ${selectedPadIndex + 1}.`))) {
+  const range = formatBatchAssignmentRange(assignments);
+  const sampleLabel = assignments.length === 1 ? "sample" : "samples";
+  if (!(await saveActiveKit(`${assignments.length} ${sampleLabel} assigned to ${range}.`))) {
     pads = previousPads;
     renderPads();
     selectPad(selectedPadIndex);
@@ -2453,7 +2513,7 @@ function assignSampleToSelectedPad(sampleId) {
   updateSampleName();
   void renderSampleEditor();
   markEditorDirty();
-  setStatus(`${sample.name} selected for ${getPadName(pads[selectedPadIndex], selectedPadIndex)}. Save the pad to apply it.`);
+  setStatus(`${sample.name} staged for ${formatPadContext(selectedPadIndex)}. Save pad to apply it.`);
 }
 
 function revokeTakePreviewUrls() {
@@ -3530,15 +3590,37 @@ async function triggerPad(index, { linked = false, bypassCountIn = false, fromRe
 function updatePadState(index) {
   const button = padGrid.querySelector(`[data-index="${index}"]`);
   if (!button) return;
+  const pad = pads[index];
   const voices = getPadVoices(index);
   const isPlaying = [...voices].some((voice) => voice.started);
   const isQueued = !isPlaying && voices.size > 0;
+  const isLoading = pendingPads.has(index);
+  const isSelected = selectedPadIndex === index;
+  const performanceSettings = normalizePerformanceSettings(pad);
+  const stateBadge = button.querySelector(".pad-state");
+  const visibleState = isPlaying ? "PLAY" : isQueued ? "QUEUE" : isLoading ? "LOAD" : isSelected ? "EDIT" : "";
+
   button.classList.toggle("is-playing", isPlaying);
   button.classList.toggle("is-queued", isQueued);
-  button.classList.toggle("is-loading", pendingPads.has(index));
-  button.classList.toggle("is-selected", selectedPadIndex === index);
+  button.classList.toggle("is-loading", isLoading);
+  button.classList.toggle("is-selected", isSelected);
   button.setAttribute("aria-pressed", String(isPlaying || isQueued));
+  button.setAttribute("aria-label", [
+    formatPadContext(index),
+    `keyboard shortcut ${pad.key}`,
+    pad.mode === "loop" ? "loop playback" : "one-shot playback",
+    `${performanceSettings.triggerMode} trigger mode`,
+    isSelected ? "selected for editing" : "",
+    isPlaying ? "playing" : "",
+    isQueued ? "launch queued" : "",
+    isLoading ? "loading to play" : "",
+  ].filter(Boolean).join(", "));
   button.dataset.state = isPlaying ? "playing" : isQueued ? "queued" : "ready";
+  button.dataset.activity = isLoading ? "loading" : isQueued ? "queued" : isPlaying ? "playing" : "ready";
+  if (stateBadge) {
+    stateBadge.textContent = visibleState;
+    stateBadge.hidden = !visibleState;
+  }
 }
 
 function releasePadPointer(button, event) {
@@ -3583,6 +3665,11 @@ function renderPads() {
       mode.setAttribute("aria-hidden", "true");
       button.append(mode);
     }
+    const stateBadge = document.createElement("span");
+    stateBadge.className = "pad-state";
+    stateBadge.setAttribute("aria-hidden", "true");
+    stateBadge.hidden = true;
+    button.append(stateBadge);
 
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
@@ -3638,6 +3725,7 @@ function updateSampleName() {
   } else {
     sampleName.textContent = "Preview tone";
   }
+  updateSampleAssignmentTarget();
 }
 
 let waveformBuffer;
@@ -3773,6 +3861,7 @@ function selectPad(index) {
   selectedPadIndex = index;
   const pad = pads[index];
   selectedPadIndicator.textContent = String(pad.id).padStart(2, "0");
+  if (selectedPadContext) selectedPadContext.textContent = formatPadContext(index);
   padLabelInput.value = getVisiblePadLabel(pad, index);
   padKeyInput.value = pad.key;
   padModeInput.value = pad.mode;
@@ -4685,7 +4774,7 @@ async function registerServiceWorker() {
 
   try {
     const hadController = Boolean(navigator.serviceWorker.controller);
-    const registration = await navigator.serviceWorker.register("./sw.js?version=76");
+    const registration = await navigator.serviceWorker.register("./sw.js?version=77");
     const installingWorker = registration.installing;
 
     if (hadController) {
