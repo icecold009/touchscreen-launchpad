@@ -154,3 +154,8 @@ Every future package must state its goal, scope, non-goals, files, tests, accept
 ## Definition of done for the professional milestone
 
 The milestone is complete when Packages A–I are shipped and verified, the production smoke matrix is green, and the remaining deferred list is accepted as a product decision rather than an accidental omission.
+
+
+## Architecture documentation publication — 2026-10-04
+
+Goal: publish source-linked architecture documentation and diagram previews. Scope: README, this backlog and docs/architecture artifacts. Source snapshot: eef62b01b9ff33d0ccf1c7fc7524eb00edf6ffbf; no runtime, dependency, data or deployment changes. Acceptance: pinned inventory/source-map/embedding checks, ten intended negative cases, renderer checks, bounded Jev review, documentation-only commit and remotely verified PR. Jev remains advisory; pre-existing workspace changes are excluded.
