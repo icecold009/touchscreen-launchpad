@@ -1,0 +1,13 @@
+{
+  "browser": { "mode": "connect", "cdp_endpoint": "http://127.0.0.1:9222", "target_id": "B01AE606363AE66BB401C6BCA7D509C8" },
+  "start_url": { "url": "https://skunkaudio.org/play", "query": [] },
+  "environment": { "viewport": { "width": 1280, "height": 720, "device_scale_factor": 1 }, "locale": "en-US", "timezone": "UTC", "color_scheme": "light", "reduced_motion": "reduce", "service_workers": "block" },
+  "actions": [
+    { "step_id": "start-transport", "action": "click", "locator": { "kind": "role", "role": "button", "name": "Play" }, "button": "left", "click_count": 1 },
+    { "step_id": "stop-transport", "action": "click", "locator": { "kind": "role", "role": "button", "name": "Stop" }, "button": "left", "click_count": 1 },
+    { "step_id": "toggle-loop", "action": "click", "locator": { "kind": "role", "role": "button", "name": "Loop bar 1" }, "button": "left", "click_count": 1 }
+  ],
+  "storage": { "cookies": [], "local_storage": [], "session_storage": [] },
+  "secrets": [],
+  "capture": { "after_each_step": ["screenshot", "dom", "accessibility"], "at_end": ["screenshot", "dom", "accessibility", "url"], "events": ["console", "page-errors"], "network": { "request_body": false, "response_body": false, "header_values": false } }
+}
